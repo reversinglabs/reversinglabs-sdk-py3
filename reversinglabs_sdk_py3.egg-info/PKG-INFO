@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: reversinglabs-sdk-py3
-Version: 1.0.0
+Version: 1.0.1
 Summary: Python SDK for using ReversingLabs services - Python 3 version.
 Home-page: https://github.com/reversinglabs/reversinglabs-sdk-py3
 Author: ReversingLabs

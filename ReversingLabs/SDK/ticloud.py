@@ -1548,7 +1548,7 @@ def _update_hash_object(input_source, hash_object):
         hash_object.update(input_source.read())
 
     elif isinstance(input_source, str):
-        hash_object.update(input_source)
+        hash_object.update(input_source.encode("utf-8"))
 
     else:
         raise TypeError("This is not a valid source type: Only string and file opened in 'rb' mode "
