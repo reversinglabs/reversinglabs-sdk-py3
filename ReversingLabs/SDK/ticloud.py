@@ -21,6 +21,7 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
     NoFileTypeError, NotFoundError, WrongInputError, \
     validate_hashes
 
+
 XML = "xml"
 JSON = "json"
 
@@ -50,8 +51,8 @@ class TiCloudAPI(object):
                  user_agent=DEFAULT_USER_AGENT, allow_none_return=False):
 
         if host.startswith("http://"):
-            raise WrongInputError(
-                "Unsupported protocol definition: TitaniumCloud services can only be used over HTTPS.")
+            raise WrongInputError("Unsupported protocol definition: "
+                                  "TitaniumCloud services can only be used over HTTPS.")
         self._host = self.__format_url(host)
 
         self._username = username
@@ -917,8 +918,8 @@ class AdvancedSearch(TiCloudAPI):
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
                 raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
                                       "Sorting order needs to be 'desc' or 'asc'.".format(
-                    criteria=ADVANCED_SEARCH_SORTING_CRITERIA
-                ))
+                                       criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                                      ))
 
             sorting_expression = "{criteria} {order}".format(
                 criteria=sorting_criteria,
