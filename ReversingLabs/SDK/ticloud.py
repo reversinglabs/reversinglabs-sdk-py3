@@ -21,6 +21,7 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
     NoFileTypeError, NotFoundError, WrongInputError, \
     validate_hashes
 
+
 XML = "xml"
 JSON = "json"
 
@@ -50,8 +51,8 @@ class TiCloudAPI(object):
                  user_agent=DEFAULT_USER_AGENT, allow_none_return=False):
 
         if host.startswith("http://"):
-            raise WrongInputError(
-                "Unsupported protocol definition: TitaniumCloud services can only be used over HTTPS.")
+            raise WrongInputError("Unsupported protocol definition: "
+                                  "TitaniumCloud services can only be used over HTTPS.")
         self._host = self.__format_url(host)
 
         self._username = username
@@ -339,14 +340,14 @@ class FileAnalysis(TiCloudAPI):
         return response
 
     @staticmethod
-    def extract_uri_list_from_report(reports_dict):
-        """Return a list of all the URIs from a list of results (entries).
-            :param reports_dict: list of results (entries)
-            :type reports_dict: dict
+    def extract_uri_list_from_report(report_dict):
+        """Return a list of all the URIs from a file analysis report dictionary.
+            :param report_dict: file analysis report dictionary
+            :type report_dict: dict
             :return: list of uris
             :rtype: list
         """
-        if not isinstance(reports_dict, dict):
+        if not isinstance(report_dict, dict):
             raise WrongInputError("reports_dict parameter must be a dictionary.")
 
         sha1_key = SHA1
@@ -408,12 +409,12 @@ class FileAnalysis(TiCloudAPI):
 
         uris = []
 
-        report = reports_dict.get("rl", {}).get("sample", {})
-        for entry in report.get("analysis", {}).get("entries", []):
+        sample = report_dict.get("rl", {}).get("sample", {})
+        for entry in sample.get("analysis", {}).get("entries", []):
             for interesting_string in entry.get("tc_report", {}).get("interesting_strings", []):
                 for value in interesting_string['values']:
                     uris.append({
-                        sha1_key: report[SHA1],
+                        sha1_key: sample[SHA1],
                         from_key: "interesting_strings",
                         category_key: interesting_string["category"],
                         uri_key: value
@@ -422,69 +423,55 @@ class FileAnalysis(TiCloudAPI):
             for property in entry.get("tc_report", {}).get("info", {}).get("package", {}).get("properties", []):
                 if property.get("name", "").startswith("botServer"):
                     uris.append({
-                        sha1_key: report[SHA1],
+                        sha1_key: sample[SHA1],
                         from_key: "package",
                         category_key: "uri",
                         uri_key: property["value"]
                     })
 
-        for entry in report.get("sources", {}).get("entries", []):
+        for entry in sample.get("sources", {}).get("entries", []):
             if "domain" in entry:
                 uris.append({
-                    sha1_key: report[SHA1],
+                    sha1_key: sample[SHA1],
                     from_key: "sources",
                     category_key: "domain",
                     uri_key: entry["domain"].get("name")
                 })
-
             for property in entry.get("properties", []):
                 if property["name"] == "url" and property["value"] != '':
                     uris.append({
-                        sha1_key: report[SHA1],
+                        sha1_key: sample[SHA1],
                         from_key: "sources",
                         category_key: "url",
                         uri_key: property["value"]
                     })
 
-        for entry in report.get("dynamic_analysis", {}).get("entries", []):
+        for entry in sample.get("dynamic_analysis", {}).get("entries", []):
             if "dynamic_analysis_report_joe_sandbox" in entry:
-                reports_dict = entry["dynamic_analysis_report_joe_sandbox"]
-
-                if "network" in reports_dict:
-                    uris.extend(
-                        network_uris(
-                            reports_dict["network"],
-                            "dynamic_analysis_report_joe_sandbox",
-                            report[SHA1]
-                        )
-                    )
+                report_dict = entry["dynamic_analysis_report_joe_sandbox"]
+                if "network" in report_dict:
+                    uris.extend(network_uris(report_dict["network"],
+                                             "dynamic_analysis_report_joe_sandbox",
+                                             sample[SHA1]))
 
             if "dynamic_analysis_report" in entry:
-                reports_dict = entry["dynamic_analysis_report"]
+                report_dict = entry["dynamic_analysis_report"]
+                if "network" in report_dict:
+                    uris.extend(network_uris(report_dict["network"],
+                                             "dynamic_analysis_report",
+                                             sample[SHA1]))
 
-                if "network" in reports_dict:
-                    uris.extend(
-                        network_uris(
-                            reports_dict["network"],
-                            "dynamic_analysis_report",
-                            report[SHA1]
-                        )
-                    )
-
-        # deduplicate by converting all to jsonstring
-        # and adding to a single dict,
-        # then reconvert back into list
-        zz = {}
+        transitional_dict = {}
         for item in uris:
-            p = json.dumps(item)
-            zz[p] = p
+            item_str = json.dumps(item)
+            transitional_dict[item_str] = item_str
 
-        uris = []
-        for k, v in zz.items():
-            item = json.loads(k)
-            uris.append(item)
+        deduplicated_uris = []
+        for key, _ in transitional_dict.items():
+            item = json.loads(key)
+            deduplicated_uris.append(item)
 
-        return uris
+        return deduplicated_uris
 
     def get_file_type(self, sample_hash):
         """Returns a TitaniumCore classified file type.
@@ -931,8 +918,8 @@ class AdvancedSearch(TiCloudAPI):
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
                 raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
                                       "Sorting order needs to be 'desc' or 'asc'.".format(
-                    criteria=ADVANCED_SEARCH_SORTING_CRITERIA
-                ))
+                                       criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                                      ))
 
             sorting_expression = "{criteria} {order}".format(
                 criteria=sorting_criteria,
