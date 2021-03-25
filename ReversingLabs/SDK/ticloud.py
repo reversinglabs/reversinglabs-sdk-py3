@@ -13,13 +13,13 @@ Reproduction or distribution, in whole or in part, is forbidden except by expres
 import datetime
 import hashlib
 import requests
+import json
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, \
     MD5, SHA1, SHA256, SHA512, \
     NoFileTypeError, NotFoundError, WrongInputError, \
     validate_hashes
-
 
 XML = "xml"
 JSON = "json"
@@ -50,7 +50,8 @@ class TiCloudAPI(object):
                  user_agent=DEFAULT_USER_AGENT, allow_none_return=False):
 
         if host.startswith("http://"):
-            raise WrongInputError("Unsupported protocol definition: TitaniumCloud services can only be used over HTTPS.")
+            raise WrongInputError(
+                "Unsupported protocol definition: TitaniumCloud services can only be used over HTTPS.")
         self._host = self.__format_url(host)
 
         self._username = username
@@ -407,61 +408,83 @@ class FileAnalysis(TiCloudAPI):
 
         uris = []
 
-        for report in reports_dict:
-            for entry in report.get("analysis", {}).get("entries", []):
-                for interesting_string in entry.get("tc_report", {}).get("interesting_strings", []):
-                    for value in interesting_string['values']:
-                        uris.append({
-                            sha1_key: report[SHA1],
-                            from_key: "interesting_strings",
-                            category_key: interesting_string["category"],
-                            uri_key: value
-                        })
+        report = reports_dict.get("rl", {}).get("sample", {})
+        for entry in report.get("analysis", {}).get("entries", []):
+            for interesting_string in entry.get("tc_report", {}).get("interesting_strings", []):
+                for value in interesting_string['values']:
+                    uris.append({
+                        sha1_key: report[SHA1],
+                        from_key: "interesting_strings",
+                        category_key: interesting_string["category"],
+                        uri_key: value
+                    })
 
-                for property in entry.get("tc_report", {}).get("info", {}).get("package", {}).get("properties", []):
-                    if property.get("name", "").startswith("botServer"):
-                        uris.append({
-                            sha1_key: report[SHA1],
-                            from_key: "package",
-                            category_key: "uri",
-                            uri_key: property["value"]
-                        })
+            for property in entry.get("tc_report", {}).get("info", {}).get("package", {}).get("properties", []):
+                if property.get("name", "").startswith("botServer"):
+                    uris.append({
+                        sha1_key: report[SHA1],
+                        from_key: "package",
+                        category_key: "uri",
+                        uri_key: property["value"]
+                    })
 
-            for entry in report.get("sources", {}).get("entries", []):
-                if "domain" in entry:
+        for entry in report.get("sources", {}).get("entries", []):
+            if "domain" in entry:
+                uris.append({
+                    sha1_key: report[SHA1],
+                    from_key: "sources",
+                    category_key: "domain",
+                    uri_key: entry["domain"].get("name")
+                })
+
+            for property in entry.get("properties", []):
+                if property["name"] == "url" and property["value"] != '':
                     uris.append({
                         sha1_key: report[SHA1],
                         from_key: "sources",
-                        category_key: "domain",
-                        uri_key: entry["domain"].get("name")
+                        category_key: "url",
+                        uri_key: property["value"]
                     })
-                for property in entry.get("properties", []):
-                    if property["name"] == "url" and property["value"] != '':
-                        uris.append({
-                            sha1_key: report[SHA1],
-                            from_key: "sources",
-                            category_key: "url",
-                            uri_key: property["value"]
-                        })
 
-            for entry in report.get("dynamic_analysis", {}).get("entries", []):
-                if "dynamic_analysis_report_joe_sandbox" in entry:
-                    reports_dict = entry["dynamic_analysis_report_joe_sandbox"]
-                    if "network" in reports_dict:
-                        uris.extend(network_uris(reports_dict["network"],
-                                                 "dynamic_analysis_report_joe_sandbox",
-                                                 report[SHA1]))
+        for entry in report.get("dynamic_analysis", {}).get("entries", []):
+            if "dynamic_analysis_report_joe_sandbox" in entry:
+                reports_dict = entry["dynamic_analysis_report_joe_sandbox"]
 
-                if "dynamic_analysis_report" in entry:
-                    reports_dict = entry["dynamic_analysis_report"]
-                    if "network" in reports_dict:
-                        uris.extend(network_uris(reports_dict["network"],
-                                                 "dynamic_analysis_report",
-                                                 report[SHA1]))
+                if "network" in reports_dict:
+                    uris.extend(
+                        network_uris(
+                            reports_dict["network"],
+                            "dynamic_analysis_report_joe_sandbox",
+                            report[SHA1]
+                        )
+                    )
 
-        deduplicated_uris = list(set(uris))
+            if "dynamic_analysis_report" in entry:
+                reports_dict = entry["dynamic_analysis_report"]
 
-        return deduplicated_uris
+                if "network" in reports_dict:
+                    uris.extend(
+                        network_uris(
+                            reports_dict["network"],
+                            "dynamic_analysis_report",
+                            report[SHA1]
+                        )
+                    )
+
+        # deduplicate by converting all to jsonstring
+        # and adding to a single dict,
+        # then reconvert back into list
+        zz = {}
+        for item in uris:
+            p = json.dumps(item)
+            zz[p] = p
+
+        uris = []
+        for k, v in zz.items():
+            item = json.loads(k)
+            uris.append(item)
+
+        return uris
 
     def get_file_type(self, sample_hash):
         """Returns a TitaniumCore classified file type.
@@ -694,7 +717,7 @@ class RHA1Analytics(TiCloudAPI):
             )
 
             post_json = {"rl": {"query": {"rha1_type": rha1_type, "response_format": "json",
-                                "extended": extended_results, "hashes": hash_input}}}
+                                          "extended": extended_results, "hashes": hash_input}}}
 
             response = self._post_request(url=url, post_json=post_json)
 
@@ -908,8 +931,8 @@ class AdvancedSearch(TiCloudAPI):
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
                 raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
                                       "Sorting order needs to be 'desc' or 'asc'.".format(
-                                       criteria=ADVANCED_SEARCH_SORTING_CRITERIA
-                                      ))
+                    criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                ))
 
             sorting_expression = "{criteria} {order}".format(
                 criteria=sorting_criteria,
