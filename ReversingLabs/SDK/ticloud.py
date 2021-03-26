@@ -1550,7 +1550,7 @@ def _update_hash_object(input_source, hash_object):
         :param input_source: open file in "rb" mode or string
         :type input_source: str or file or BinaryIO
         :param hash_object: hash object
-        :type hash_object: _hashlib.HASH
+        :type hash_object: _hashlib._HASH
         :returns: updated hash object
         :rtype: _hashlib.HASH
     """
