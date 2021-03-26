@@ -9,7 +9,7 @@ The idea behind this SDK is to enable easier out-of-the-box development of softw
 The SDK consists of several modules, where each module represents one ReversingLabs service or ReversingLabs TitaniumCloud.
 
 - [ReversingLabsSDK](https://github.com/reversinglabs/reversinglabs-sdk-py3#reversinglabssdk)
-  * [Module: a1000](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-a10000)
+  * [Module: a1000](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-a1000)
       - [Class A1000](https://github.com/reversinglabs/reversinglabs-sdk-py3#class)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters)
       - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-methods)
