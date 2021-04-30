@@ -26,7 +26,13 @@ class A1000(object):
     __CHECK_STATUS_ENDPOINT = "/api/samples/status/"
     __RESULTS_ENDPOINT = "/api/samples/list/"
     __CLASSIFY_ENDPOINT = "/api/v2/samples/{hash_value}/classification/?localonly={localonly}"
-    __EXTRACTED_FILES_ENDPOINT = "/api/samples/{hash_value}/extracted-files/"
+    __REANALYZE_ENDPOINT = "/api/samples/{hash_value}/analyze/"
+    __REANALYZE_BULK_ENDPOINT = "/api/samples/analyze_bulk/"
+    __LIST_EXTRACTED_FILES_ENDPOINT = "/api/samples/{hash_value}/extracted-files/"
+    __DOWNLOAD_EXTRACTED_FILES_ENDPOINT = "/api/samples/{hash_value}/unpacked/"
+    __DELETE_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/"
+    __DOWNLOAD_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/download/"
+    __DELETE_SAMPLES_BULK_ENDPOINT = "/api/samples/v2/delete_bulk/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
 
     __FIELDS = (
@@ -97,7 +103,7 @@ class A1000(object):
 
     def configuration_dump(self):
         """Returns the configuration of the instantiated A1000 object.
-            :returns: configuration string
+            :return: configuration string
             :rtype: str
         """
         configuration = """
@@ -118,6 +124,16 @@ class A1000(object):
 
         return configuration
 
+    def test_connection(self):
+        """Creates a request towards the A1000 Check Status API to test the connection
+        with A1000.
+        """
+        _ = self.__analysis_is_finished(
+            sample_hashes=["0000000000000000000000000000000000000000"]
+        )
+
+        return
+
     def upload_sample_from_path(self, file_path, custom_filename=None, tags=None, comment=None,
                                 cloud_analysis=True):
         """Accepts a file path string for file upload and returns a response.
@@ -132,7 +148,7 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
-            :returns: :class:`Response <Response>` object
+            :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
         if not isinstance(file_path, str):
@@ -175,7 +191,7 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
-            :returns: :class:`Response <Response>` object
+            :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
         if not hasattr(file_source, "read"):
@@ -210,7 +226,7 @@ class A1000(object):
             :type retry: bool
             :param fields: list of A1000 report 'fields' to query
             :type fields: list[str]
-            :returns: :class:`Response <Response>` object
+            :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
         if fields and not isinstance(fields, list):
@@ -243,7 +259,8 @@ class A1000(object):
                 break
 
         if not analysis_is_finished:
-            raise RequestTimeoutError("Report fetching attempts finished without the report being ready.")
+            raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
+                                      "or the sample does not exist on the appliance.")
 
         url = self._url.format(endpoint=self.__RESULTS_ENDPOINT)
 
@@ -279,7 +296,7 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
-            :returns: :class:`Response <Response>` object
+            :return: response
             :rtype: requests.Response
         """
         if (file_path and file_source) or (not file_path and not file_source):
@@ -310,7 +327,7 @@ class A1000(object):
             :type sample_hash: str
             :param local_only: return only local samples
             :type local_only: bool
-            :returns: :class:`Response <Response>` object
+            :return: response
             :rtype: requests.Response
         """
         validate_hashes(
@@ -334,6 +351,65 @@ class A1000(object):
 
         return response
 
+    def reanalyze_samples(self, hash_input, titanium_cloud=True, titanium_core=True):
+        """Accepts a single hash or a list of hashes of the same type and reanalyzes the
+        corresponding samples.
+            :param hash_input: single hash or a list of hashes
+            :type hash_input: str or list[str]
+            :param titanium_cloud: use TitaniumCloud
+            :type titanium_cloud: bool
+            :param titanium_core: use TitaniumCore
+            :type titanium_core: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if titanium_cloud not in (True, False):
+            raise WrongInputError("titanium_cloud parameter must be boolean.")
+
+        if titanium_core not in (True, False):
+            raise WrongInputError("titanium_core parameter must be boolean.")
+
+        parameter_dict = {'core': titanium_core, 'cloud': titanium_cloud}
+        analysis_list = [key for key, value in parameter_dict.items() if value]
+
+        if len(analysis_list) == 0:
+            raise WrongInputError("At least one of the following parameters needs to be enabled: "
+                                  "titanium_cloud, titanium_core.")
+
+        analysis_type = ",".join(analysis_list)
+
+        if isinstance(hash_input, str):
+            validate_hashes(
+                hash_input=[hash_input],
+                allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            )
+
+            endpoint = self.__REANALYZE_ENDPOINT.format(hash_value=hash_input)
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self.__post_request(url=url, data={"analysis": analysis_type})
+
+        elif isinstance(hash_input, list):
+            validate_hashes(
+                hash_input=hash_input,
+                allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            )
+
+            url = self._url.format(endpoint=self.__REANALYZE_BULK_ENDPOINT)
+
+            data = {"hash_value": hash_input, "analysis": analysis_type}
+
+            response = self.__post_request(url=url, data=data)
+
+        else:
+            raise WrongInputError("hash_input parameter can only be a single hash string or "
+                                  "a list of hash strings of the same type.")
+
+        self.__raise_on_error(response)
+
+        return response
+
     def get_extracted_files(self, sample_hash, page_size=None, page=None):
         """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
         If used, page_size and page need to be combined while keeping track of remaining pages of results.
@@ -346,7 +422,7 @@ class A1000(object):
             :type page_size: int
             :param page: defines which page of results should be fetched
             :type page: int
-            :returns: response
+            :return: response
             :rtype: requests.Response
         """
         validate_hashes(
@@ -354,7 +430,7 @@ class A1000(object):
             allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
         )
 
-        endpoint = self.__EXTRACTED_FILES_ENDPOINT.format(
+        endpoint = self.__LIST_EXTRACTED_FILES_ENDPOINT.format(
             hash_value=sample_hash
         )
 
@@ -372,6 +448,90 @@ class A1000(object):
                 page_size=page_size,
                 page=page
             )
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def download_extracted_files(self, sample_hash):
+        """Accepts a single hash string and returns a downloadable archive file
+        containing files extracted from the desired sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        endpoint = self.__DOWNLOAD_EXTRACTED_FILES_ENDPOINT.format(hash_value=sample_hash)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_samples(self, hash_input):
+        """Accepts a single hash string or a list of hashes and deletes the corresponding samples.
+            :param hash_input: single hash string or a list of hashes
+            :type hash_input: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        if isinstance(hash_input, str):
+            validate_hashes(
+                hash_input=[hash_input],
+                allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            )
+
+            endpoint = self.__DELETE_SAMPLE_ENDPOINT.format(hash_value=hash_input)
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self.__delete_request(url=url)
+
+        elif isinstance(hash_input, list):
+            validate_hashes(
+                hash_input=hash_input,
+                allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            )
+
+            url = self._url.format(endpoint=self.__DELETE_SAMPLES_BULK_ENDPOINT)
+
+            data = {"hash_values": hash_input}
+
+            response = self.__post_request(url=url, data=data)
+
+        else:
+            raise WrongInputError("hash_input parameter must be a single hash string or "
+                                  "a list of hash strings of the same type.")
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def download_sample(self, sample_hash):
+        """Accepts a single hash string and returns a downloadable sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        endpoint = self.__DOWNLOAD_SAMPLE_ENDPOINT.format(hash_value=sample_hash)
+
+        url = self._url.format(endpoint=endpoint)
 
         response = self.__get_request(url=url)
 
@@ -399,7 +559,7 @@ class A1000(object):
             :type sorting_criteria: str
             :param sorting_order: sorting order; possible values are 'desc', 'asc'
             :type sorting_order: str
-            :returns: response
+            :return: response
             :rtype: requests.Response
         """
         if not isinstance(query_string, str):
@@ -451,7 +611,7 @@ class A1000(object):
             :type sorting_criteria: str
             :param sorting_order: sorting order; possible values are 'desc', 'asc'
             :type sorting_order: str
-            :returns: list of results
+            :return: list of results
             :rtype: list
         """
         if not isinstance(max_results, int):
@@ -486,7 +646,7 @@ class A1000(object):
 
     def __get_token(self, username, password):
         """Returns an obtained token using the provided username and password.
-            :returns: token string
+            :return: token string
             :rtype: str
         """
         credentials = {"username": username, "password": password}
@@ -515,7 +675,7 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
-            :returns: dictionary of defined optional fields or None
+            :return: dictionary of defined optional fields or None
             :rtype: dict or None
         """
         if custom_filename and not isinstance(custom_filename, str):
@@ -553,7 +713,7 @@ class A1000(object):
         """Accepts a list of hashes and returns boolean for the get_results method.
             :param sample_hashes: list of hash strings
             :type sample_hashes: list[str]
-            :returns: boolean for processing status.
+            :return: boolean for processing status.
             :rtype: bool
         """
         data = {"hash_values": sample_hashes}
@@ -597,7 +757,7 @@ class A1000(object):
             :param post_json: JSON body
             :type post_json: dict
             :param files: files to send
-            :param data: form data to send
+            :param data: data to send
             :param params: additional params to send
             :return: response
             :rtype: requests.Response
@@ -608,6 +768,22 @@ class A1000(object):
             files=files,
             data=data,
             params=params,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        return response
+
+    def __delete_request(self, url):
+        """A generic DELETE request method for all A1000 methods.
+        :param url: request URL
+        :type url: str
+        :return: response
+        :rtype: requests.Response
+        """
+        response = requests.delete(
+            url=url,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers

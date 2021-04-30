@@ -95,11 +95,17 @@ class TooManyRequestsError(Exception):
         super(TooManyRequestsError, self).__init__(message)
 
 
+class NotAcceptableError(Exception):
+    def __init__(self, message="This content is not acceptable"):
+        super(NotAcceptableError, self).__init__(message)
+
+
 RESPONSE_CODE_ERROR_MAP = {
     HTTPStatus.UNAUTHORIZED: UnauthorizedError,
     HTTPStatus.FORBIDDEN: ForbiddenError,
     HTTPStatus.NOT_FOUND: NotFoundError,
     HTTPStatus.METHOD_NOT_ALLOWED: NotAllowedError,
+    HTTPStatus.NOT_ACCEPTABLE: NotAcceptableError,
     HTTPStatus.TOO_MANY_REQUESTS: TooManyRequestsError,
     HTTPStatus.BAD_REQUEST: BadRequestError,
     HTTPStatus.REQUEST_TIMEOUT: RequestTimeoutError,

@@ -12,8 +12,9 @@ Reproduction or distribution, in whole or in part, is forbidden except by expres
 
 import datetime
 import hashlib
-import requests
 import json
+import os
+import requests
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, \
@@ -26,6 +27,8 @@ XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
+
+AVAILABLE_PLATFORMS = ("windows7", "windows10")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -102,12 +105,13 @@ class TiCloudAPI(object):
 
         return response
 
-    def _post_request(self, url, post_json=None):
+    def _post_request(self, url, post_json=None, data=None):
         """A generic POST request method for all ticloud module classes.
             :param url: request URL
             :type url: str
             :param post_json: JSON body
             :type post_json: dict
+            :param data: data to send
             :return: response
             :rtype: requests.Response
         """
@@ -115,6 +119,7 @@ class TiCloudAPI(object):
             url=url,
             auth=self._credentials,
             json=post_json,
+            data=data,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers
@@ -1539,6 +1544,301 @@ class AnalyzeURL(TiCloudAPI):
         post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
 
         response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+
+class FileUpload(TiCloudAPI):
+    """TCA-0202 and TCA-0203"""
+
+    __UPLOAD_ENDPOINT = "/api/spex/upload"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileUpload, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                         allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def upload_sample_from_path(self, file_path, sample_name=None, sample_domain=None):
+        """Accepts a file path string and uploads the desired file to the File Upload API.
+            :param file_path: file path string
+            :type file_path: str
+            :param sample_name: optional name of the sample to be displayed in the cloud
+            :type sample_name: str
+            :param sample_domain: optional domain string of the sample to be displayed in the cloud
+            :type sample_domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(file_path, str):
+            raise WrongInputError("file_path parameter must be integer.")
+
+        if sample_name:
+            if not isinstance(sample_name, str):
+                raise WrongInputError("sample_name parameter must be string.")
+        else:
+            sample_name = self.__get_sample_name(file_path=file_path)
+
+        try:
+            file_handle = open(file_path, "rb")
+        except IOError as error:
+            raise WrongInputError("Error while opening file in 'rb' mode - {error}".format(error=str(error)))
+
+        response = self.upload_sample_from_file(
+            file_handle=file_handle,
+            sample_name=sample_name,
+            sample_domain=sample_domain
+        )
+
+        return response
+
+    def upload_sample_from_file(self, file_handle, sample_name=None, sample_domain=None):
+        """Accepts an open file handle and uploads the desired file to the File Upload API.
+            :param file_handle: open file
+            :type file_handle: file or BinaryIO
+            :param sample_name: optional name of the sample to be displayed in the cloud
+            :type sample_name: str
+            :param sample_domain: optional domain string of the sample to be displayed in the cloud
+            :type sample_domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not hasattr(file_handle, "read"):
+            raise WrongInputError("file_handle parameter must be a file open in 'rb' mode.")
+
+        if sample_name:
+            if not isinstance(sample_name, str):
+                raise WrongInputError("sample_name parameter must be string.")
+        else:
+            sample_name = "sample"
+
+        if sample_domain:
+            if not isinstance(sample_domain, str):
+                raise WrongInputError("sample_domain parameter must be string.")
+        else:
+            sample_domain = ""
+
+        file_sha1 = calculate_hash(
+            data_input=file_handle,
+            hashing_algorithm="sha1"
+        )
+
+        file_handle.seek(0)
+
+        endpoint = "{endpoint_base}/{sha1}".format(
+            endpoint_base=self.__UPLOAD_ENDPOINT,
+            sha1=file_sha1
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        self._headers["Content-Type"] = "application/octet-stream"
+
+        response = self._post_request(url=url, data=file_handle)
+
+        self._raise_on_error(response)
+
+        response = self.__upload_meta(
+            url=url,
+            sample_name=sample_name,
+            sample_domain=sample_domain
+        )
+
+        return response
+
+    def __upload_meta(self, url, sample_name, sample_domain):
+        """Private method for setting up and uploading metadata of a sample uploaded to the File Upload API.
+            :param url: URL used for sample upload
+            :type url: str
+            :param sample_name: optional name of the sample to be displayed in the cloud
+            :type sample_name: str
+            :param sample_domain: optional domain string of the sample to be displayed in the cloud
+            :type sample_domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        meta_url = "{url}/meta".format(url=url)
+
+        meta_xml = "<rl><properties><property><name>file_name</name><value>{sample_name}</value></property>" \
+                   "</properties><domain>{domain}</domain></rl>".format(domain=sample_domain, sample_name=sample_name)
+
+        response = self._post_request(
+            url=meta_url,
+            data=meta_xml
+        )
+
+        self._raise_on_error(response)
+
+        return response
+
+    @staticmethod
+    def __get_sample_name(file_path):
+        """Private method for parsing the name of the sample if one is not provided.
+            :param file_path: file path string
+            :type file_path: str
+            :return: parsed sample name
+            :rtype: str
+        """
+        if "nt" in os.name:
+            split_path = file_path.split("\\")
+        else:
+            split_path = file_path.split("/")
+
+        sample_name = split_path[-1]
+
+        if len(sample_name) == 0:
+            sample_name = "sample"
+
+        return sample_name
+
+
+class DynamicAnalysis(TiCloudAPI):
+    """TCA-0207 and TCA-0106"""
+
+    __DETONATE_SAMPLE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
+    __GET_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/query/sha1"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DynamicAnalysis, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                              allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def detonate_sample(self, sample_sha1, platform):
+        """Submits a sample available in the cloud for dynamic analysis and returns processing info.
+            :param sample_sha1: SHA-1 hash of the sample
+            :type sample_sha1: str
+            :param platform: desired platform on which the sample will be detonated; see available platforms
+            :type platform: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_sha1],
+            allowed_hash_types=(SHA1,)
+        )
+
+        if platform not in AVAILABLE_PLATFORMS:
+            raise WrongInputError("platform parameter must be one "
+                                  "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
+
+        url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+
+        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json"}}
+
+        response = self._post_request(
+            url=url,
+            post_json=post_json
+        )
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_dynamic_analysis_results(self, sample_hash, latest=False, analysis_id=None):
+        """Returns dynamic analysis results for a desired sample.
+        The analysis of the selected sample must be finished for the results to be available.
+        :param sample_hash: SHA-1 hash of a desired sample
+        :type sample_hash: str
+        :param latest: return only the latest analysis results
+        :type latest: bool
+        :param analysis_id: return only the results of this analysis
+        :type analysis_id: str
+        :return: response
+        :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(SHA1,)
+        )
+
+        endpoint = "{endpoint_base}/{sample_hash}".format(
+            endpoint_base=self.__GET_RESULTS_ENDPOINT,
+            sample_hash=sample_hash
+        )
+
+        if latest:
+            if analysis_id:
+                raise WrongInputError("Can not use analysis_id because latest is being used.")
+
+            if str(latest).lower() != "true":
+                raise WrongInputError("latest parameter must be boolean.")
+
+            endpoint = "{endpoint}/latest".format(endpoint=endpoint)
+
+        if analysis_id:
+            if not isinstance(analysis_id, str):
+                raise WrongInputError("analysis_id parameter bust be string.")
+
+            endpoint = "{endpoint}/{analysis_id}".format(
+                endpoint=endpoint,
+                analysis_id=analysis_id
+            )
+
+        endpoint = "{endpoint}?format=json".format(endpoint=endpoint)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class CertificateAnalytics(TiCloudAPI):
+    """TCA-0502"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/certificate/analytics/v1/query/thumbprint"
+    __BULK_QUERY_ENDPOINT = "/api/certificate/analytics/v1/query/thumbprint/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CertificateAnalytics, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                   allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_certificate_analytics(self, certificate_thumbprints):
+        """Accepts a certificate hash thumbprint and returns certificate analytics results.
+            :param certificate_thumbprints: hash string or list of hash strings
+            :type certificate_thumbprints: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        if isinstance(certificate_thumbprints, str):
+            validate_hashes(
+                hash_input=[certificate_thumbprints],
+                allowed_hash_types=(MD5, SHA1, SHA256)
+            )
+
+            endpoint = "{endpoint_base}/{thumbprint}?format=json".format(
+                endpoint_base=self.__SINGLE_QUERY_ENDPOINT,
+                thumbprint=certificate_thumbprints
+            )
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url)
+
+        elif isinstance(certificate_thumbprints, list) and len(certificate_thumbprints) > 0:
+            validate_hashes(
+                hash_input=certificate_thumbprints,
+                allowed_hash_types=(MD5, SHA1, SHA256)
+            )
+
+            url = self._url.format(endpoint=self.__BULK_QUERY_ENDPOINT)
+
+            post_json = {"rl": {"query": {"thumbprints": certificate_thumbprints, "format": "json"}}}
+
+            response = self._post_request(url=url, post_json=post_json)
+
+        else:
+            raise WrongInputError("Only hash string or list of hash strings are allowed as the thumbprint parameter.")
+
         self._raise_on_error(response)
 
         return response
