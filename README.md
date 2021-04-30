@@ -1,8 +1,8 @@
-![ReversingLabs](https://raw.githubusercontent.com/reversinglabs/reversinglabs-sdk-py2/master/logo.jpg)
+![ReversingLabs](https://raw.githubusercontent.com/reversinglabs/reversinglabs-sdk-py3/master/logo.jpg)
 
 # ReversingLabsSDK
 
-A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Python 3 version.
+A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Python 2 version.
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
 
@@ -27,6 +27,9 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class FileDownload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-10)
       - [Class URLThreatIntelligence](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-11)
       - [Class AnalyzeURL](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-12)
+      - [Class FileUpload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
+      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
+      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
       - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
@@ -62,6 +65,8 @@ If username and password are used instead, a token fetching request will be done
 #### Class methods:
 - `configuration_dump`
     - Returns the configuration of the instantiated A1000 object
+- `test_connection`
+    - Creates a request towards the A1000 Check Status API to test the connection with A1000
 - `upload_sample_from_path`
     - Accepts a file path string and returns a response containing the analysis task ID
 - `upload_sample_from_file`
@@ -77,8 +82,16 @@ If username and password are used instead, a token fetching request will be done
         out if the analysis results are not ready
 - `get_classification`
     - Accepts one or more sample hashes and returns their classification
+- `reanalyze_samples`
+    - Accepts a single hash or a list of hashes of the same type and reanalyzes the corresponding samples
 - `get_extracted_files`
     - Accepts a sample hash and returns a list of all files TitaniumCore engine extracted from the requested sample during static analysis
+- `download_extracted_files`
+    - Accepts a single hash string and returns a downloadable archive file containing files extracted from the desired sample
+- `delete_samples`
+    - Accepts a single hash string or a list of hashes and deletes the corresponding samples from A1000
+- `download_sample`
+    - Accepts a single hash string and returns a downloadable sample
 - `advanced_search`
     - Accepts a search query string and performs advanced search for local samples on A1000
     - Returns only one defined page of results using one request
@@ -250,6 +263,35 @@ class AnalyzeURL(TiCloudAPI)
 - `submit_url`
     - Sends a URL string for analysis and returns an analysis task ID
 
+#### Class:
+```python
+class FileUpload(TiCloudAPI)
+````
+#### Methods:
+- `upload_sample_from_path`
+    - Accepts a file path string and uploads the desired file to the File Upload API
+- `upload_sample_from_file`
+    - Accepts an open file handle and uploads the desired file to the File Upload API
+
+#### Class:
+```python
+class DynamicAnalysis(TiCloudAPI)
+````
+#### Methods:
+- `detonate_sample`
+    - Submits a sample available in the cloud for dynamic analysis and returns processing info
+    - The sample needs to be available in TitaniumCloud beforehand
+- `get_dynamic_analysis_results`
+    - Returns dynamic analysis results for a desired sample
+    - The analysis of the selected sample must be finished for the results to be available
+    
+#### Class:
+```python
+class CertificateAnalytics(TiCloudAPI)
+````
+#### Methods:
+- `get_certificate_analytics`
+    - Accepts a certificate hash thumbprint (hash string) and returns certificate analytics results
 
 ***
 
@@ -332,7 +374,7 @@ json_report = response.json()
 
 #### TitaniumCloud
 ```python
-from ReversingLabs.SDK.ticloud import FileReputation, URIStatistics, FileDownload
+from ReversingLabs.SDK.ticloud import FileReputation, URIStatistics, FileDownload, FileUpload
 
 
 host = "https://data.reversinglabs.com"
@@ -383,6 +425,21 @@ download = file_download.download_sample(
 
 with open("/path/to/file", "wb") as file_handle:
     file_handle.write(download.content)
+
+
+
+file_upload = FileUpload(
+    host=host,
+    username=username,
+    password=password,
+    user_agent=user_agent
+)
+
+upload = file_upload.upload_sample_from_path(
+    file_path="/path/to/file",
+    sample_name="Custom Sample Name",
+    sample_domain="webdomain.com"
+)
 ```
 
 #### TitaniumScale
