@@ -52,6 +52,19 @@ class TitaniumScale(object):
                 raise WrongInputError("proxies parameter can not be an empty dictionary.")
         self._proxies = proxies
 
+    def test_connection(self):
+        """Creates a request towards the TitaniumScale task API to test the connection
+        with TitaniumScale.
+        """
+        test_url = self._url.format(endpoint="/api/tiscale/v1/task")
+
+        _ = self.__get_results(
+            task_url=test_url,
+            full_report=False
+        )
+
+        return
+
     def upload_sample_from_path(self, file_path):
         """Accepts a file path string for file upload and returns a response.
             :param file_path: path to file
