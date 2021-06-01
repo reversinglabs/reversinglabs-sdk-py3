@@ -58,10 +58,11 @@ class TitaniumScale(object):
         """
         test_url = self._url.format(endpoint="/api/tiscale/v1/task")
 
-        _ = self.__get_results(
-            task_url=test_url,
-            full_report=False
+        response = self.__get_results(
+            task_url=test_url
         )
+
+        self.__raise_on_error(response)
 
         return
 
