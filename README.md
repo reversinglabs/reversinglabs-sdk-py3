@@ -2,7 +2,7 @@
 
 # ReversingLabsSDK
 
-A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Python 2 version.
+A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Python 3 version.
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
 
