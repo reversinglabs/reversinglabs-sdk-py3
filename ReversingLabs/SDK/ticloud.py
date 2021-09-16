@@ -53,11 +53,7 @@ class TiCloudAPI(object):
     def __init__(self, host, username, password, verify=True, proxies=None,
                  user_agent=DEFAULT_USER_AGENT, allow_none_return=False):
 
-        if host.startswith("http://"):
-            raise WrongInputError("Unsupported protocol definition: "
-                                  "TitaniumCloud services can only be used over HTTPS.")
-        self._host = self.__format_url(host)
-
+        self._host = self.__validate_host(host)
         self._username = username
         self._password = password
         self._credentials = (self._username, self._password)
@@ -76,15 +72,24 @@ class TiCloudAPI(object):
         self._allow_none_return = allow_none_return
 
     @staticmethod
-    def __format_url(host):
+    def __validate_host(host):
         """Returns a formatted host URL including the protocol prefix.
             :param host: URL string
             :type host: str
             :returns: formatted URL string
             :rtype: str
         """
+        if not isinstance(host, str):
+            raise WrongInputError("host parameter must be string.")
+
+        if host.startswith("http://"):
+            raise WrongInputError("Unsupported protocol definition: "
+                                  "TitaniumCloud services can only be used over HTTPS.")
+
         if not host.startswith("https://"):
             host = "https://{host}".format(host=host)
+
+        host = host.rstrip("/")
 
         return host
 
