@@ -65,12 +65,7 @@ class A1000(object):
     def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, wait_time_seconds=2, retries=10,
                  verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
 
-        if not isinstance(host, str):
-            raise WrongInputError("host parameter must be string.")
-        if not host.startswith(("http://", "https://")):
-            raise WrongInputError("host parameter must contain a protocol definition at the beginning. "
-                                  "Possible values: 'http://', 'https://'")
-        self._host = host
+        self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
         self._verify = verify
         self._user_agent = user_agent
@@ -100,6 +95,24 @@ class A1000(object):
         if not isinstance(retries, int):
             raise WrongInputError("retries must be an integer.")
         self._retries = retries
+
+    @staticmethod
+    def __validate_host(host):
+        """Returns a formatted host URL including the protocol prefix.
+            :param host: URL string
+            :type host: str
+            :returns: formatted URL string
+            :rtype: str
+        """
+        if not isinstance(host, str):
+            raise WrongInputError("host parameter must be string.")
+
+        if not host.startswith(("http://", "https://")):
+            raise WrongInputError("host parameter must contain a protocol definition at the beginning.")
+
+        host = host.rstrip("/")
+
+        return host
 
     def configuration_dump(self):
         """Returns the configuration of the instantiated A1000 object.
