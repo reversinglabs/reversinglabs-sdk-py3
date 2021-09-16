@@ -24,12 +24,8 @@ class TitaniumScale(object):
     def __init__(self, host, token, wait_time_seconds=2, retries=10, verify=True, proxies=None,
                  user_agent=DEFAULT_USER_AGENT):
 
-        if not isinstance(host, str):
-            raise WrongInputError("host parameter must be string.")
-        if not host.startswith(("http://", "https://")):
-            raise WrongInputError("host parameter must contain a protocol definition at the beginning. "
-                                  "Possible values: 'http://', 'https://'")
-        self._url = "{host}{{endpoint}}".format(host=host)
+        self._host = self.__validate_host(host)
+        self._url = "{host}{{endpoint}}".format(host=self._host)
 
         self._headers = {
             "User-Agent": user_agent,
@@ -51,6 +47,24 @@ class TitaniumScale(object):
             if len(proxies) == 0:
                 raise WrongInputError("proxies parameter can not be an empty dictionary.")
         self._proxies = proxies
+
+    @staticmethod
+    def __validate_host(host):
+        """Returns a formatted host URL including the protocol prefix.
+            :param host: URL string
+            :type host: str
+            :returns: formatted URL string
+            :rtype: str
+        """
+        if not isinstance(host, str):
+            raise WrongInputError("host parameter must be string.")
+
+        if not host.startswith(("http://", "https://")):
+            raise WrongInputError("host parameter must contain a protocol definition at the beginning.")
+
+        host = host.rstrip("/")
+
+        return host
 
     def test_connection(self):
         """Creates a request towards the TitaniumScale task API to test the connection
