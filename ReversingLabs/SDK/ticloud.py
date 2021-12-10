@@ -3,11 +3,6 @@ author: Mislav Sever
 
 TitaniumCloud
 A Python module for the ReversingLabs TitaniumCloud REST API-s.
-
-Copyright (c) ReversingLabs International GmbH. 2016-2021
-
-This unpublished material is proprietary to ReversingLabs International GmbH.. All rights reserved.
-Reproduction or distribution, in whole or in part, is forbidden except by express written permission of ReversingLabs International GmbH.
 """
 
 import datetime
@@ -1943,3 +1938,63 @@ def get_rha1_type(host, username, password, verify, hash_input, allow_none_retur
                          "{allowed_files}".format(allowed_files=", ".join(RHA1_TYPE_MAP)))
 
     return rha1_type
+
+
+class RansomwareIndicators(TiCloudAPI):
+    """Ransomware Indicators Feed"""
+
+    __FEED_ENDPOINT = "/api/public/v1/ransomware/indicators?" \
+                      "withHealth={health}&tagFormat={tag_format}&hours={hours_back}&indicatorTypes={indicator_types}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(RansomwareIndicators, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                   allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._allowed_indicator_types = ("ipv4", "hash", "domain", "uri")
+
+    def get_indicators(self, hours_back, indicator_types, tag_format="dict", health_check=0):
+        """Accepts a list of indicator type strings and an integer for historical hours.
+        Returns indicators for ransomware and related tools.
+        :param hours_back: historical hours - from this moment back
+        :type hours_back: int
+        :param indicator_types: a list of indicator types to fetch; possible values are 'ipv4', 'hash', 'domain', 'uri'
+        :type indicator_types: list[str]
+        :param tag_format: response format; default is 'dict'
+        :type tag_format: str
+        :param health_check: defines whether this request is an API health check;
+        possible values are 0 and 1; default is 0
+        :type health_check: int
+        :return: response
+        :rtype: requests.Response
+        """
+        if not (isinstance(hours_back, int) and 1 <= hours_back <= 48):
+            raise WrongInputError("hours_back parameter must be integer with a value between 1 and 48.")
+
+        try:
+            lowered_indicator_types = [indicator_type.lower() for indicator_type in indicator_types]
+
+        except (AttributeError, TypeError):
+            raise WrongInputError("indicator_types parameter must be a list of strings.")
+
+        if not all(element in self._allowed_indicator_types for element in lowered_indicator_types):
+            raise WrongInputError("Only the following values are allowed as indicator types: "
+                                  "{indicator_types}".format(indicator_types=self._allowed_indicator_types))
+
+        indicator_types = ",".join(lowered_indicator_types)
+
+        endpoint = self.__FEED_ENDPOINT.format(
+            health=health_check,
+            tag_format=tag_format,
+            hours_back=hours_back,
+            indicator_types=indicator_types
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
