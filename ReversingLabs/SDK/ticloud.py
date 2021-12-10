@@ -1860,7 +1860,7 @@ class RansomwareIndicators(TiCloudAPI):
 
     def get_indicators(self, hours_back, indicator_types, tag_format="dict", health_check=0):
         """Accepts a list of indicator type strings and an integer for historical hours.
-        Returns indicators for ransomware and related tools.
+        Returns indicators of ransomware and related tools.
         :param hours_back: historical hours - from this moment back
         :type hours_back: int
         :param indicator_types: a list of indicator types to fetch; possible values are 'ipv4', 'hash', 'domain', 'uri'

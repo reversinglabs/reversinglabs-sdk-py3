@@ -30,6 +30,7 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class FileUpload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
       - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
       - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
+      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
       - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
@@ -292,6 +293,14 @@ class CertificateAnalytics(TiCloudAPI)
 #### Methods:
 - `get_certificate_analytics`
     - Accepts a certificate hash thumbprint (hash string) and returns certificate analytics results
+
+#### Class:
+```python
+class RansomwareIndicators(TiCloudAPI)
+````
+#### Methods:
+- `get_indicators`
+    - Accepts a list of indicator type strings and an integer for historical hours. Returns indicators of ransomware and related tools.
 
 ***
 
