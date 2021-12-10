@@ -3,11 +3,6 @@ author: Mislav Sever
 
 A1000
 A Python module for the ReversingLabs A1000 appliance REST API.
-
-Copyright (c) ReversingLabs International GmbH. 2016-2021
-
-This unpublished material is proprietary to ReversingLabs International GmbH.. All rights reserved.
-Reproduction or distribution, in whole or in part, is forbidden except by express written permission of ReversingLabs International GmbH.
 """
 
 import requests
