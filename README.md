@@ -458,7 +458,7 @@ from ReversingLabs.SDK.tiscale import TitaniumScale
 
 titanium_scale = TitaniumScale(
     host="https://tiscale.address",
-    token="js765akj329786afhg",
+    token="examplesecrettoken",  # replace with a proper token
     verify=True,
     wait_time_seconds=5,
     retries=6
