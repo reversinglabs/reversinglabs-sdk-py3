@@ -300,7 +300,7 @@ class RansomwareIndicators(TiCloudAPI)
 ````
 #### Methods:
 - `get_indicators`
-    - Accepts a list of indicator type strings and an integer for historical hours. Returns indicators of ransomware and related tools.
+    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools.
 
 ***
 

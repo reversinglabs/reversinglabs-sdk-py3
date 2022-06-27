@@ -1741,14 +1741,14 @@ class DynamicAnalysis(TiCloudAPI):
     def get_dynamic_analysis_results(self, sample_hash, latest=False, analysis_id=None):
         """Returns dynamic analysis results for a desired sample.
         The analysis of the selected sample must be finished for the results to be available.
-        :param sample_hash: SHA-1 hash of a desired sample
-        :type sample_hash: str
-        :param latest: return only the latest analysis results
-        :type latest: bool
-        :param analysis_id: return only the results of this analysis
-        :type analysis_id: str
-        :return: response
-        :rtype: requests.Response
+            :param sample_hash: SHA-1 hash of a desired sample
+            :type sample_hash: str
+            :param latest: return only the latest analysis results
+            :type latest: bool
+            :param analysis_id: return only the results of this analysis
+            :type analysis_id: str
+            :return: response
+            :rtype: requests.Response
         """
         validate_hashes(
             hash_input=[sample_hash],
@@ -1847,8 +1847,8 @@ class CertificateAnalytics(TiCloudAPI):
 class RansomwareIndicators(TiCloudAPI):
     """Ransomware Indicators Feed"""
 
-    __FEED_ENDPOINT = "/api/public/v1/ransomware/indicators?" \
-                      "withHealth={health}&tagFormat={tag_format}&hours={hours_back}&indicatorTypes={indicator_types}"
+    __FEED_ENDPOINT = "/api/public/v1/ransomware/indicators?withHealth={health}&tagFormat={tag_format}&" \
+                      "hours={hours_back}&indicatorTypes={indicator_types}&onlyFreemium={only_freemium}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -1858,20 +1858,23 @@ class RansomwareIndicators(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
         self._allowed_indicator_types = ("ipv4", "hash", "domain", "uri")
 
-    def get_indicators(self, hours_back, indicator_types, tag_format="dict", health_check=0):
+    def get_indicators(self, hours_back, indicator_types, tag_format="dict", health_check=0, only_freemium=0):
         """Accepts a list of indicator type strings and an integer for historical hours.
         Returns indicators of ransomware and related tools.
-        :param hours_back: historical hours - from this moment back
-        :type hours_back: int
-        :param indicator_types: a list of indicator types to fetch; possible values are 'ipv4', 'hash', 'domain', 'uri'
-        :type indicator_types: list[str]
-        :param tag_format: response format; default is 'dict'
-        :type tag_format: str
-        :param health_check: defines whether this request is an API health check;
-        possible values are 0 and 1; default is 0
-        :type health_check: int
-        :return: response
-        :rtype: requests.Response
+            :param hours_back: historical hours - from this moment back
+            :type hours_back: int
+            :param indicator_types: a list of indicator types to fetch; possible values are 'ipv4', 'hash', 'domain', 'uri'
+            :type indicator_types: list[str]
+            :param tag_format: response format; default is 'dict'
+            :type tag_format: str
+            :param health_check: defines whether this request is an API health check;
+            possible values are 0 and 1; default is 0
+            :type health_check: int
+            :param only_freemium: return only freemium indicators of all types;
+            possible values are 0 and 1: default is 0; if set to 1, parameter indicator_types is ignored
+            :type only_freemium: int
+            :return: response
+            :rtype: requests.Response
         """
         if not (isinstance(hours_back, int) and 1 <= hours_back <= 48):
             raise WrongInputError("hours_back parameter must be integer with a value between 1 and 48.")
@@ -1888,11 +1891,18 @@ class RansomwareIndicators(TiCloudAPI):
 
         indicator_types = ",".join(lowered_indicator_types)
 
+        if health_check not in (0, 1):
+            raise WrongInputError("health_check parameter must be 0 or 1.")
+
+        if only_freemium not in (0, 1):
+            raise WrongInputError("only_freemium parameter must be 0 or 1.")
+
         endpoint = self.__FEED_ENDPOINT.format(
             health=health_check,
             tag_format=tag_format,
             hours_back=hours_back,
-            indicator_types=indicator_types
+            indicator_types=indicator_types,
+            only_freemium=only_freemium
         )
 
         url = self._url.format(endpoint=endpoint)
