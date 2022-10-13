@@ -7,6 +7,7 @@ A Python module for the ReversingLabs A1000 appliance REST API.
 
 import requests
 import time
+from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
     MD5, SHA1, SHA256, SHA512, \
@@ -30,35 +31,23 @@ class A1000(object):
     __DELETE_SAMPLES_BULK_ENDPOINT = "/api/samples/v2/delete_bulk/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
 
-    __FIELDS = (
-        "id",
-        "sha1",
-        "sha256",
-        "sha512",
-        "md5",
-        "category",
-        "file_type",
-        "file_subtype",
-        "identification_name",
-        "identification_version",
-        "file_size",
-        "extracted_file_count",
-        "local_first_seen",
-        "local_last_seen",
-        "classification_origin",
-        "classification_reason",
-        "threat_status",
-        "trust_factor",
-        "threat_level",
-        "threat_name",
-        "ticore",
-        "summary",
-        "ticloud",
-        "aliases"
-    )
+    __SUMMARY_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/"
 
-    def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, wait_time_seconds=2, retries=10,
-                 verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
+    __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
+                "identification_version", "file_size", "extracted_file_count", "local_first_seen", "local_last_seen",
+                "classification_origin", "classification_reason", "threat_status", "trust_factor", "threat_level",
+                "threat_name", "ticore", "summary", "ticloud", "aliases"
+                )
+
+    __FIELDS_V2 = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype",
+                   "identification_name", "identification_version", "file_size", "extracted_file_count",
+                   "local_first_seen", "local_last_seen", "classification_origin", "classification_reason",
+                   "classification_source", "classification", "riskscore", "classification_result", "ticore", "tags",
+                   "summary", "ticloud", "aliases", "networkthreatintelligence", "domainthreatintelligence"
+                   )
+
+    def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, fields_v2=__FIELDS_V2,
+                 wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
 
         self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
@@ -82,6 +71,7 @@ class A1000(object):
             "Authorization": "Token {token}".format(token=token)
         }
         self._fields = fields
+        self._fields_v2 = fields_v2
 
         if not isinstance(wait_time_seconds, int):
             raise WrongInputError("wait_time_seconds must be an integer.")
@@ -225,7 +215,11 @@ class A1000(object):
         return response
 
     def get_results(self, sample_hashes, retry=True, fields=None):
-        """Accepts a list of hashes and returns JSON containing a summary report for each of them.
+        """THIS METHOD IS DEPRECATED.
+        Use get_summary_report_v2 for a summary analysis report or
+        get_detailed_report_v2 for a detailed analysis report.
+
+        Accepts a list of hashes and returns JSON containing a summary report for each of them.
         This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
             :param sample_hashes: hash string or list of hash strings
@@ -237,6 +231,9 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        warn('This method is deprecated. Use get_summary_report_v2 for a summary analysis report or '
+             'get_detailed_report_v2 for a detailed analysis report', DeprecationWarning)
+
         if fields and not isinstance(fields, list):
             raise WrongInputError("fields parameter must be a list of strings.")
 
@@ -283,10 +280,89 @@ class A1000(object):
 
         return response
 
-    def upload_sample_and_get_results(self, file_path=None, file_source=None, retry=True, custom_filename=None,
-                                      tags=None, comment=None, cloud_analysis=True):
-        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns
-        an analysis report response. This method combines uploading a sample and obtaining the analysis results.
+    # NEW METHOD
+    def get_summary_report_v2(self, sample_hashes, retry=True, fields=None, include_networkthreatintelligence=True,
+                              skip_reanalysis=False):
+        """Accepts a list of hashes and returns JSON containing a summary report for each of them.
+        This method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param sample_hashes: hash string or list of hash strings
+            :type sample_hashes: str or list[str]
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :return: :class:`Response <Response>` object
+            :param include_networkthreatintelligence: include network threat intelligence in the summary report
+            :type include_networkthreatintelligence: bool
+            :param skip_reanalysis: skip sample reanalysis when fetching the summary report
+            :type skip_reanalysis: bool
+            :rtype: requests.Response
+        """
+        if fields and not isinstance(fields, list):
+            raise WrongInputError("fields parameter must be a list of strings.")
+
+        if not fields:
+            fields = self._fields_v2
+
+        if retry not in (True, False):
+            raise WrongInputError("retry parameter must be boolean.")
+
+        if isinstance(sample_hashes, str):
+            sample_hashes = [sample_hashes]
+
+        validate_hashes(
+            hash_input=sample_hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        retries = self._retries if retry else 0
+
+        analysis_is_finished = False
+
+        for iteration in range(retries + 1):
+            if iteration:
+                time.sleep(self._wait_time_seconds)
+
+            analysis_is_finished = self.__analysis_is_finished(sample_hashes)
+            if analysis_is_finished:
+                break
+
+        if not analysis_is_finished:
+            raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
+                                      "or the sample does not exist on the appliance.")
+
+        url = self._url.format(endpoint=self.__SUMMARY_REPORT_ENDPOINT_V2)
+
+        if include_networkthreatintelligence not in (True, False):
+            raise WrongInputError("include_networkthreatintelligence parameter must be boolean.")
+
+        if include_networkthreatintelligence and \
+                ("networkthreatintelligence" not in fields or "domainthreatintelligence" not in fields):
+            raise WrongInputError("If include_networkthreatintelligence is set to True, the fields list must include "
+                                  "both 'networkthreatintelligence' and 'domainthreatintelligence'.")
+
+        if skip_reanalysis not in (True, False):
+            raise WrongInputError("skip_reanalysis parameter must be boolean.")
+
+        data = {
+            "hash_values": sample_hashes,
+            "fields": fields,
+            "include_networkthreatintelligence": str(include_networkthreatintelligence).lower(),
+            "skip_reanalysis": str(skip_reanalysis).lower()
+        }
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def upload_sample_and_get_results(self, file_path=None, file_source=None, retry=True, fields=None,
+                                      include_networkthreatintelligence=True, skip_reanalysis=False,
+                                      custom_filename=None, tags=None, comment=None, cloud_analysis=True):
+        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
+        report response. This method combines uploading a sample and obtaining the summary analysis report.
         Additional fields can be provided.
         The result obtaining action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
@@ -296,6 +372,12 @@ class A1000(object):
             :type file_source: file or BinaryIO
             :param retry: if set to False there will only be one try at obtaining the analysis report
             :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param include_networkthreatintelligence: include network threat intelligence in the summary report
+            :type include_networkthreatintelligence: bool
+            :param skip_reanalysis: skip sample reanalysis when fetching the summary report
+            :type skip_reanalysis: bool
             :param custom_filename: custom file name for upload
             :type custom_filename: str
             :param tags: a string of comma separated tags
@@ -322,9 +404,12 @@ class A1000(object):
         sha1 = response_detail.get("sha1")
         sha1 = str(sha1)
 
-        response = self.get_results(
+        response = self.get_summary_report_v2(
             sample_hashes=[sha1],
-            retry=retry
+            retry=retry,
+            fields=fields,
+            include_networkthreatintelligence=include_networkthreatintelligence,
+            skip_reanalysis=skip_reanalysis
         )
 
         return response
