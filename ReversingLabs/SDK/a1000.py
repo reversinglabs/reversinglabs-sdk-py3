@@ -21,18 +21,20 @@ class A1000(object):
     __UPLOAD_ENDPOINT = "/api/uploads/"
     __CHECK_STATUS_ENDPOINT = "/api/samples/status/"
     __RESULTS_ENDPOINT = "/api/samples/list/"
-    __CLASSIFY_ENDPOINT = "/api/v2/samples/{hash_value}/classification/?localonly={localonly}"
+    __CLASSIFY_ENDPOINT_V2 = "/api/v2/samples/{hash_value}/classification/?localonly={localonly}"
     __REANALYZE_ENDPOINT = "/api/samples/{hash_value}/analyze/"
     __REANALYZE_BULK_ENDPOINT = "/api/samples/analyze_bulk/"
     __LIST_EXTRACTED_FILES_ENDPOINT = "/api/samples/{hash_value}/extracted-files/"
     __DOWNLOAD_EXTRACTED_FILES_ENDPOINT = "/api/samples/{hash_value}/unpacked/"
     __DELETE_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/"
     __DOWNLOAD_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/download/"
-    __DELETE_SAMPLES_BULK_ENDPOINT = "/api/samples/v2/delete_bulk/"
+    __DELETE_SAMPLES_BULK_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
 
     __SUMMARY_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/"
+    __CLASSIFY_ENDPOINT_V3 = "/api/samples/v3/{hash_value}/classification/"
 
+    # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
                 "identification_version", "file_size", "extracted_file_count", "local_first_seen", "local_last_seen",
                 "classification_origin", "classification_reason", "threat_status", "trust_factor", "threat_level",
@@ -113,7 +115,7 @@ class A1000(object):
             SSL verify: {verify}
         """.format(
             host=self._host,
-            fields=self._fields,
+            fields=self._fields_v2,
             wait_time_seconds=self._wait_time_seconds,
             retries=self._retries,
             user_agent=self._user_agent,
@@ -231,8 +233,8 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
-        warn('This method is deprecated. Use get_summary_report_v2 for a summary analysis report or '
-             'get_detailed_report_v2 for a detailed analysis report', DeprecationWarning)
+        warn("This method is deprecated. Use get_summary_report_v2 for a summary analysis report or "
+             "get_detailed_report_v2 for a detailed analysis report", DeprecationWarning)
 
         if fields and not isinstance(fields, list):
             raise WrongInputError("fields parameter must be a list of strings.")
@@ -415,11 +417,52 @@ class A1000(object):
         return response
 
     def get_classification(self, sample_hash, local_only=True):
-        """Get classification for one sample hash.
+        """THIS METHOD IS DEPRECATED.
+        Use get_classification_v3 instead.
+
+        Get classification for one sample hash.
             :param sample_hash: hash string
             :type sample_hash: str
             :param local_only: return only local samples
             :type local_only: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        warn("This method is deprecated. Use get_classification_v3 instead.", DeprecationWarning)
+
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if local_only not in (True, False):
+            raise WrongInputError("local_only parameter must be boolean.")
+
+        endpoint = self.__CLASSIFY_ENDPOINT_V2.format(
+            hash_value=sample_hash,
+            localonly=int(local_only)
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    # NEW METHOD
+    def get_classification_v3(self, sample_hash, local_only=False, av_scanners=False):
+        """Get classification for one sample.
+        The default value of local_only is now False, which, if not changed, will send a request to TitaniumCloud to
+        get the sample. The av_scanners parameter decides if the AV scanner results will be included in the
+        classification report.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param local_only: return only local samples without querying TitaniumCloud
+            :type local_only: bool
+            :param av_scanners: return AV scanner results
+            :type av_scanners: bool
             :return: response
             :rtype: requests.Response
         """
@@ -431,12 +474,25 @@ class A1000(object):
         if local_only not in (True, False):
             raise WrongInputError("local_only parameter must be boolean.")
 
-        endpoint = self.__CLASSIFY_ENDPOINT.format(
-            hash_value=sample_hash,
-            localonly=int(local_only)
+        if av_scanners not in (True, False):
+            raise WrongInputError("av_scanners parameter must be boolean.")
+
+        if local_only and av_scanners:
+            raise WrongInputError("local_only must be False if av_scanners are used.")
+
+        params = "localonly={local_only}&av_scanners={av_scanners}".format(
+            local_only=str(int(local_only)),
+            av_scanners=str(int(av_scanners))
+        )
+
+        endpoint = "{endpoint}?{params}".format(
+            endpoint=self.__CLASSIFY_ENDPOINT_V3.format(hash_value=sample_hash),
+            params=params
         )
 
         url = self._url.format(endpoint=endpoint)
+
+        print(url)
 
         response = self.__get_request(url=url)
 
@@ -596,7 +652,7 @@ class A1000(object):
                 allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
             )
 
-            url = self._url.format(endpoint=self.__DELETE_SAMPLES_BULK_ENDPOINT)
+            url = self._url.format(endpoint=self.__DELETE_SAMPLES_BULK_ENDPOINT_V2)
 
             data = {"hash_values": hash_input}
 
