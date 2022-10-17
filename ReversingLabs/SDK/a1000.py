@@ -10,7 +10,7 @@ import time
 from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
-    MD5, SHA1, SHA256, SHA512, \
+    MD5, SHA1, SHA256, SHA512, AVAILABLE_PLATFORMS, \
     RequestTimeoutError, WrongInputError, \
     validate_hashes
 
@@ -33,6 +33,8 @@ class A1000(object):
 
     __SUMMARY_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/"
     __CLASSIFY_ENDPOINT_V3 = "/api/samples/v3/{hash_value}/classification/"
+    __REANALYZE_BULK_ENDPOINT_V2 = "/api/samples/v2/analyze_bulk/"
+    __LIST_EXTRACTED_FILES_ENDPOINT_V2 = "/api/samples/v2/{hash_value}/extracted-files/"
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -501,7 +503,10 @@ class A1000(object):
         return response
 
     def reanalyze_samples(self, hash_input, titanium_cloud=True, titanium_core=True):
-        """Accepts a single hash or a list of hashes of the same type and reanalyzes the
+        """THIS METHOD IS DEPRECATED.
+        Use reanalyze_samples_v2 instead.
+
+        Accepts a single hash or a list of hashes of the same type and reanalyzes the
         corresponding samples.
             :param hash_input: single hash or a list of hashes
             :type hash_input: str or list[str]
@@ -512,6 +517,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use reanalyze_samples_v2 instead.", DeprecationWarning)
+
         if titanium_cloud not in (True, False):
             raise WrongInputError("titanium_cloud parameter must be boolean.")
 
@@ -519,6 +526,7 @@ class A1000(object):
             raise WrongInputError("titanium_core parameter must be boolean.")
 
         parameter_dict = {'core': titanium_core, 'cloud': titanium_cloud}
+
         analysis_list = [key for key, value in parameter_dict.items() if value]
 
         if len(analysis_list) == 0:
@@ -559,8 +567,84 @@ class A1000(object):
 
         return response
 
+    # NEW METHOD
+    def reanalyze_samples_v2(self, hash_input, titanium_cloud=False, titanium_core=False, rl_cloud_sandbox=False,
+                             cuckoo_sandbox=False, fireeye=False, joe_sandbox=False, cape=False,
+                             rl_cloud_sandbox_platform=None):
+        """Accepts a single hash or a list of hashes of various types and reanalyzes the corresponding sample(s).
+        This method can be used for reanalyzing a single sample or a batch of samples, depending on the data type
+        passed.
+        AT least one analysis type must be used (set to True).
+        If rl_cloud_sandbox is used as an analysis type, rl_cloud_sandbox_platform must be defined.
+            :param hash_input: single hash or a list of hashes
+            :type hash_input: str or list[str]
+            :param titanium_cloud: use TitaniumCloud
+            :type titanium_cloud: bool
+            :param titanium_core: use TitaniumCore
+            :type titanium_core: bool
+            :param rl_cloud_sandbox: use RL cloud sandbox
+            :type rl_cloud_sandbox: bool
+            :param cuckoo_sandbox: use Cuckoo sandbox
+            :type cuckoo_sandbox: bool
+            :param fireeye: use FireEye
+            :type fireeye: bool
+            :param joe_sandbox: use Joe sandbox
+            :type joe_sandbox: bool
+            :param cape: use Cape
+            :type cape: bool
+            :param rl_cloud_sandbox_platform: desired platform on which the sample will be detonated;
+                                            see ReversingLabs.SDK.helper.AVAILABLE PLATFORMS for options
+            :type rl_cloud_sandbox_platform: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(hash_input, list):
+            hash_input = [hash_input]
+
+        validate_hashes(
+            hash_input=hash_input,
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if rl_cloud_sandbox_platform not in AVAILABLE_PLATFORMS:
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be one "
+                                  "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
+
+        analysis_type_dict = {"cloud": titanium_cloud, "core": titanium_core, "rl_cloud_sandbox": rl_cloud_sandbox,
+                              "cuckoo": cuckoo_sandbox, "fireeye": fireeye, "joe": joe_sandbox, "cape": cape}
+
+        if not all(isinstance(analysis_type, bool) for analysis_type in analysis_type_dict.values()):
+            raise WrongInputError("All analysis type parameters must be boolean.")
+
+        if rl_cloud_sandbox and rl_cloud_sandbox_platform not in AVAILABLE_PLATFORMS:
+            raise WrongInputError("if rl_cloud_sandbox is used, rl_cloud_sandbox_platform parameter must be one "
+                                  "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
+
+        analysis_list = [key for key, value in analysis_type_dict.items() if value]
+
+        if not analysis_list:
+            raise WrongInputError("At least one analysis type parameter needs to be defined.")
+
+        analysis_types = ",".join(analysis_list)
+
+        url = self._url.format(endpoint=self.__REANALYZE_BULK_ENDPOINT_V2)
+
+        data = {
+            "hash_value": hash_input,
+            "analysis": analysis_types,
+            "rl_cloud_sandbox_platform": rl_cloud_sandbox_platform
+        }
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def get_extracted_files(self, sample_hash, page_size=None, page=None):
-        """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
+        """THIS METHOD IS DEPRECATED. Use list_extracted_files_v2 instead.
+
+        Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
         If used, page_size and page need to be combined while keeping track of remaining pages of results.
         e.g. - if result count is 5 and page_size is 2, there is only 3 pages worth of results.
         The page parameter can not be used without page_size. page and page_size need to be used together.
@@ -574,6 +658,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use list_extracted_files_v2 instead.", DeprecationWarning)
+
         validate_hashes(
             hash_input=[sample_hash],
             allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
@@ -597,6 +683,59 @@ class A1000(object):
                 page_size=page_size,
                 page=page
             )
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    # NEW METHOD
+    def list_extracted_files_v2(self, sample_hash, page_size=None, page=None):
+        """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
+        If the page parameter is used, it needs to be combined with the page_size parameter while keeping track of
+        remaining pages of results.
+        e.g. - if result count is 5 and page_size is 2, there is only 3 pages worth of results.
+        The page_size parameter can be used without the page parameter.
+        If page_size and page are not used, all results are returned in one response.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param page_size: defines the number of results on the returned page
+            :type page_size: int
+            :param page: defines which page of results should be fetched
+            :type page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if page and not page_size:
+            raise WrongInputError("If the page parameter is used, page_size must be defined.")
+
+        endpoint = self.__LIST_EXTRACTED_FILES_ENDPOINT_V2.format(
+            hash_value=sample_hash
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        params_dict = {"page": page, "page_size": page_size}
+
+        params_list = []
+
+        for key, value in params_dict.items():
+            if value:
+                if not isinstance(value, int):
+                    raise WrongInputError("{param} parameter must be integer.".format(param=key))
+
+                params_list.append("{key}={value}".format(key=key, value=value))
+
+        if params_list:
+            params = "?{params}".format(params="&".join(params_list))
+
+            url = "{url}{params}".format(url=url, params=params)
 
         response = self.__get_request(url=url)
 
