@@ -37,6 +37,7 @@ class A1000(object):
     __LIST_EXTRACTED_FILES_ENDPOINT_V2 = "/api/samples/v2/{hash_value}/extracted-files/"
     __CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/status/?id={task_id}"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
+    __DETAILED_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/details/"
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -298,11 +299,11 @@ class A1000(object):
             :type retry: bool
             :param fields: list of A1000 report 'fields' to query
             :type fields: list[str]
-            :return: :class:`Response <Response>` object
             :param include_networkthreatintelligence: include network threat intelligence in the summary report
             :type include_networkthreatintelligence: bool
             :param skip_reanalysis: skip sample reanalysis when fetching the summary report
             :type skip_reanalysis: bool
+            :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
         if fields and not isinstance(fields, list):
@@ -470,6 +471,72 @@ class A1000(object):
 
         return response
 
+    # NEW METHOD
+    def get_detailed_report_v2(self, sample_hashes, retry=False, fields=None, skip_reanalysis=False):
+        """Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples.
+        This method utilizes the set number of retries and wait time in seconds and times out if the
+        analysis results are not ready.
+            :param sample_hashes: hash string or list of hash strings
+            :type sample_hashes: str or list[str]
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param skip_reanalysis: skip sample reanalysis when fetching the summary report
+            :type skip_reanalysis: bool
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        if fields and not isinstance(fields, list):
+            raise WrongInputError("fields parameter must be a list of strings.")
+
+        if retry not in (True, False):
+            raise WrongInputError("retry parameter must be boolean.")
+
+        if skip_reanalysis not in (True, False):
+            raise WrongInputError("skip_reanalysis parameter must be boolean.")
+
+        if not fields:
+            fields = self._fields_v2
+
+        if isinstance(sample_hashes, str):
+            sample_hashes = [sample_hashes]
+
+        validate_hashes(
+            hash_input=sample_hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        retries = self._retries if retry else 0
+
+        analysis_is_finished = False
+
+        for iteration in range(retries + 1):
+            if iteration:
+                time.sleep(self._wait_time_seconds)
+
+            analysis_is_finished = self.__analysis_is_finished(sample_hashes)
+            if analysis_is_finished:
+                break
+
+        if not analysis_is_finished:
+            raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
+                                      "or the sample does not exist on the appliance.")
+
+        url = self._url.format(endpoint=self.__DETAILED_REPORT_ENDPOINT_V2)
+
+        data = {
+            "hash_values": sample_hashes,
+            "fields": fields,
+            "skip_reanalysis": str(skip_reanalysis).lower()
+        }
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def get_classification(self, sample_hash, local_only=True):
         """THIS METHOD IS DEPRECATED.
         Use get_classification_v3 instead.
@@ -545,8 +612,6 @@ class A1000(object):
         )
 
         url = self._url.format(endpoint=endpoint)
-
-        print(url)
 
         response = self.__get_request(url=url)
 
@@ -795,6 +860,43 @@ class A1000(object):
 
         return response
 
+    # NEW METHOD
+    def list_extracted_files_v2_aggregated(self, sample_hash, max_results=5000):
+        """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
+        Paging is done automatically and results from individual responses aggregated into one list and returned.
+        The max_results parameter defines the maximum number of results to be returned to the list.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param max_results: maximum number of results to be returned
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        pass
+        result_list = []
+        next_page = 1
+
+        while next_page:
+            response = self.list_extracted_files_v2(
+                sample_hash=sample_hash,
+                page=next_page,
+                page_size=100
+            )
+
+            response_json = response.json()
+
+            results = response_json.get("results", [])
+            result_list.extend(results)
+
+            if len(result_list) > max_results:
+                results = result_list[:max_results]
+                return results
+
+            next_page_url = response_json.get("next", None)
+            next_page = int(next_page_url.split("?")[1].split("&")[0].split("=")[1]) if next_page_url else None
+
+        return result_list
+
     def download_extracted_files(self, sample_hash):
         """Accepts a single hash string and returns a downloadable archive file
         containing files extracted from the desired sample.
@@ -967,7 +1069,7 @@ class A1000(object):
         Sends the query string to the A1000 Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
-        Pagination is done automatically and results from individual
+        Paging is done automatically and results from individual
         responses aggregated into one list and returned.
         The 'max_results' parameter defines the maximum desired number of results to be returned.
             Query string example:
@@ -1079,7 +1181,7 @@ class A1000(object):
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         For directions on how to write advanced search queries, consult the A1000 documentation.
-        Pagination is done automatically and results from individual
+        Paging is done automatically and results from individual
         responses aggregated into one list and returned.
         The 'max_results' parameter defines the maximum desired number of results to be returned.
             Query string example:
