@@ -419,7 +419,7 @@ class A1000(object):
         """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
         report response. This method combines uploading a sample and obtaining the summary analysis report.
         Additional fields can be provided.
-        The result obtaining action of this method utilizes the set number of retries and wait time in seconds to time
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
             :param file_path: file path
             :type file_path: str
@@ -571,7 +571,7 @@ class A1000(object):
 
     def get_classification_v3(self, sample_hash, local_only=False, av_scanners=False):
         """Get classification for one sample.
-        The default value of local_only is now False, which, if not changed, will send a request to TitaniumCloud to
+        The default value of local_only is False, which, if not changed, will send a request to TitaniumCloud to
         get the sample. The av_scanners parameter decides if the AV scanner results will be included in the
         classification report.
             :param sample_hash: hash string
@@ -998,7 +998,7 @@ class A1000(object):
                         sorting_order="desc"):
         """THIS METHOD IS DEPRECATED. Use advanced_search_v2 instead.
 
-        Sends the query string to the A1000 Advanced Search API.
+        Sends a query string to the A1000 Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         If a page number is not provided, the first page of results will be returned.
@@ -1109,7 +1109,7 @@ class A1000(object):
 
     def advanced_search_v2(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
-        """Sends the query string to the A1000 Advanced Search API v2.
+        """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         For directions on how to write advanced search queries, consult the A1000 documentation.
@@ -1163,12 +1163,12 @@ class A1000(object):
 
     def advanced_search_v2_aggregated(self,  query_string, max_results=5000, sorting_criteria=None,
                                       sorting_order="desc"):
-        """Sends the query string to the A1000 Advanced Search API v2.
+        """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         For directions on how to write advanced search queries, consult the A1000 documentation.
         Paging is done automatically and results from individual
-        responses aggregated into one list and returned.
+        responses aggregated into one list and returned`.
         The 'max_results' parameter defines the maximum desired number of results to be returned.
             Query string example:
             'av-count:5 available:TRUE'
