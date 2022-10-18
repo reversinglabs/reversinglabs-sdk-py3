@@ -72,33 +72,46 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a file path string and returns a response containing the analysis task ID
 - `upload_sample_from_file`
     - Accepts a file open in 'rb' mode and returns a response containing the analysis task ID
-- `get_results`
-    - Accepts a list of hashes and returns a summary JSON report for each of them
-    - This method utilizes the set number of retries and wait time in seconds to time
+- `get_summary_report_v2`
+  - Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them
+  -  This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
-- `upload_sample_and_get_results`
-    - Accepts a file path string or an opened file in 'rb' mode for file upload and returns an analysis report response
-    - This method combines uploading a sample and obtaining the analysis results
-    - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+- `upload_sample_and_get_summary_report_v2`
+  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
+        report response
+  - This method combines uploading a sample and obtaining the summary analysis report
+  - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
-- `get_classification`
-    - Accepts one or more sample hashes and returns their classification
-- `reanalyze_samples`
-    - Accepts a single hash or a list of hashes of the same type and reanalyzes the corresponding samples
-- `get_extracted_files`
-    - Accepts a sample hash and returns a list of all files TitaniumCore engine extracted from the requested sample during static analysis
+- `get_detailed_report_v2`
+  - Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples
+  - This method utilizes the set number of retries and wait time in seconds and times out if the
+        analysis results are not ready
+- `get_classification_v3`
+  - Get classification for one sample
+- `reanalyze_samples_v2`
+  - Accepts a single hash or a list of hashes of various types and reanalyzes the corresponding sample(s)
+  - This method can be used for reanalyzing a single sample or a batch of samples, depending on the data type
+        passed
+- `list_extracted_files_v2`
+  - Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis
+- `list_extracted_files_v2_aggregated`
+  - Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis
+  - Paging is done automatically and results from individual responses aggregated into one list and returned
 - `download_extracted_files`
     - Accepts a single hash string and returns a downloadable archive file containing files extracted from the desired sample
-- `delete_samples`
-    - Accepts a single hash string or a list of hashes and deletes the corresponding samples from A1000
 - `download_sample`
     - Accepts a single hash string and returns a downloadable sample
-- `advanced_search`
-    - Accepts a search query string and performs advanced search for local samples on A1000
-    - Returns only one defined page of results using one request
-- `advanced_search_aggregated`
-    - Accepts a search query string and performs advanced search for local samples on A1000
-    - Returns a list of results aggregated through multiple paginated requests
+- `delete_samples`
+    - Accepts a single hash string or a list of hashes and deletes the corresponding samples from A1000
+- `check_sample_removal_status_v2`
+  - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
+        indicates if the removal request was finished successfully and if all samples have been deleted
+- `advanced_search_v2`
+  - Sends a query string to the A1000 Advanced Search API v2
+- `advanced_search_v2_aggregated`
+  - Sends a query string to the A1000 Advanced Search API v2
+  - Paging is done automatically and results from individual
+        responses aggregated into one list and returned
   
 
 ***
