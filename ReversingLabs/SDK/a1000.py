@@ -35,6 +35,8 @@ class A1000(object):
     __CLASSIFY_ENDPOINT_V3 = "/api/samples/v3/{hash_value}/classification/"
     __REANALYZE_BULK_ENDPOINT_V2 = "/api/samples/v2/analyze_bulk/"
     __LIST_EXTRACTED_FILES_ENDPOINT_V2 = "/api/samples/v2/{hash_value}/extracted-files/"
+    __CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/status/?id={task_id}"
+    __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -287,7 +289,7 @@ class A1000(object):
     # NEW METHOD
     def get_summary_report_v2(self, sample_hashes, retry=True, fields=None, include_networkthreatintelligence=True,
                               skip_reanalysis=False):
-        """Accepts a list of hashes and returns JSON containing a summary report for each of them.
+        """Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them.
         This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
             :param sample_hashes: hash string or list of hash strings
@@ -362,9 +364,59 @@ class A1000(object):
 
         return response
 
-    def upload_sample_and_get_results(self, file_path=None, file_source=None, retry=True, fields=None,
-                                      include_networkthreatintelligence=True, skip_reanalysis=False,
-                                      custom_filename=None, tags=None, comment=None, cloud_analysis=True):
+    def upload_sample_and_get_results(self, file_path=None, file_source=None, retry=True, custom_filename=None,
+                                      tags=None, comment=None, cloud_analysis=True):
+        """THIS METHOD IS DEPRECATED. Use upload_sample_and_get_summary_report_v2 instead.
+
+        Accepts either a file path string or an open file in 'rb' mode for file upload and returns
+        an analysis report response. This method combines uploading a sample and obtaining the analysis results.
+        Additional fields can be provided.
+        The result obtaining action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_path: file path
+            :type file_path: str
+            :param file_source: open file
+            :type file_source: file or BinaryIO
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param cloud_analysis: use cloud analysis
+            :type cloud_analysis: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        warn("This method is deprecated. Use upload_sample_and_get_summary_report_v2 instead.", DeprecationWarning)
+
+        if (file_path and file_source) or (not file_path and not file_source):
+            raise WrongInputError("Either file_path or file_source parameter must be provided. "
+                                  "Using both or none of the parameters in sot allowed.")
+
+        if file_path:
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment,
+                                                           cloud_analysis)
+        else:
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags,
+                                                           comment, cloud_analysis)
+
+        response_detail = upload_response.json().get("detail")
+        sha1 = response_detail.get("sha1")
+        sha1 = str(sha1)
+
+        response = self.get_results(
+            sample_hashes=[sha1],
+            retry=retry
+        )
+
+        return response
+
+    def upload_sample_and_get_summary_report_v2(self, file_path=None, file_source=None, retry=True, fields=None,
+                                                include_networkthreatintelligence=True, skip_reanalysis=False,
+                                                custom_filename=None, tags=None, comment=None, cloud_analysis=True):
         """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
         report response. This method combines uploading a sample and obtaining the summary analysis report.
         Additional fields can be provided.
@@ -768,6 +820,9 @@ class A1000(object):
 
     def delete_samples(self, hash_input):
         """Accepts a single hash string or a list of hashes and deletes the corresponding samples.
+        This method combines the use of two endpoints for the following two actions.
+        - Delete a single sample: 'Delete sample' endpoint
+        - Delete a batch of samples: 'Delete multiple samples v2' endpoint
             :param hash_input: single hash string or a list of hashes
             :type hash_input: str or list[str]
             :return: response
@@ -805,6 +860,28 @@ class A1000(object):
 
         return response
 
+    # NEW METHOD
+    def check_sample_removal_status_v2(self, task_id):
+        """Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
+        indicates if the removal request was finished successfully and if all samples have been deleted.
+            :param task_id: ID of the bulk sample removal task
+            :type task_id: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(task_id, str):
+            raise WrongInputError("task_id parameter must be string.")
+
+        endpoint = self.__CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2.format(task_id=task_id)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def download_sample(self, sample_hash):
         """Accepts a single hash string and returns a downloadable sample.
             :param sample_hash: hash string
@@ -829,7 +906,9 @@ class A1000(object):
 
     def advanced_search(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
                         sorting_order="desc"):
-        """Sends the query string to the A1000 Advanced Search API.
+        """THIS METHOD IS DEPRECATED. Use advanced_search_v2 instead.
+
+        Sends the query string to the A1000 Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         If a page number is not provided, the first page of results will be returned.
@@ -850,6 +929,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use advanced_search_v2 instead.", DeprecationWarning)
+
         if not isinstance(query_string, str):
             raise WrongInputError("The search query must be a string.")
 
@@ -881,7 +962,9 @@ class A1000(object):
         return response
 
     def advanced_search_aggregated(self, query_string, max_results=5000, sorting_criteria=None, sorting_order="desc"):
-        """Sends the query string to the A1000 Advanced Search API.
+        """THIS METHOD IS DEPRECATED. Use advanced_search_v2_aggregated instead.
+
+        Sends the query string to the A1000 Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         Pagination is done automatically and results from individual
@@ -902,6 +985,8 @@ class A1000(object):
             :return: list of results
             :rtype: list
         """
+        warn("This method is deprecated. Use advanced_search_v2_aggregated instead.", DeprecationWarning)
+
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
 
@@ -911,6 +996,116 @@ class A1000(object):
 
         while more_pages:
             response = self.advanced_search(
+                query_string=query_string,
+                page_number=next_page,
+                records_per_page=100,
+                sorting_criteria=sorting_criteria,
+                sorting_order=sorting_order
+            )
+
+            response_json = response.json()
+
+            entries = response_json.get("rl").get("web_search_api").get("entries", [])
+            results.extend(entries)
+
+            if len(results) > max_results:
+                results = results[:max_results]
+                return results
+
+            next_page = response_json.get("rl").get("web_search_api").get("next_page", None)
+            more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
+
+        return results
+
+    # NEW METHOD
+    def advanced_search_v2(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
+                           sorting_order="desc"):
+        """Sends the query string to the A1000 Advanced Search API v2.
+        The query string must be composed of key-value pairs separated by space.
+        A key is separated from its value by a colon symbol and no spaces.
+        For directions on how to write advanced search queries, consult the A1000 documentation.
+        If a page number is not provided, the first page of results will be returned.
+            Query string example:
+            'av-count:5 available:TRUE'
+
+            :param query_string: query string
+            :type query_string: str
+            :param page_number: page number
+            :type page_number: int
+            :param records_per_page: number of records returned per page; maximum value is 100
+            :type records_per_page: int
+            :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
+            'threatname', 'sampletype', 'filecount', 'size'
+            :type sorting_criteria: str
+            :param sorting_order: sorting order; possible values are 'desc', 'asc'
+            :type sorting_order: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(query_string, str):
+            raise WrongInputError("The search query must be a string.")
+
+        if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 100:
+            raise WrongInputError("records_per_page parameter must be an integer with a value "
+                                  "between 1 and 100 (included).")
+
+        url = self._url.format(endpoint=self.__ADVANCED_SEARCH_ENDPOINT_V2)
+
+        post_json = {"query": query_string, "page": page_number, "records_per_page": records_per_page}
+
+        if sorting_criteria:
+            if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
+                raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
+                                      "Sorting order needs to be 'desc' or 'asc'.".format(
+                                        criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                                      ))
+            sorting_expression = "{criteria} {order}".format(
+                criteria=sorting_criteria,
+                order=sorting_order
+            )
+
+            post_json["sort"] = sorting_expression
+
+        response = self.__post_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    # NEW METHOD
+    def advanced_search_v2_aggregated(self,  query_string, max_results=5000, sorting_criteria=None,
+                                      sorting_order="desc"):
+        """Sends the query string to the A1000 Advanced Search API v2.
+        The query string must be composed of key-value pairs separated by space.
+        A key is separated from its value by a colon symbol and no spaces.
+        For directions on how to write advanced search queries, consult the A1000 documentation.
+        Pagination is done automatically and results from individual
+        responses aggregated into one list and returned.
+        The 'max_results' parameter defines the maximum desired number of results to be returned.
+            Query string example:
+            'av-count:5 available:TRUE'
+
+            :param query_string: search query - see API documentation for details on writing search queries
+            :type query_string: str
+            :param max_results: maximum results to be returned in a list; default value is 5000
+            :type max_results: int
+            :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
+            'threatname', 'sampletype', 'filecount', 'size'
+            :type sorting_criteria: str
+            :param sorting_order: sorting order; possible values are 'desc', 'asc'
+            :type sorting_order: str
+            :return: list of results
+            :rtype: list
+                """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = 1
+        more_pages = True
+
+        while more_pages:
+            response = self.advanced_search_v2(
                 query_string=query_string,
                 page_number=next_page,
                 records_per_page=100,
