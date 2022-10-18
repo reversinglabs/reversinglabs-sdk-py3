@@ -286,7 +286,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def get_summary_report_v2(self, sample_hashes, retry=True, fields=None, include_networkthreatintelligence=True,
                               skip_reanalysis=False):
         """Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them.
@@ -470,7 +469,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def get_detailed_report_v2(self, sample_hashes, retry=False, fields=None, skip_reanalysis=False):
         """Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples.
         This method utilizes the set number of retries and wait time in seconds and times out if the
@@ -571,7 +569,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def get_classification_v3(self, sample_hash, local_only=False, av_scanners=False):
         """Get classification for one sample.
         The default value of local_only is now False, which, if not changed, will send a request to TitaniumCloud to
@@ -683,7 +680,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def reanalyze_samples_v2(self, hash_input, titanium_cloud=False, titanium_core=False, rl_cloud_sandbox=False,
                              cuckoo_sandbox=False, fireeye=False, joe_sandbox=False, cape=False,
                              rl_cloud_sandbox_platform=None):
@@ -806,7 +802,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def list_extracted_files_v2(self, sample_hash, page_size=None, page=None):
         """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
         If the page parameter is used, it needs to be combined with the page_size parameter while keeping track of
@@ -859,7 +854,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def list_extracted_files_v2_aggregated(self, sample_hash, max_results=5000):
         """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
         Paging is done automatically and results from individual responses aggregated into one list and returned.
@@ -983,7 +977,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def check_sample_removal_status_v2(self, task_id):
         """Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted.
@@ -1118,7 +1111,6 @@ class A1000(object):
 
         return results
 
-    # NEW METHOD
     def advanced_search_v2(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
         """Sends the query string to the A1000 Advanced Search API v2.
@@ -1173,7 +1165,6 @@ class A1000(object):
 
         return response
 
-    # NEW METHOD
     def advanced_search_v2_aggregated(self,  query_string, max_results=5000, sorting_criteria=None,
                                       sorting_order="desc"):
         """Sends the query string to the A1000 Advanced Search API v2.
