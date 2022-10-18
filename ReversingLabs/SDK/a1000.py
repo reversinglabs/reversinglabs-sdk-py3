@@ -919,6 +919,28 @@ class A1000(object):
 
         return response
 
+    def download_sample(self, sample_hash):
+        """Accepts a single hash string and returns a downloadable sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        endpoint = self.__DOWNLOAD_SAMPLE_ENDPOINT.format(hash_value=sample_hash)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def delete_samples(self, hash_input):
         """Accepts a single hash string or a list of hashes and deletes the corresponding samples.
         This method combines the use of two endpoints for the following two actions.
@@ -974,28 +996,6 @@ class A1000(object):
             raise WrongInputError("task_id parameter must be string.")
 
         endpoint = self.__CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2.format(task_id=task_id)
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
-        return response
-
-    def download_sample(self, sample_hash):
-        """Accepts a single hash string and returns a downloadable sample.
-            :param sample_hash: hash string
-            :type sample_hash: str
-            :return: response
-            :rtype: requests.Response
-        """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        endpoint = self.__DOWNLOAD_SAMPLE_ENDPOINT.format(hash_value=sample_hash)
 
         url = self._url.format(endpoint=endpoint)
 
