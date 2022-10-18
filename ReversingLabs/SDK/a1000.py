@@ -718,10 +718,6 @@ class A1000(object):
             allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
         )
 
-        if rl_cloud_sandbox_platform not in AVAILABLE_PLATFORMS:
-            raise WrongInputError("rl_cloud_sandbox_platform parameter must be one "
-                                  "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
-
         analysis_type_dict = {"cloud": titanium_cloud, "core": titanium_core, "rl_cloud_sandbox": rl_cloud_sandbox,
                               "cuckoo": cuckoo_sandbox, "fireeye": fireeye, "joe": joe_sandbox, "cape": cape}
 
