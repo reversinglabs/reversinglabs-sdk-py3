@@ -6,6 +6,7 @@ A Python module containing common helper functions and variables for ReversingLa
 """
 
 import codecs
+import binascii
 from http import HTTPStatus
 
 
@@ -20,6 +21,8 @@ HASH_LENGTH_MAP = {
     64: SHA256,
     128: SHA512
 }
+
+AVAILABLE_PLATFORMS = ("windows7", "windows10")
 
 DEFAULT_USER_AGENT = "ReversingLabs integrations default user agent"
 ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "sampletype", "filecount", "size")
@@ -121,7 +124,7 @@ def validate_hashes(hash_input, allowed_hash_types):
     for hash_string in hash_input:
         try:
             codecs.decode(hash_string, "hex")
-        except TypeError:
+        except (TypeError, binascii.Error):
             raise WrongInputError("The given hash input string is not a valid hexadecimal value.")
 
         hashing_algorithm = HASH_LENGTH_MAP.get(len(hash_string), None)

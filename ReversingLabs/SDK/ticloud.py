@@ -12,18 +12,14 @@ import os
 import requests
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
-    RESPONSE_CODE_ERROR_MAP, \
-    MD5, SHA1, SHA256, SHA512, \
-    NoFileTypeError, NotFoundError, WrongInputError, \
-    validate_hashes
+    AVAILABLE_PLATFORMS, RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
+    WrongInputError, validate_hashes
 
 
 XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
-
-AVAILABLE_PLATFORMS = ("windows7", "windows10")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
