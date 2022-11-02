@@ -35,6 +35,7 @@ class A1000(object):
     __DELETE_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/"
     __DELETE_SAMPLES_BULK_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/"
     __CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/status/?id={task_id}"
+    __TAGS_ENDPOINT = "/api/tag/{hash_value}/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
 
@@ -989,6 +990,92 @@ class A1000(object):
         url = self._url.format(endpoint=endpoint)
 
         response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_user_tags_for_a_sample(self, sample_hash):
+        """Accepts a single hash string and returns lists of existing user tags for the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :return: response
+           :rtype: requests.Response
+           """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def post_user_tags_for_a_sample(self, sample_hash, tags):
+        """Accepts a single hash string and Adds one or more user tags to the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :param tags: list of hash strings
+           :type tags: list[str]
+           :return: response
+           :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if not isinstance(tags, list):
+            raise WrongInputError("tags parameter must be a list of strings.")
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        post_json = {"tags": tags}
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_user_tags_for_a_sample(self, sample_hash, tags):
+        """Accepts a single hash string and removes one or more user tags from the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :param tags: list of hash strings
+           :type tags: list[str]
+           :return: response
+           :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if not isinstance(tags, list):
+            raise WrongInputError("tags parameter must be a list of strings.")
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        post_json = {"tags": tags}
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__delete_request(url=url, post_json=post_json)
 
         self.__raise_on_error(response)
 
