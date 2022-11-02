@@ -72,6 +72,19 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a file path string and returns a response containing the analysis task ID
 - `upload_sample_from_file`
     - Accepts a file open in 'rb' mode and returns a response containing the analysis task ID
+- `upload_sample_from_url`
+    - Accepts a url and returns a response containing the analysis task ID
+- `check_submitted_url_status`
+    - Accepts a task id  returrned by upload_sample_from_url and returns a response containing processing status and 
+        analysis report if finished
+- `get_submitted_url_report`
+    - Accepts a task ID returned by the upload sample from url and returns a response
+    - This method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready
+- `upload_sample_from_url_and_get_report`
+    - Accepts a url and returns a response containing the analysis report
+    - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready
 - `get_summary_report_v2`
   - Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them
   -  This method utilizes the set number of retries and wait time in seconds to time
@@ -106,6 +119,12 @@ If username and password are used instead, a token fetching request will be done
 - `check_sample_removal_status_v2`
   - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted
+- `get_user_tags_for_a_sample`
+  - Accepts a single hash string and returns lists of existing user tags for the requested sample
+- `post_user_tags_for_a_sample`
+  - Accepts a single hash string and adds one or more user tags to the requested sample
+- `delete_user_tags_for_a_sample`
+  - Accepts a single hash string and removes one or more user tags from the requested sample
 - `advanced_search_v2`
   - Sends a query string to the A1000 Advanced Search API v2
 - `advanced_search_v2_aggregated`
