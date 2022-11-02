@@ -269,7 +269,7 @@ class A1000(object):
         return response
 
     def check_submitted_url_status(self, task_id):
-        """Accepts the task ID returned by the submit sample by url
+        """Accepts a task ID returned by the upload sample from url
             :param task_id: ID of the submitted sample
             :type task_id: str
             :return: response
@@ -289,7 +289,7 @@ class A1000(object):
         return response
 
     def get_submitted_url_report(self, task_id, retry):
-        """Accepts a file url for file upload and returns a report response.
+        """Accepts a task ID returned by the upload sample from url and returns a report response.
         This method combines uploading a sample from url and obtaining the analysis report.
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
@@ -1162,7 +1162,7 @@ class A1000(object):
         return response
 
     def post_user_tags_for_a_sample(self, sample_hash, tags):
-        """Accepts a single hash string and Adds one or more user tags to the requested sample.
+        """Accepts a single hash string and adds one or more user tags to the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
            :param tags: list of hash strings
