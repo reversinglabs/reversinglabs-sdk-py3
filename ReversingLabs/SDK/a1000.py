@@ -307,8 +307,6 @@ class A1000(object):
 
         retries = self._retries if retry else 0
 
-        analysis_is_finished = False
-
         for iteration in range(retries + 1):
             if iteration:
                 time.sleep(self._wait_time_seconds)
@@ -322,8 +320,8 @@ class A1000(object):
             if status == "complete":
                 return response
 
-            raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
-                                      "or the sample does not exist on the appliance.")
+        raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
+                                  "or the sample does not exist on the appliance.")
 
     def upload_sample_from_url_and_get_report(self, file_url, retry=True, crawler="local", archive_password=None,
                                               rl_cloud_sandbox_platform=None):
