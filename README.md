@@ -75,10 +75,10 @@ If username and password are used instead, a token fetching request will be done
 - `upload_sample_from_url`
     - Accepts a url and returns a response containing the analysis task ID
 - `check_submitted_url_status`
-    - Accepts a task id  returrned by upload_sample_from_url and returns a response containing processing status and 
-        analysis report if finished
+    - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
+        report if the report is ready
 - `get_submitted_url_report`
-    - Accepts a task ID returned by the upload sample from url and returns a response
+    - Accepts a task ID returned by upload_sample_from_url and returns a response
     - This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
 - `upload_sample_from_url_and_get_report`

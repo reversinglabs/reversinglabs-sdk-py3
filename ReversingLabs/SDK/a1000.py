@@ -148,9 +148,9 @@ class A1000(object):
             :type file_path: str
             :param custom_filename: custom file name for upload
             :type custom_filename: str
-            :param archive_password:
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -198,9 +198,9 @@ class A1000(object):
             :type file_source: file or BinaryIO
             :param custom_filename: custom file name for upload
             :type custom_filename: str
-            :param archive_password:
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -238,13 +238,13 @@ class A1000(object):
     def upload_sample_from_url(self, file_url, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
         """Accepts a file url and returns a response.
         Additional parameters can be provided.
-            :param file_url:
+            :param file_url: URL from which the appliance should download the data
             :type file_url: str
-            :param crawler: crawlermethod
-            :type crawler: string
-            :param archive_password:
+            :param crawler: crawler method (local or cloud)
+            :type crawler: str
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -315,13 +315,13 @@ class A1000(object):
 
             response = self.check_submitted_url_status(task_id=task_id)
             status = response.json().get("processing_status")
+
             if status == "error":
                 raise Exception(response.json().get("message"))
-            analysis_is_finished = (status == "complete")
-            if analysis_is_finished:
+
+            if status == "complete":
                 return response
 
-        if not analysis_is_finished:
             raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
                                       "or the sample does not exist on the appliance.")
 
@@ -332,15 +332,15 @@ class A1000(object):
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
-            :param file_url:
+            :param file_url: URL from which the appliance should download the data
             :type file_url: str
             :param retry: if set to False there will only be one try at obtaining the analysis report
             :type retry: bool
             :param crawler: crawler method (local or cloud)
             :type crawler: string
-            :param archive_password:
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -580,9 +580,9 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
-            :param archive_password:
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :return: response
             :rtype: requests.Response
@@ -1470,13 +1470,13 @@ class A1000(object):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
-            :param file_url:
+            :param file_url: URL from which the appliance should download the data
             :type file_url: str
             :param crawler: crawler method (local or cloud)
-            :type crawler: string
-            :param archive_password:
+            :type crawler: str
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform:
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -1500,13 +1500,13 @@ class A1000(object):
                 raise WrongInputError("Supported file_url protocols are HTTP and HTTPS.")
 
         if crawler and crawler not in ("cloud", "local"):
-            raise WrongInputError("""crawler parameter must be either "cloud" or "local".""")
+            raise WrongInputError("""crawler parameter must be either 'cloud' or 'local'.""")
 
         if archive_password and not isinstance(archive_password, str):
             raise WrongInputError("archive_password parameter must be string.")
 
         if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10"):
-            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either a windows7 or windows10 string.")
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either 'windows7' or 'windows10'.")
 
         if comment and not isinstance(comment, str):
             raise WrongInputError("comment parameter must be string.")
