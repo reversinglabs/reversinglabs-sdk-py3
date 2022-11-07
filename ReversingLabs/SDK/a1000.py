@@ -1498,7 +1498,7 @@ class A1000(object):
                 raise WrongInputError("Supported file_url protocols are HTTP and HTTPS.")
 
         if crawler and crawler not in ("cloud", "local"):
-            raise WrongInputError("""crawler parameter must be either 'cloud' or 'local'.""")
+            raise WrongInputError("crawler parameter must be either 'cloud' or 'local'.")
 
         if archive_password and not isinstance(archive_password, str):
             raise WrongInputError("archive_password parameter must be string.")
