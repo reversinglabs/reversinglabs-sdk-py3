@@ -20,6 +20,7 @@ class A1000(object):
     __TOKEN_ENDPOINT = "/api-token-auth/"
     __UPLOAD_ENDPOINT = "/api/uploads/"
     __CHECK_STATUS_ENDPOINT = "/api/samples/status/"
+    __CHECK_URL_STATUS_ENDPOINT = "/api/uploads/v2/url-samples/{task_id}"
     __RESULTS_ENDPOINT = "/api/samples/list/"
     __SUMMARY_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/"
     __DETAILED_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/details/"
@@ -35,6 +36,7 @@ class A1000(object):
     __DELETE_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/"
     __DELETE_SAMPLES_BULK_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/"
     __CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/status/?id={task_id}"
+    __TAGS_ENDPOINT = "/api/tag/{hash_value}/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
 
@@ -138,14 +140,18 @@ class A1000(object):
 
         return
 
-    def upload_sample_from_path(self, file_path, custom_filename=None, tags=None, comment=None,
-                                cloud_analysis=True):
+    def upload_sample_from_path(self, file_path, custom_filename=None, archive_password=None,
+                                rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
         """Accepts a file path string for file upload and returns a response.
         Additional parameters can be provided.
             :param file_path: path to file
             :type file_path: str
             :param custom_filename: custom file name for upload
             :type custom_filename: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
             :param comment: comment string
@@ -160,6 +166,8 @@ class A1000(object):
 
         data = self.__create_post_payload(
             custom_filename=custom_filename,
+            archive_password=archive_password,
+            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
             tags=tags,
             comment=comment,
             cloud_analysis=cloud_analysis
@@ -182,13 +190,18 @@ class A1000(object):
 
         return response
 
-    def upload_sample_from_file(self, file_source, custom_filename=None, tags=None, comment=None, cloud_analysis=True):
+    def upload_sample_from_file(self, file_source, custom_filename=None, archive_password=None,
+                                rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
         """Accepts an open file in 'rb' mode for file upload and returns a response.
         Additional parameters can be provided.
             :param file_source: open file
             :type file_source: file or BinaryIO
             :param custom_filename: custom file name for upload
             :type custom_filename: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
             :param comment: comment string
@@ -203,6 +216,8 @@ class A1000(object):
 
         data = self.__create_post_payload(
             custom_filename=custom_filename,
+            archive_password=archive_password,
+            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
             tags=tags,
             comment=comment,
             cloud_analysis=cloud_analysis
@@ -217,6 +232,127 @@ class A1000(object):
         )
 
         self.__raise_on_error(response)
+
+        return response
+
+    def upload_sample_from_url(self, file_url, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
+        """Accepts a file url and returns a response.
+        Additional parameters can be provided.
+            :param file_url: URL from which the appliance should download the data
+            :type file_url: str
+            :param crawler: crawler method (local or cloud)
+            :type crawler: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+
+        data = self.__create_post_payload(
+            crawler=crawler,
+            archive_password=archive_password,
+            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
+            file_url=file_url
+        )
+
+        url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
+
+        response = self.__post_request(
+            url=url,
+            data=data,
+        )
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def check_submitted_url_status(self, task_id):
+        """Accepts a task ID returned by the upload sample from url
+            :param task_id: ID of the submitted sample
+            :type task_id: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(task_id, str):
+            raise WrongInputError("task_id parameter must be a string.")
+
+        endpoint = self.__CHECK_URL_STATUS_ENDPOINT.format(task_id=task_id)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_submitted_url_report(self, task_id, retry):
+        """Accepts a task ID returned by the upload sample from url and returns a report response.
+        This method combines uploading a sample from url and obtaining the analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param task_id: ID of the submitted sample
+            :type task_id: str
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :return: response
+            :rtype: requests.Response
+        """
+
+        if retry not in (True, False):
+            raise WrongInputError("retry parameter must be boolean.")
+
+        retries = self._retries if retry else 0
+
+        for iteration in range(retries + 1):
+            if iteration:
+                time.sleep(self._wait_time_seconds)
+
+            response = self.check_submitted_url_status(task_id=task_id)
+            status = response.json().get("processing_status")
+
+            if status == "error":
+                raise Exception(response.json().get("message"))
+
+            if status == "complete":
+                return response
+
+        raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
+                                  "or the sample does not exist on the appliance.")
+
+    def upload_sample_from_url_and_get_report(self, file_url, retry=True, crawler="local", archive_password=None,
+                                              rl_cloud_sandbox_platform=None):
+        """Accepts a file url for file upload and returns a report response.
+        This method combines uploading a sample from url and obtaining the summary analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_url: URL from which the appliance should download the data
+            :type file_url: str
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param crawler: crawler method (local or cloud)
+            :type crawler: string
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+
+        upload_response = self.upload_sample_from_url(file_url=file_url, crawler=crawler,
+                                                      archive_password=archive_password,
+                                                      rl_cloud_sandbox_platform=rl_cloud_sandbox_platform)
+
+        response_detail = upload_response.json().get("detail")
+        task_id = response_detail.get("id")
+        task_id = str(task_id)
+
+        response = self.get_submitted_url_report(task_id=task_id, retry=retry)
 
         return response
 
@@ -415,7 +551,8 @@ class A1000(object):
 
     def upload_sample_and_get_summary_report_v2(self, file_path=None, file_source=None, retry=True, fields=None,
                                                 include_networkthreatintelligence=True, skip_reanalysis=False,
-                                                custom_filename=None, tags=None, comment=None, cloud_analysis=True):
+                                                custom_filename=None, tags=None, comment=None, cloud_analysis=True,
+                                                archive_password=None, rl_cloud_sandbox_platform=None):
         """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
         report response. This method combines uploading a sample and obtaining the summary analysis report.
         Additional fields can be provided.
@@ -441,6 +578,10 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
             :return: response
             :rtype: requests.Response
         """
@@ -449,11 +590,11 @@ class A1000(object):
                                   "Using both or none of the parameters in sot allowed.")
 
         if file_path:
-            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment,
-                                                           cloud_analysis)
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, archive_password,
+                                                           rl_cloud_sandbox_platform, tags, comment, cloud_analysis)
         else:
-            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags,
-                                                           comment, cloud_analysis)
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags, archive_password,
+                                                           rl_cloud_sandbox_platform, comment, cloud_analysis)
 
         response_detail = upload_response.json().get("detail")
         sha1 = response_detail.get("sha1")
@@ -994,6 +1135,92 @@ class A1000(object):
 
         return response
 
+    def get_user_tags_for_a_sample(self, sample_hash):
+        """Accepts a single hash string and returns lists of existing user tags for the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :return: response
+           :rtype: requests.Response
+           """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def post_user_tags_for_a_sample(self, sample_hash, tags):
+        """Accepts a single hash string and adds one or more user tags to the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :param tags: list of hash strings
+           :type tags: list[str]
+           :return: response
+           :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if not isinstance(tags, list):
+            raise WrongInputError("tags parameter must be a list of strings.")
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        post_json = {"tags": tags}
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_user_tags_for_a_sample(self, sample_hash, tags):
+        """Accepts a single hash string and removes one or more user tags from the requested sample.
+           :param sample_hash: hash string
+           :type sample_hash: str
+           :param tags: list of hash strings
+           :type tags: list[str]
+           :return: response
+           :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if not isinstance(tags, list):
+            raise WrongInputError("tags parameter must be a list of strings.")
+
+        endpoint = self.__TAGS_ENDPOINT.format(
+            hash_value=sample_hash
+        )
+
+        post_json = {"tags": tags}
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__delete_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def advanced_search(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
                         sorting_order="desc"):
         """THIS METHOD IS DEPRECATED. Use advanced_search_v2 instead.
@@ -1236,10 +1463,19 @@ class A1000(object):
         return token
 
     @staticmethod
-    def __create_post_payload(custom_filename=None, tags=None, comment=None, cloud_analysis=True):
+    def __create_post_payload(custom_filename=None, file_url=None,  crawler=None, archive_password=None,
+                              rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
+            :param file_url: URL from which the appliance should download the data
+            :type file_url: str
+            :param crawler: crawler method (local or cloud)
+            :type crawler: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
             :param comment: comment string
@@ -1255,6 +1491,21 @@ class A1000(object):
         if tags and not isinstance(tags, str):
             raise WrongInputError("tags parameter must be string.")
 
+        if file_url:
+            if not isinstance(file_url, str):
+                raise WrongInputError("file_url parameter must be string.")
+            if not file_url.startswith(("http://", "https://")):
+                raise WrongInputError("Supported file_url protocols are HTTP and HTTPS.")
+
+        if crawler and crawler not in ("cloud", "local"):
+            raise WrongInputError("crawler parameter must be either 'cloud' or 'local'.")
+
+        if archive_password and not isinstance(archive_password, str):
+            raise WrongInputError("archive_password parameter must be string.")
+
+        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10"):
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either 'windows7' or 'windows10'.")
+
         if comment and not isinstance(comment, str):
             raise WrongInputError("comment parameter must be string.")
 
@@ -1266,6 +1517,15 @@ class A1000(object):
         if custom_filename:
             data["filename"] = custom_filename
 
+        if crawler:
+            data["crawler"] = crawler
+
+        if archive_password:
+            data["archive_password"] = archive_password
+
+        if rl_cloud_sandbox_platform:
+            data["rl_cloud_sandbox_platform"] = rl_cloud_sandbox_platform
+
         if tags:
             data["tags"] = tags
 
@@ -1274,6 +1534,9 @@ class A1000(object):
 
         if cloud_analysis:
             data["analysis"] = "cloud"
+
+        if file_url:
+            data["url"] = file_url
 
         if len(data) == 0:
             data = None
