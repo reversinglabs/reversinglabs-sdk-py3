@@ -89,7 +89,7 @@ class NotAllowedError(Exception):
 
 
 class TooManyRequestsError(Exception):
-    def __init__(self, message="Too many requests - limit reached"):
+    def __init__(self, message="Too many requests. Your quota limit might be reached"):
         super(TooManyRequestsError, self).__init__(message)
 
 
