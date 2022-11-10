@@ -123,6 +123,26 @@ class TiCloudAPI(object):
 
         return response
 
+    def _delete_request(self, url, payload_json=None):
+        """A generic DELETE request method for all ticloud module classes.
+            :param url: request URL
+            :type url: str
+            :param payload_json: JSON body
+            :type payload_json: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        response = requests.delete(
+            url=url,
+            auth=self._credentials,
+            json=payload_json,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        return response
+
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
             :param response: response object
@@ -1688,6 +1708,98 @@ class FileUpload(TiCloudAPI):
             sample_name = "sample"
 
         return sample_name
+
+
+class DeleteFile(TiCloudAPI):
+    """TCA-0204"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/delete/sample/v1/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/delete/sample/v1/bulk_query/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DeleteFile, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                         allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def delete_samples(self, sample_hashes, delete_on=None):
+        """Accepts a hash string or a list of hash strings belonging to samples you want to delete from the cloud.
+        You can only delete samples that were uploaded by the same cloud account.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
+        An optional parameter for setting a future deletion time can be used in the form of a Unix timestamp.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :param delete_on: future deletion time
+            :type delete_on: int
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=sample_hashes if isinstance(sample_hashes, list) else [sample_hashes],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = self.__resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
+
+        if delete_on and not isinstance(delete_on, int):
+            raise WrongInputError("delete_on parameter must be an integer unix timestamp.")
+
+        if isinstance(sample_hashes, str):
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
+                hash_type=hash_type,
+                hash_value=sample_hashes
+            )
+
+            if delete_on:
+                endpoint = "{endpoint}?delete_on={delete_on}".format(
+                    endpoint=endpoint,
+                    delete_on=delete_on
+                )
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._delete_request(url=url)
+
+        elif isinstance(sample_hashes, list) and len(sample_hashes) > 0:
+            payload_json = {"rl": {"query": {"hash_type": hash_type, "hashes": sample_hashes}}}
+
+            if delete_on:
+                payload_json["rl"]["query"]["delete_on"] = str(delete_on)
+
+            url = self._url.format(endpoint=self.__BULK_QUERY_ENDPOINT)
+
+            response = self._delete_request(url=url, payload_json=payload_json)
+
+        else:
+            raise WrongInputError("Only hash string or list of hash strings are allowed as the "
+                                  "sample_hashes parameter.")
+
+        self._raise_on_error(response)
+
+        return response
+
+    @staticmethod
+    def __resolve_hash_type(sample_hashes):
+        """A Private method for resolving the hash type from sample hashes.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :return: hash type
+            :rtype: str
+        """
+        hash_types = []
+
+        for sample_hash in sample_hashes:
+            hash_type = HASH_LENGTH_MAP.get((len(sample_hash)))
+
+            hash_types.append(hash_type)
+
+        if len(list(set(hash_types))) > 1:
+            raise WrongInputError("All sample hashes must be of the same hash type.")
+
+        hash_type = hash_types[0]
+
+        return hash_type
 
 
 class DynamicAnalysis(TiCloudAPI):
