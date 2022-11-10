@@ -1517,11 +1517,11 @@ class A1000(object):
             hash_value=sample_hash
         )
 
-        post_json = {"tags": tags}
+        json = {"tags": tags}
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__delete_request(url=url, post_json=post_json)
+        response = self.__delete_request(url=url, json=json)
 
         self.__raise_on_error(response)
 
@@ -1966,7 +1966,7 @@ class A1000(object):
 
         return response
 
-    def __delete_request(self, url):
+    def __delete_request(self, url, json=None):
         """A generic DELETE request method for all A1000 methods.
         :param url: request URL
         :type url: str
@@ -1975,6 +1975,7 @@ class A1000(object):
         """
         response = requests.delete(
             url=url,
+            json=json,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers
