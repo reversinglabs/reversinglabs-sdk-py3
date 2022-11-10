@@ -1761,7 +1761,7 @@ class DeleteFile(TiCloudAPI):
 
             response = self._delete_request(url=url)
 
-        elif isinstance(sample_hashes, list) and len(sample_hashes) > 0:
+        elif isinstance(sample_hashes, list):
             payload_json = {"rl": {"query": {"hash_type": hash_type, "hashes": sample_hashes}}}
 
             if delete_on:
@@ -1781,25 +1781,26 @@ class DeleteFile(TiCloudAPI):
 
     @staticmethod
     def __resolve_hash_type(sample_hashes):
-        """A Private method for resolving the hash type from sample hashes.
+        """A Private method for resolving the hash type from a list of sample hashes.
             :param sample_hashes: hash string or a list of hash strings
-            :type sample_hashes: str or list[str]
+            :type sample_hashes: list[str]
             :return: hash type
             :rtype: str
         """
-        hash_types = []
+        first_hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[0]))
 
-        for sample_hash in sample_hashes:
-            hash_type = HASH_LENGTH_MAP.get((len(sample_hash)))
+        for iteration in range(len(sample_hashes) - 1):
+            hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[iteration + 1]))
 
-            hash_types.append(hash_type)
+            if hash_type != first_hash_type:
+                raise WrongInputError("Hash on position {position} is a/an {hash_type} and differs from the first "
+                                      "hash, which is a/an {first_hash_type}".format(
+                                        position=iteration + 1,
+                                        hash_type=hash_type,
+                                        first_hash_type=first_hash_type
+                                        ))
 
-        if len(list(set(hash_types))) > 1:
-            raise WrongInputError("All sample hashes must be of the same hash type.")
-
-        hash_type = hash_types[0]
-
-        return hash_type
+        return first_hash_type
 
 
 class DynamicAnalysis(TiCloudAPI):
