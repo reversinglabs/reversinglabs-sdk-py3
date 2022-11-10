@@ -18,3 +18,12 @@ v1.2.2 (2022-10-19)
 - **helper** module:
   - Catching the `binascii.Error` in the `validate_hashes` function.
 
+
+  
+v1.3.0 (2022-11-dd)
+-------------------
+
+#### Changes
+
+- **ticloud** module:
+  - Added the `DeleteFile` class.
