@@ -121,6 +121,9 @@ def validate_hashes(hash_input, allowed_hash_types):
         :param allowed_hash_types: allowed hash types
         :type allowed_hash_types: tuple
     """
+    if not hash_input:
+        raise WrongInputError("At least one hash needs to be supplied as input.")
+
     for hash_string in hash_input:
         try:
             codecs.decode(hash_string, "hex")
