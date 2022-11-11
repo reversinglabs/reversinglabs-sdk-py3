@@ -78,6 +78,11 @@ class InternalServerError(Exception):
         super(InternalServerError, self).__init__(message)
 
 
+class BadGatewayError(Exception):
+    def __init__(self, message="The server received an invalid response from another server"):
+        super(BadGatewayError, self).__init__(message)
+
+
 class ServiceUnavailableError(Exception):
     def __init__(self, message="Service unavailable"):
         super(ServiceUnavailableError, self).__init__(message)
@@ -110,6 +115,7 @@ RESPONSE_CODE_ERROR_MAP = {
     HTTPStatus.CONFLICT: ConflictError,
     HTTPStatus.REQUEST_ENTITY_TOO_LARGE: RequestTooLargeError,
     HTTPStatus.INTERNAL_SERVER_ERROR: InternalServerError,
+    HTTPStatus.BAD_GATEWAY: BadGatewayError,
     HTTPStatus.SERVICE_UNAVAILABLE: ServiceUnavailableError
 }
 
