@@ -1724,7 +1724,8 @@ class DeleteFile(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def delete_samples(self, sample_hashes, delete_on=None):
-        """Accepts a hash string or a list of hash strings belonging to samples you want to delete from the cloud.
+        """Accepts a single hash string or a list of hash strings
+        belonging to samples you want to delete from the cloud.
         You can only delete samples that were uploaded by the same cloud account.
         In case a list with multiple sample hashes is being used, all hashes must be of the same type.
         An optional parameter for setting a future deletion time can be used in the form of a Unix timestamp.
@@ -1740,7 +1741,7 @@ class DeleteFile(TiCloudAPI):
             allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
-        hash_type = self.__resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
+        hash_type = resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
 
         if delete_on and not isinstance(delete_on, int):
             raise WrongInputError("delete_on parameter must be an integer unix timestamp.")
@@ -1779,28 +1780,61 @@ class DeleteFile(TiCloudAPI):
 
         return response
 
-    @staticmethod
-    def __resolve_hash_type(sample_hashes):
-        """A Private method for resolving the hash type from a list of sample hashes.
+
+class ReanalyzeFile(TiCloudAPI):
+    """TCA-0205"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/rescan/v1/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/rescan/v1/bulk_query/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ReanalyzeFile, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                            allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def ranalyze_samples(self, sample_hashes):
+        """Accepts a single hash string or a list of hash strings
+        belonging to samples in the cloud you want to reanalyze.
+        The samples need to be already present in the cloud in order to be reanalyzed.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
             :param sample_hashes: hash string or a list of hash strings
-            :type sample_hashes: list[str]
-            :return: hash type
-            :rtype: str
+            :type sample_hashes: str or list[str]
+            :return: response
+            :rtype: requests.Response
         """
-        first_hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[0]))
+        validate_hashes(
+            hash_input=sample_hashes if isinstance(sample_hashes, list) else [sample_hashes],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
 
-        for iteration in range(len(sample_hashes) - 1):
-            hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[iteration + 1]))
+        hash_type = resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
 
-            if hash_type != first_hash_type:
-                raise WrongInputError("Hash on position {position} is a/an {hash_type} and differs from the first "
-                                      "hash, which is a/an {first_hash_type}".format(
-                                        position=iteration + 1,
-                                        hash_type=hash_type,
-                                        first_hash_type=first_hash_type
-                                        ))
+        if isinstance(sample_hashes, str):
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
+                hash_type=hash_type,
+                hash_value=sample_hashes
+            )
 
-        return first_hash_type
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url)
+
+        elif isinstance(sample_hashes, list):
+            payload_json = {"rl": {"query": {"hash_type": hash_type, "hashes": sample_hashes}}}
+
+            url = self._url.format(endpoint=self.__BULK_QUERY_ENDPOINT)
+
+            response = self._post_request(url=url, post_json=payload_json)
+
+        else:
+            raise WrongInputError("Only hash string or list of hash strings are allowed as the "
+                                  "sample_hashes parameter.")
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class DynamicAnalysis(TiCloudAPI):
@@ -2117,3 +2151,28 @@ def get_rha1_type(host, username, password, verify, hash_input, allow_none_retur
                          "{allowed_files}".format(allowed_files=", ".join(RHA1_TYPE_MAP)))
 
     return rha1_type
+
+
+def resolve_hash_type(sample_hashes):
+    """A method for resolving the hash type from a list of sample hashes.
+     The method also checks if all the hashes in the list are of the same type.
+     The list can also have only one element.
+        :param sample_hashes: hash string or a list of hash strings
+        :type sample_hashes: list[str]
+        :return: hash type
+        :rtype: str
+    """
+    first_hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[0]))
+
+    for iteration in range(len(sample_hashes) - 1):
+        hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[iteration + 1]))
+
+        if hash_type != first_hash_type:
+            raise WrongInputError("Hash on position {position} is a/an {hash_type} and differs from the first "
+                                  "hash, which is a/an {first_hash_type}".format(
+                                    position=iteration + 1,
+                                    hash_type=hash_type,
+                                    first_hash_type=first_hash_type
+                                    ))
+
+    return first_hash_type
