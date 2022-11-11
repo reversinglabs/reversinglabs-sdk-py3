@@ -2168,8 +2168,9 @@ def resolve_hash_type(sample_hashes):
         hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[iteration + 1]))
 
         if hash_type != first_hash_type:
-            raise WrongInputError("Hash on position {position} is a/an {hash_type} and differs from the first "
-                                  "hash, which is a/an {first_hash_type}".format(
+            raise WrongInputError("All hashes in the list must be of the same type. Hash on "
+                                  "position {position} is a/an {hash_type} and differs from "
+                                  "the first hash, which is a/an {first_hash_type}".format(
                                     position=iteration + 1,
                                     hash_type=hash_type,
                                     first_hash_type=first_hash_type
