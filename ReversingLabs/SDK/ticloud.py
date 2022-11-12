@@ -590,8 +590,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         if classification:
             classification = str(classification).upper()
             if classification not in CLASSIFICATIONS:
-                raise WrongInputError("Only {classifications} is allowed "
-                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+                raise WrongInputError("Only the following options are allowed as the classification parameter: "
+                                      "{classifications} ".format(classifications=CLASSIFICATIONS))
 
             optional_parameters = "{params}&classification={classification}".format(
                 params=optional_parameters,
@@ -1930,6 +1930,130 @@ class DynamicAnalysis(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class CertificateIndex(TiCloudAPI):
+    """TCA-0501"""
+
+    __CERTIFICATE_INDEX_ENDPOINT = "/api/certificate/index/v1/query/thumbprint/{thumbprint}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CertificateIndex, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                               allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_certificate_information(self, certificate_thumbprint, extended_results=True,
+                                    results_per_page=100, classification=None, next_page_hash=None):
+        """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
+         matching the requested thumbprint.
+         Extended information for each returned hash can be requested.
+            :param certificate_thumbprint: hash string
+            :type certificate_thumbprint: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param results_per_page: number of returned results per page; default and maximum is 100
+            :type results_per_page: int
+            :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
+            :type classification: str or None
+            :param next_page_hash: hash string of the next page of results
+            :type next_page_hash: str or None
+            :return: response
+            :rtype: requests.Response
+         """
+        validate_hashes(
+            hash_input=[certificate_thumbprint],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        extended_results = str(extended_results).lower()
+        if extended_results not in ("true", "false"):
+            raise WrongInputError("extended_results parameter must be boolean.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        optional_params = "?format=json&extended={extended_results}&limit={results_per_page}".format(
+            extended_results=extended_results,
+            results_per_page=results_per_page
+        )
+
+        if next_page_hash:
+            optional_params = "/page/{page_hash}{optional_params}".format(
+                page_hash=next_page_hash,
+                optional_params=optional_params
+            )
+
+        if classification:
+            classification = str(classification).upper()
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only the following options are allowed as the classification parameter: "
+                                      "{classifications} ".format(classifications=CLASSIFICATIONS))
+
+            optional_params = "{optional_params}&classification={classification}".format(
+                optional_params=optional_params,
+                classification=classification
+            )
+
+        endpoint = "{endpoint}{params}".format(
+            endpoint=self.__CERTIFICATE_INDEX_ENDPOINT.format(thumbprint=certificate_thumbprint),
+            params=optional_params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_certificate_information_aggregated(self, certificate_thumbprint, extended_results=True, classification=None,
+                                               max_results=5000):
+        """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
+         matching the requested thumbprint.
+         This method automatically handles paging and returns a list of results instead of a Response object.
+         Extended information for each returned hash can be requested.
+            :param certificate_thumbprint: hash string
+            :type certificate_thumbprint: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
+            :type classification: str or None
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_hash = None
+
+        while True:
+            response = self.get_certificate_information(
+                certificate_thumbprint=certificate_thumbprint,
+                extended_results=extended_results,
+                results_per_page=100,
+                classification=classification,
+                next_page_hash=next_page_hash
+            )
+
+            response_json = response.json()
+
+            samples = response_json.get("rl").get("samples", [])
+            results.extend(samples)
+
+            next_page_hash = response_json.get("rl").get("next_page", None)
+
+            if len(results) > max_results or not next_page_hash:
+                break
+
+        return results[:max_results]
 
 
 class CertificateAnalytics(TiCloudAPI):
