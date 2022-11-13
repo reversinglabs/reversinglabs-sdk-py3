@@ -547,7 +547,7 @@ results = titanium_scale.upload_sample_and_get_results(
 #### CloudDeepScan
 ```python
 from ReversingLabs.SDK.clouddeepscan import CloudDeepScan
-from ReversingLabs.SDK.helpers import CloudDeepScanException
+from ReversingLabs.SDK.helper import CloudDeepScanException
 
 
 cloud_deep_scan = CloudDeepScan(
