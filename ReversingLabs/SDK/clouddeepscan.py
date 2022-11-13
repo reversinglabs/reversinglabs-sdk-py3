@@ -12,9 +12,9 @@ class CloudDeepScan(object):
         Admins can find token endpoint, rest hostname, client id and secret on Cloud Deep Scan web UI.
         Go to settings -> REST API Authorization tab.
 
-        :param token_endpoint: token endpoint that will be used to fetch authorization token
+        :param token_endpoint: token endpoint that is used to fetch authorization token
         :type token_endpoint: str
-        :param rest_hostname: REST API hostname that will be used as base URL to generate endpoints
+        :param rest_hostname: REST API hostname that is used as base URL to generate endpoints
         :type rest_hostname: str
         :param client_id: ID of OAuth2.0 client used for authorization
         :type client_id: str
@@ -32,7 +32,7 @@ class CloudDeepScan(object):
     def upload_sample(self, sample_path):
         """Uploads sample to Cloud Deep Scan REST API
 
-        :param sample_path: Path to the sample that should be scanned
+        :param sample_path: path to the sample that should be scanned
         :type sample_path: str
         :raises CloudDeepScanException: if sample upload fails in any way
         :return: submission ID that can be used to fetch submission status
