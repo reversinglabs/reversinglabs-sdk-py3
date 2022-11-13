@@ -1,7 +1,5 @@
 import os
 import time
-import base64
-import hashlib
 import requests
 from datetime import datetime
 from ReversingLabs.SDK.helper import CloudDeepScanException
@@ -47,7 +45,20 @@ class CloudDeepScan(object):
         return upload["submission_id"]
 
     def fetch_submission_status(self, submission_id):
-        response = self.__do_api_request("GET", f"/api/v1/submissions/{sample_id}")
+        """Fetches submission status by submission ID.
+        Submission ID is returned when sample is uploaded.
+        Returned status object has three fields:
+        - id: submission ID
+        - created_at: datetime with timezone info (UTC)
+        - status: can be one of scanned, scanning and error
+
+        :param submission_id: submission ID that status is requested for
+        :type submission_id: str
+        :raises CloudDeepScanException: if anything goes wrong during the communication with the API
+        :return: status object describing submission status
+        :rtype: CloudDeepScanSubmissionStatus
+        """
+        response = self.__do_api_request(method="GET", endpoint=f"/api/v1/submissions/{submission_id}")
         try:
             status = CloudDeepScanSubmissionStatus(
                 id_=response["id"],
@@ -58,8 +69,35 @@ class CloudDeepScan(object):
         except (KeyError, ValueError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
-    def fetch_latest_report(self, sample_hash):
-        pass
+    def download_report(self, sample_hash, report_output_path):
+        """Downloads latest JSON report for the given hash and saves it to the provided path.
+
+        :param sample_hash: sha1 hash of sample content
+        :type sample_hash: str
+        :param report_output_path: relative or absolute path where output will be saved with file name included
+        e.g. "reports/report1.json"
+        :type report_output_path: str
+        :raises CloudDeepScanException: if report download fails in any way
+        """
+        response = self.__do_api_request(
+            method="GET",
+            endpoint="/api/v1/reports",
+            params={"hash": sample_hash, "history": 0},
+            allow_redirects=True
+        )
+        try:
+            abs_report_path = os.path.abspath(report_output_path)
+            report_parent_dir = os.path.dirname(abs_report_path)
+            if not os.path.isdir(report_parent_dir):
+                raise CloudDeepScanException(
+                    f"Failed to download report: directory '{report_parent_dir}' does not exist, report cannot be saved"
+                )
+
+            with open(report_output_path, "wb") as f:
+                f.write(response.content)
+
+        except IOError:
+            raise CloudDeepScanException("Failed to download report: failed to save report to disk")
 
     def __create_upload(self, file_name, file_size):
         """Calls Cloud Deep Scan REST API /api/v1/uploads endpoint to create upload
@@ -72,7 +110,11 @@ class CloudDeepScan(object):
         :return: created upload details
         :rtype: dict[any]
         """
-        response = self.__do_api_request("POST", "/api/v1/uploads", body={"file_name": file_name, "file_size": file_size})
+        response = self.__do_api_request(
+            method="POST",
+            endpoint="/api/v1/uploads",
+            json={"file_name": file_name, "file_size": file_size}
+        )
         try:
             response_data = response.json()
         except requests.exceptions.JSONDecodeError:
@@ -90,32 +132,37 @@ class CloudDeepScan(object):
         :type object_key: str
         :raises CloudDeepScanException: if complete API call goes wrong
         """
-        response = self.__do_api_request("PATCH", f"/api/v1/uploads/{upload_id}", body={"object_key": object_key, "etags": etags})
+        response = self.__do_api_request(
+            method="PATCH",
+            endpoint=f"/api/v1/uploads/{upload_id}",
+            json={"object_key": object_key, "etags": etags}
+        )
         if response.status_code != 204:
             raise CloudDeepScanException("Failed to create upload")
 
-    def __do_api_request(self, method, endpoint, body=None, params=None):
+    def __do_api_request(self, method, endpoint, **kwargs):
         """Calls Cloud Deep Scan REST API endpoint while handling authentication
 
         :param method: request HTTP method ("GET", "POST" etc.)
         :type method: str
         :param endpoint: endpoint that should be called e.g. "/v1/api/uploads"
         :type endpoint: str
-        :param body: body that should be sent to the endpoint, defaults to None
-        :type body: dict, bytes or string, optional
-        :param params: URL parameters that should be sent, defaults to None
-        :type params: dict, optional
+        :param kwargs: proxied to requests.reqeust method
+        :type kwargs: dict, optional
         :raises CloudDeepScanException: if API call fails
         :return: response from the server
         :rtype: requests.Response
         """
         token = self.__get_authorization_token()
         url = f"{self.rest_hostname}{endpoint}"
-        headers = {
+        base_headers = {
             "Authorization": f"Bearer {token}"
         }
+        headers = kwargs.get("headers", {}).update(base_headers)
+        # Make sure there is a default timeout so requests don't get stuck
+        timeout = kwargs.get("timeout", 10)
         try:
-            response = requests.request(method, url, data=body, headers=headers, timeout=10)
+            response = requests.request(method, url, headers=headers, timeout=timeout, **kwargs)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             msg = None
@@ -166,7 +213,7 @@ class CloudDeepScan(object):
             except KeyError:
                 raise CloudDeepScanException("Failed to fetch access token: malformed response from identity provider")
         return self.__token
-    
+
     def __is_token_valid(self):
         """Validates token set on the instance
 
@@ -217,20 +264,11 @@ class CloudDeepScan(object):
         :return: etag of the successful upload
         :rtype: str
         """
-        content_hash = hashlib.md5(data).digest()
-        encoded_hash = base64.b64encode(content_hash)
-        headers = {
-            # This is not required but useful, S3 validates payload based on provided payload's md5 hash
-            # More info here:
-            # https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html#API_UploadPart_RequestSyntax
-            "Content-MD5": encoded_hash.decode(),
-            "Content-Length": len(data)
-        }
         try:
             response = requests.put(url, data=data)
             response.raise_for_status()
             etag = response.headers["ETag"]
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise CloudDeepScanException("Failed to upload sample part: upload request failed")
         except KeyError:
             raise CloudDeepScanException("Failed to upload sample part: malformed upload response")
@@ -240,7 +278,8 @@ class CloudDeepScan(object):
     def __parse_iso8601_time(timestamp):
         return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
 
-    def __get_file_info(self, path):
+    @staticmethod
+    def __get_file_info(path):
         """Stats file to determine size
 
         :param path: path to the file
@@ -265,7 +304,7 @@ class CloudDeepScan(object):
 class CloudDeepScanSubmissionStatus(object):
 
     def __init__(self, id_, created_at, status):
-        """Submission status representation.
+        """Submission status representation
 
         :param id_: submission id
         :type id_: str
