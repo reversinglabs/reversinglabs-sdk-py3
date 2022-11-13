@@ -3,6 +3,7 @@ import time
 import base64
 import hashlib
 import requests
+from datetime import datetime
 from ReversingLabs.SDK.helper import CloudDeepScanException
 
 
@@ -36,7 +37,7 @@ class CloudDeepScan(object):
         :param sample_path: Path to the sample that should be scanned
         :type sample_path: str
         :raises CloudDeepScanException: if sample upload fails in any way
-        :return: submission ID that can be used to fetch scan status
+        :return: submission ID that can be used to fetch submission status
         :rtype: str
         """
         file_name, file_size = self.__get_file_info(path=sample_path)
@@ -45,7 +46,19 @@ class CloudDeepScan(object):
         self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
 
-    def download_report(self, content_hash, output_path):
+    def fetch_submission_status(self, submission_id):
+        response = self.__do_api_request("GET", f"/api/v1/submissions/{sample_id}")
+        try:
+            status = CloudDeepScanSubmissionStatus(
+                id_=response["id"],
+                created_at=self.__parse_iso8601_time(timestamp=response["created_at"]),
+                status=response["status"]
+            )
+            return status
+        except (KeyError, ValueError):
+            raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
+
+    def fetch_latest_report(self, sample_hash):
         pass
 
     def __create_upload(self, file_name, file_size):
@@ -61,10 +74,9 @@ class CloudDeepScan(object):
         """
         response = self.__do_api_request("POST", "/api/v1/uploads", body={"file_name": file_name, "file_size": file_size})
         try:
-            response.raise_for_status()
             response_data = response.json()
-        except requests.exceptions.RequestException:
-            raise CloudDeepScanException("Failed to create upload")
+        except requests.exceptions.JSONDecodeError:
+            raise CloudDeepScanException("Failed to create upload: malformed API response")
         return response_data
 
     def __complete_upload(self, upload_id, etags, object_key):
@@ -79,10 +91,8 @@ class CloudDeepScan(object):
         :raises CloudDeepScanException: if complete API call goes wrong
         """
         response = self.__do_api_request("PATCH", f"/api/v1/uploads/{upload_id}", body={"object_key": object_key, "etags": etags})
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            raise CloudDeepScanException("Failed to complete upload")
+        if response.status_code != 204:
+            raise CloudDeepScanException("Failed to create upload")
 
     def __do_api_request(self, method, endpoint, body=None, params=None):
         """Calls Cloud Deep Scan REST API endpoint while handling authentication
@@ -106,8 +116,25 @@ class CloudDeepScan(object):
         }
         try:
             response = requests.request(method, url, data=body, headers=headers, timeout=10)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            msg = None
+            try:
+                payload = e.response.json()
+                msg = payload["error"]
+            except (requests.exceptions.JSONDecodeError, KeyError):
+                pass
+            if e.response.status_code == 404:
+                raise CloudDeepScanException(f"API request failed: {msg or 'resource not found'}")
+            elif e.response.status_code == 400:
+                raise CloudDeepScanException(f"API request failed: {msg or 'malformed request'}")
+            elif e.response.status_code == 401:
+                raise CloudDeepScanException(f"API request failed: {msg or 'unauthorized'}")
+            elif e.response.status_code >= 500:
+                raise CloudDeepScanException(f"API request failed: {msg or 'internal server error'}")
+            raise CloudDeepScanException(f"API request failed: {msg or 'something went wrong'}")
         except requests.exceptions.RequestException as e:
-            raise CloudDeepScanException(f"Failed to complete REST API request: {str(e)}")
+            raise CloudDeepScanException(f"Failed to complete request: {str(e)}")
         return response
 
     def __get_authorization_token(self):
@@ -120,7 +147,7 @@ class CloudDeepScan(object):
         :rtype: str
         """
         if not self.__is_token_valid():
-            token_leeway = 20  # Add leeway to eliminate window where token may be expired on the server but not for us due to timings
+            token_leeway = 20  # leeway is added to eliminate window where token may be expired on the server but not for SDK due to timings
             try:
                 token_response = requests.post(
                     self.token_endpoint,
@@ -193,6 +220,9 @@ class CloudDeepScan(object):
         content_hash = hashlib.md5(data).digest()
         encoded_hash = base64.b64encode(content_hash)
         headers = {
+            # This is not required but useful, S3 validates payload based on provided payload's md5 hash
+            # More info here:
+            # https://docs.aws.amazon.com/AmazonS3/latest/API/API_UploadPart.html#API_UploadPart_RequestSyntax
             "Content-MD5": encoded_hash.decode(),
             "Content-Length": len(data)
         }
@@ -205,6 +235,10 @@ class CloudDeepScan(object):
         except KeyError:
             raise CloudDeepScanException("Failed to upload sample part: malformed upload response")
         return etag
+
+    @staticmethod
+    def __parse_iso8601_time(timestamp):
+        return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
 
     def __get_file_info(self, path):
         """Stats file to determine size
@@ -226,3 +260,26 @@ class CloudDeepScan(object):
         file_size = stat_result.st_size
         file_name = os.path.basename(path)
         return file_name, file_size
+
+
+class CloudDeepScanSubmissionStatus(object):
+
+    def __init__(self, id_, created_at, status):
+        """Submission status representation.
+
+        :param id_: submission id
+        :type id_: str
+        :param created_at: time when submission was created
+        :type created_at: datetime
+        :param status: submission status, can be one of: scanned, scanning, error
+        :type status: str
+        """
+        self.id = id_
+        self.created_at = created_at
+        self.status = status
+
+    def __eq__(self, other):
+        return self.id == other.id and self.created_at == other.created_at and self.status == other.status
+
+    def __repr__(self):
+        return f"CloudDeepScanSubmissionStatus('{self.id}')"
