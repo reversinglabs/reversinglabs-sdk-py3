@@ -1,3 +1,10 @@
+"""
+author: Savo Kovacevic
+
+CloudDeepScan
+A Python module for the ReversingLabs Cloud Deep Scan REST API.
+"""
+
 import os
 import time
 import requests
