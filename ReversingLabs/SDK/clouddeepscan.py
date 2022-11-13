@@ -65,7 +65,7 @@ class CloudDeepScan(object):
         :return: status object describing submission status
         :rtype: CloudDeepScanSubmissionStatus
         """
-        response = self.__do_api_request(method="GET", endpoint=f"/api/v1/submissions/{submission_id}")
+        response = self.__api_request(method="GET", endpoint=f"/api/v1/submissions/{submission_id}")
         try:
             status = CloudDeepScanSubmissionStatus(
                 id_=response["id"],
@@ -86,7 +86,7 @@ class CloudDeepScan(object):
         :type report_output_path: str
         :raises CloudDeepScanException: if report download fails in any way
         """
-        response = self.__do_api_request(
+        response = self.__api_request(
             method="GET",
             endpoint="/api/v1/reports",
             params={"hash": sample_hash, "history": 0},
@@ -117,7 +117,7 @@ class CloudDeepScan(object):
         :return: created upload details
         :rtype: dict[any]
         """
-        response = self.__do_api_request(
+        response = self.__api_request(
             method="POST",
             endpoint="/api/v1/uploads",
             json={"file_name": file_name, "file_size": file_size}
@@ -139,7 +139,7 @@ class CloudDeepScan(object):
         :type object_key: str
         :raises CloudDeepScanException: if complete API call goes wrong
         """
-        response = self.__do_api_request(
+        response = self.__api_request(
             method="PATCH",
             endpoint=f"/api/v1/uploads/{upload_id}",
             json={"object_key": object_key, "etags": etags}
@@ -147,7 +147,7 @@ class CloudDeepScan(object):
         if response.status_code != 204:
             raise CloudDeepScanException("Failed to create upload")
 
-    def __do_api_request(self, method, endpoint, **kwargs):
+    def __api_request(self, method, endpoint, **kwargs):
         """Calls Cloud Deep Scan REST API endpoint while handling authentication
 
         :param method: request HTTP method ("GET", "POST" etc.)
