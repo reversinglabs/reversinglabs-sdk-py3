@@ -26,4 +26,4 @@ v1.3.0 (2022-11-dd)
 #### Changes
 
 - **ticloud** module:
-  - Added the `DeleteFile`, `ReanalyzeFile` class.
+  - Added the `DeleteFile`, `ReanalyzeFile`, `CertificateIndex`, `CertificateThumbprintSearch` classes.
