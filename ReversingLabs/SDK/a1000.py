@@ -1148,7 +1148,34 @@ class A1000(object):
 
         return response
 
-    def create_pdf_report_for_a_sample(self, sample_hash):
+    def __utilize_pdf_endpoint(self, sample_hash, endpoint):
+        """Accepts a single hash string and utilizes pdf report endpoint for initiation, status checking and downloading
+        of a PDF analysis report for the requested sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param endpoint: endpoint string
+            :type endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        endpoint = endpoint.format(
+            hash_value=sample_hash,
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def create_pdf_report(self, sample_hash: object) -> object:
         """Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
         The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
         sample.
@@ -1157,24 +1184,10 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        endpoint = self.__PDF_REPORT_CREATE_ENDPOINT.format(
-            hash_value=sample_hash,
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_CREATE_ENDPOINT)
         return response
 
-    def check_pdf_report_creation_status_for_a_sample(self, sample_hash):
+    def check_pdf_report_creation(self, sample_hash):
         """Accepts a single hash string that should correspond to the hash used in the request with
         create_pdf_report_for_a_sample method. The response includes an informative message about the status of the PDF
         report previously requested.
@@ -1183,24 +1196,10 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        endpoint = self.__PDF_REPORT_STATUS_ENDPOINT.format(
-            hash_value=sample_hash,
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_STATUS_ENDPOINT)
         return response
 
-    def download_pdf_report_for_a_sample(self, sample_hash):
+    def download_pdf_report(self, sample_hash):
         """Accepts a single hash string that should correspond to the hash used in the request with
         create_pdf_report_for_a_sample method.
             :param sample_hash: hash string
@@ -1208,21 +1207,7 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        endpoint = self.__PDF_REPORT_DOWNLOAD_ENDPOINT.format(
-            hash_value=sample_hash
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_DOWNLOAD_ENDPOINT)
         return response
 
     def get_titanium_core_report_for_a_sample_v2(self, sample_hash, fields=None):
@@ -1260,27 +1245,28 @@ class A1000(object):
 
         return response
 
-    def create_dynamic_analysis_report_for_a_sample(self, sample_hash, report_format="html"):
-        """Accepts a single hash string and initiates the creation of PDF or HTML reports for samples that have gone
-        through dynamic analysis in the ReversingLabs Cloud Sandbox.
-        The response includes links to the report creation status endpoint and report download ednpoint for the
-        requested sample.
+    def __utilize_dynamic_analysis_endpoint(self, sample_hash, report_format, endpoint):
+        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analylsis endpoint for
+        initiation, status checking and downloading of PDF or HTML reports
+        for samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
             :param sample_hash: hash string
             :type sample_hash: str
             :param report_format: report format ('html' or 'pdf')
             :rtype report_format: str
+            :param endpoint: endpoint string
+            :type endpoint: str
             :return: response
             :rtype: requests.Response
         """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(SHA1,)
         )
 
         if report_format not in ("html", "pdf"):
             raise WrongInputError("report_format parameter must be either 'html' or 'pdf'.")
 
-        endpoint = self.__DYNAMIC_ANALYSIS_REPORT_CREATE_ENDPOINT.format(
+        endpoint = endpoint.format(
             hash_value=sample_hash,
             format=report_format,
         )
@@ -1293,7 +1279,24 @@ class A1000(object):
 
         return response
 
-    def check_dynamic_analysis_report_creation_status_for_a_sample(self, sample_hash, report_format="html"):
+    def create_dynamic_analysis_report(self, sample_hash, report_format):
+        """Accepts a single hash string and and a report format and initiates the creation of PDF or HTML reports for
+        samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
+        The response includes links to the report creation status endpoint and report download ednpoint for the
+        requested sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param report_format: report format ('html' or 'pdf')
+            :rtype report_format: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_CREATE_ENDPOINT)
+        return response
+
+    def check_dynamic_analysis_report_status(self, sample_hash, report_format):
         """Accepts a single hash string and report format parameters that should correspond to the parameters used in
         the request with create_dynamic_analysis_report_for_a_sample method. The response includes an informative
         message about the status of the report previously requested.
@@ -1304,28 +1307,12 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        if report_format not in ("html", "pdf"):
-            raise WrongInputError("report_format parameter must be either 'html' or 'pdf'.")
-
-        endpoint = self.__DYNAMIC_ANALYSIS_REPORT_STATUS_ENDPOINT.format(
-            hash_value=sample_hash,
-            format=report_format,
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_STATUS_ENDPOINT)
         return response
 
-    def download_dynamic_analysis_report_report_for_a_sample(self, sample_hash, report_format="html"):
+    def download_dynamic_analysis_report(self, sample_hash, report_format):
         """Accepts a single hash string and report format parameters that should correspond to the parameters used in
         the request with create_dynamic_analysis_report_for_a_sample method.
             :param sample_hash: hash string
@@ -1335,29 +1322,13 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
-        )
-
-        if report_format not in ("html", "pdf"):
-            raise WrongInputError("report_format parameter must be either 'html' or 'pdf'.")
-
-        endpoint = self.__DYNAMIC_ANALYSIS_REPORT_DOWNLOAD_ENDPOINT.format(
-            hash_value=sample_hash,
-            format=report_format,
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self.__get_request(url=url)
-
-        self.__raise_on_error(response)
-
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_DOWNLOAD_ENDPOINT)
         return response
 
-    def set_classification_for_a_sample(self, sample_hash, classification, system="local", risk_score=None,
-                                        threat_platform=None, threat_type=None, threat_name=None):
+    def set_classification(self, sample_hash, classification, system, risk_score=None, threat_platform=None,
+                           threat_type=None, threat_name=None):
         """Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
         or locally on the A1000. Returns a response containing a new classification.
             :param sample_hash: hash string
@@ -1372,7 +1343,7 @@ class A1000(object):
             :param threat_platform: if specified, it must be on the supported list (platforms and subplatforms - see
             official API docs). If not specified, the default value is 'Win32'.
             :type threat_platform: str
-            :param threat_type: If specified, it must be on the supported list (malware types - see pfficial API docs).
+            :param threat_type: If specified, it must be on the supported list (malware types - see official API docs).
             If not specified, the default value is 'Malware'.
             :type threat_type: str
             :param threat_name: If specified, must be an alphanumeric string not longer than 32 characters. If not
@@ -1386,7 +1357,7 @@ class A1000(object):
             allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
         )
 
-        if system and system not in ("local", "ticloud"):
+        if system not in ("local", "ticloud"):
             raise WrongInputError("system parameter must be either 'local' or 'ticloud'.")
 
         endpoint = self.__SET_OR_DELETE_CLASSIFICATION_ENDPOINT.format(
@@ -1410,7 +1381,7 @@ class A1000(object):
 
         return response
 
-    def delete_classification_for_a_sample(self, sample_hash, system="local"):
+    def delete_classification(self, sample_hash, system="local"):
         """Accepts a single hash string, allows the user to delete the classification of a sample, either in
         TitaniumCloud or locally on the A1000.
             :param sample_hash: hash string
@@ -1441,7 +1412,7 @@ class A1000(object):
 
         return response
 
-    def get_user_tags_for_a_sample(self, sample_hash):
+    def get_user_tags(self, sample_hash):
         """Accepts a single hash string and returns lists of existing user tags for the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1450,7 +1421,7 @@ class A1000(object):
            """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         endpoint = self.__TAGS_ENDPOINT.format(
@@ -1465,7 +1436,7 @@ class A1000(object):
 
         return response
 
-    def post_user_tags_for_a_sample(self, sample_hash, tags):
+    def post_user_tags(self, sample_hash, tags):
         """Accepts a single hash string and adds one or more user tags to the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1476,7 +1447,7 @@ class A1000(object):
         """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         if not isinstance(tags, list):
@@ -1496,7 +1467,7 @@ class A1000(object):
 
         return response
 
-    def delete_user_tags_for_a_sample(self, sample_hash, tags):
+    def delete_user_tags(self, sample_hash, tags):
         """Accepts a single hash string and removes one or more user tags from the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1507,7 +1478,7 @@ class A1000(object):
         """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         if not isinstance(tags, list):
@@ -1517,11 +1488,11 @@ class A1000(object):
             hash_value=sample_hash
         )
 
-        json = {"tags": tags}
+        post_json = {"tags": tags}
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__delete_request(url=url, json=json)
+        response = self.__delete_request(url=url, post_json=post_json)
 
         self.__raise_on_error(response)
 
@@ -1966,7 +1937,7 @@ class A1000(object):
 
         return response
 
-    def __delete_request(self, url, json=None):
+    def __delete_request(self, url, post_json=None):
         """A generic DELETE request method for all A1000 methods.
         :param url: request URL
         :type url: str
@@ -1975,7 +1946,7 @@ class A1000(object):
         """
         response = requests.delete(
             url=url,
-            json=json,
+            json=post_json,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers
