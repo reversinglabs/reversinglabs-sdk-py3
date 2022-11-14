@@ -558,7 +558,7 @@ cloud_deep_scan = CloudDeepScan(
 )
 try:
     submission_id = cloud_deep_scan.upload_sample(sample_path="/path/to/file/suspicious_file.exe")
-except CloudDeepScanException:
+except CloudDeepScanException as e:
     print(f"Whoops, something went wrong: {str(e)}")
 
 try:
@@ -566,11 +566,11 @@ try:
     print(submission_data.id) # submission id
     print(str(submission_data.created_at)) # datetime instance
     print(submission_data.status) # status
-except CloudDeepScanException:
+except CloudDeepScanException as e:
     print(f"Whoops, something went wrong: {str(e)}")
 
 try:
     cloud_deep_scan.download_report(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95", report_output_path="reports/report1.json")  # report parent directory must exist
-except CloudDeepScanException:
+except CloudDeepScanException as e:
     print(f"Whoops, something went wrong: {str(e)}")
 ```
