@@ -229,7 +229,7 @@ class CloudDeepScan(object):
         """
         if self.__token_expires_at is None or self.__token is None:
             return False
-        return time.time() > self.__token_expires_at
+        return time.time() < self.__token_expires_at
 
     def __upload_parts(self, sample_path, parts):
         """Uploads sample as parts to dedicated S3 bucket.
