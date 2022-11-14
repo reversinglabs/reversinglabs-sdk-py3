@@ -1111,8 +1111,8 @@ class ExpressionSearch(TiCloudAPI):
             :type date: str or any
             :param max_results: maximum results to be returned in the list; default value is 5000
             :type max_results: int
-            :return: response
-            :rtype: requests.Response
+            :return: list of results
+            :rtype: list
         """
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
@@ -2025,8 +2025,8 @@ class CertificateIndex(TiCloudAPI):
             :type classification: str or None
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
-            :return: response
-            :rtype: requests.Response
+            :return: list of results
+            :rtype: list
         """
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
@@ -2109,6 +2109,106 @@ class CertificateAnalytics(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class CertificateThumbprintSearch(TiCloudAPI):
+    """TCA-0503"""
+
+    __CERTIFICATE_SEARCH_ENDPOINT = "/api/certificate/search/v1/query/subject/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CertificateThumbprintSearch, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def search_common_names(self, common_name, next_page_common_name=None, next_page_thumbprint=None,
+                            results_per_page=100):
+        """Accepts a certificate common name and returns common names matching the request, along with the list of
+        thumbprints of all the certificates sharing that common name.
+        The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
+        To use paging, both next_page_common_name and next_page_thumbprint parameters must be provided.
+            :param common_name: certificate common name
+            :type common_name: str
+            :param next_page_common_name: common name on the next page of results
+            :type next_page_common_name: str or None
+            :param next_page_thumbprint: hash thumbprint on the next page of result
+            :type next_page_thumbprint: str or None
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(common_name, str):
+            raise WrongInputError("common_name parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        post_json = {"rl": {"query": {"common_name": common_name, "limit": results_per_page,
+                                      "response_format": "json"}}}
+
+        if all((next_page_common_name, next_page_thumbprint)):
+            if not isinstance(next_page_common_name, str) or not isinstance(next_page_thumbprint, str):
+                raise WrongInputError("Both next_page_common_name and next_page_thumbprint parameters need to be "
+                                      "strings.")
+
+            post_json["rl"]["query"]["next_page_common_name"] = next_page_common_name
+            post_json["rl"]["query"]["next_page_thumbprint"] = next_page_thumbprint
+
+        elif any((next_page_common_name, next_page_thumbprint)):
+            raise WrongInputError("Both next_page_common_name and next_page_thumbprint parameters need to be used "
+                                  "together for paging.")
+
+        print(post_json)
+
+        url = self._url.format(endpoint=self.__CERTIFICATE_SEARCH_ENDPOINT)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def search_common_names_aggregated(self, common_name, max_results=5000):
+        """Accepts a certificate common name and returns common names matching the request, along with the list of
+        thumbprints of all the certificates sharing that common name.
+        The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
+        This method automatically handles paging and returns a list of results instead of a Response object.
+            :param common_name: certificate common name
+            :type common_name: str
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_common_name, next_page_thumbprint = None, None
+
+        while True:
+            response = self.search_common_names(
+                common_name=common_name,
+                next_page_common_name=next_page_common_name,
+                next_page_thumbprint=next_page_thumbprint,
+                results_per_page=100
+            )
+
+            response_json = response.json()
+
+            common_names = response_json.get("rl").get("search", [])
+            results.extend(common_names)
+
+            next_page_common_name = response_json.get("rl").get("next_page_common_name", None)
+            next_page_thumbprint = response_json.get("rl").get("next_page_thumbprint", None)
+
+            if len(results) > max_results or not any((next_page_common_name, next_page_thumbprint)):
+                break
+
+        return results[:max_results]
 
 
 class RansomwareIndicators(TiCloudAPI):
