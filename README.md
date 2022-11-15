@@ -289,6 +289,24 @@ class FileUpload(TiCloudAPI)
 
 #### Class:
 ```python
+class DeleteFile(TiCloudAPI)
+````
+#### Methods:
+- `delete_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples you want to delete from the cloud
+  - You can only delete samples that were uploaded by the same cloud account
+
+#### Class:
+```python
+class ReanalyzeFile(TiCloudAPI)
+````
+#### Methods:
+- `ranalyze_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
+  - The samples need to be already present in the cloud in order to be reanalyzed
+
+#### Class:
+```python
 class DynamicAnalysis(TiCloudAPI)
 ````
 #### Methods:
@@ -298,6 +316,17 @@ class DynamicAnalysis(TiCloudAPI)
 - `get_dynamic_analysis_results`
     - Returns dynamic analysis results for a desired sample
     - The analysis of the selected sample must be finished for the results to be available
+
+#### Class:
+```python
+class CertificateIndex(TiCloudAPI)
+````
+#### Methods:
+- `get_certificate_information`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+- `get_certificate_information_aggregated`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+    - This method automatically handles paging and returns a list of results instead of a Response object
     
 #### Class:
 ```python
@@ -309,11 +338,34 @@ class CertificateAnalytics(TiCloudAPI)
 
 #### Class:
 ```python
+class CertificateThumbprintSearch(TiCloudAPI)
+````
+#### Methods:
+- `search_common_names`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+- `search_common_names_aggregated`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
 class RansomwareIndicators(TiCloudAPI)
 ````
 #### Methods:
 - `get_indicators`
-    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools.
+    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools
+
+#### Class:
+```python
+class NewMalwareFilesFeed(TiCloudAPI)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns malware detections from the requested time
+- `pull`
+    - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the self.set_start() method been called, it will return records starting with the current timestamp
+- `set_start`
+    - This method sets the starting time for the pull method
 
 ***
 
