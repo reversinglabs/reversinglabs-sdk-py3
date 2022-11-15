@@ -158,12 +158,49 @@ If username and password are used instead, a token fetching request will be done
   - Accepts a single hash string and adds one or more user tags to the requested sample
 - `delete_user_tags`
   - Accepts a single hash string and removes one or more user tags from the requested sample
+- `get_yara_rulesets_on_the_appliance_v2`
+  - Retrieves a list of YARA rulesets that are on the A1000 appliance
+  - The list can be filtered by several criteria (ruleset status, source, and owner) using optional parameters
+- `get_yara_ruleset_contents`
+  - Retrieves the full contents of the requested ruleset in raw text/plain format
+  - All rulesets can be retrieved, regardless of their current status on the appliance (enabled, disabled…)
+- `get_yara_ruleset_matches_v2`
+  - Retrieves the list of YARA matches (both local and cloud) for requested rulesets
+  - If multiple rulesets are provided in the request, only the samples that match all requested rulesets are listed in
+        the response.
+- `create_or_update_yara_ruleset`
+  - Creates a new YARA ruleset if it doesn’t exist
+  - If a ruleset with the specified name already exists, a new revision (update) of the ruleset is created
+- `delete_yara_ruleset`
+  - Deletes the specified YARA ruleset and its matches from the appliance
+- `enable_or_disable_yara_ruleset`
+  - Enables/disables ruleset on the appliance
+  - Administrators can manage any ruleset while regular A1000 users can only menage their own rulesets
+- `get_yara_ruleset_synchronization_time`
+  - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
+- `update_yara_ruleset_synchronization_time`
+  - Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets
+- `start_or_stop_yara_local_retro_scan`
+  - Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
+        in progress on the appliance
+- `get_yara_local_retro_scan_status`
+  - Gets the status of Local Retro scan on the A1000 appliance
+- `start_or_stop_yara_cloud_retro_scan`
+  - Allows users to start and stop a Cloud Retro scan for a specified ruleset on the A1000 appliance, as well as
+        to clear all Cloud Retro results for the ruleset
+- `get_yara_cloud_retro_scan_status`
+  - Gets the status of Cloud Retro for the specified YARA ruleset. The response indicates the
+        current state of Cloud Retro       
 - `advanced_search_v2`
   - Sends a query string to the A1000 Advanced Search API v2
 - `advanced_search_v2_aggregated`
   - Sends a query string to the A1000 Advanced Search API v2
   - Paging is done automatically and results from individual
         responses aggregated into one list and returned
+- `list_containers_for_hashes`
+  - Gets a list of all top-level containers from which the requested sample has been extracted during analysis
+  - This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
+        file hashes
   
 
 ***
