@@ -1189,7 +1189,7 @@ class A1000(object):
 
     def check_pdf_report_creation(self, sample_hash):
         """Accepts a single hash string that should correspond to the hash used in the request with
-        create_pdf_report_for_a_sample method. The response includes an informative message about the status of the PDF
+        create_pdf_report method. The response includes an informative message about the status of the PDF
         report previously requested.
             :param sample_hash: hash string
             :type sample_hash: str
@@ -1201,7 +1201,7 @@ class A1000(object):
 
     def download_pdf_report(self, sample_hash):
         """Accepts a single hash string that should correspond to the hash used in the request with
-        create_pdf_report_for_a_sample method.
+        create_pdf_report method.
             :param sample_hash: hash string
             :type sample_hash: str
             :return: response
@@ -1210,12 +1210,12 @@ class A1000(object):
         response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_DOWNLOAD_ENDPOINT)
         return response
 
-    def get_titanium_core_report_for_a_sample_v2(self, sample_hash, fields=None):
+    def get_titanium_core_report_v2(self, sample_hash, fields=None):
         """Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
         The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
         request, all available parts of the static analysis report are returned in the response.
             :param sample_hash: hash string
-            :type sample_hash: strWith this parameter, users can select which parts of the report they want to receive in the response.
+            :type sample_hash: str
             :param fields: a string of comma separated TitaniumCore 'fields' to query
             :type fields: str
             :return: response
@@ -1298,7 +1298,7 @@ class A1000(object):
 
     def check_dynamic_analysis_report_status(self, sample_hash, report_format):
         """Accepts a single hash string and report format parameters that should correspond to the parameters used in
-        the request with create_dynamic_analysis_report_for_a_sample method. The response includes an informative
+        the request with create_dynamic_analysis_report method. The response includes an informative
         message about the status of the report previously requested.
             :param sample_hash: hash string
             :type sample_hash: str
@@ -1314,7 +1314,7 @@ class A1000(object):
 
     def download_dynamic_analysis_report(self, sample_hash, report_format):
         """Accepts a single hash string and report format parameters that should correspond to the parameters used in
-        the request with create_dynamic_analysis_report_for_a_sample method.
+        the request with create_dynamic_analysis_report method.
             :param sample_hash: hash string
             :type sample_hash: str
             :param report_format: report format ('html' or 'pdf')

@@ -125,12 +125,12 @@ If username and password are used instead, a token fetching request will be done
         sample
 - `check_pdf_report_creation`
   - Accepts a single hash string that should correspond to the hash used in the request with
-        create_pdf_report_for_a_sample method. The response includes an informative message about the status of the PDF
+        create_pdf_report method. The response includes an informative message about the status of the PDF
         report previously requested
 - `download_pdf_report`
   - Accepts a single hash string that should correspond to the hash used in the request with
-        create_pdf_report_for_a_sample method
-- `get_titanium_core_report_for_a_sample_v2`
+        create_pdf_report method
+- `get_titanium_core_report_v2`
   - Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
         The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
         request, all available parts of the static analysis report are returned in the response
@@ -141,11 +141,11 @@ If username and password are used instead, a token fetching request will be done
         requested sample
 - `check_dynamic_analysis_report_status`
   - Accepts a single hash string and report format parameters that should correspond to the parameters used in
-        the request with create_dynamic_analysis_report_for_a_sample method. The response includes an informative
+        the request with create_dynamic_analysis_report method. The response includes an informative
         message about the status of the report previously requested
 - `download_dynamic_analysis_report`
   - Accepts a single hash string and report format parameters that should correspond to the parameters used in
-        the request with create_dynamic_analysis_report_for_a_sample method
+        the request with create_dynamic_analysis_report method
 - `set_classification`
   - Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
         or locally on the A1000. Returns a response containing a new classification
