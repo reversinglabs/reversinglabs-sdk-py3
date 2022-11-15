@@ -363,7 +363,7 @@ class NewMalwareFilesFeed(TiCloudAPI)
 - `pull_with_timestamp`
     - Accepts a time format definition and a time value. Returns malware detections from the requested time
 - `pull`
-    - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the self.set_start() method been called, it will return records starting with the current timestamp
+    - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the set_start method been called, it will return records starting with the current timestamp
 - `set_start`
     - This method sets the starting time for the pull method
 
@@ -416,7 +416,7 @@ a1000 = A1000(
     retries=10
 )
 
-response = a1000.upload_sample_and_get_results(
+response = a1000.upload_sample_and_get_summary_report_v2(
     file_path="/path/to/file.exe",
     retry=True,
     custom_filename="CustomName",
@@ -429,7 +429,7 @@ json_report = response.json()
 ```python
 from ReversingLabs.SDK.a1000 import A1000
 
-# Using token for authorization
+# Using the token for authorization
 a1000 = A1000(
     host="http://a1000.address",
     token="1js76asmklaslk288japj29s89z",
@@ -438,7 +438,7 @@ a1000 = A1000(
     retries=15
 )
 
-response = a1000.get_extracted_files(
+response = a1000.list_extracted_files_v2(
     sample_hash="cf23df2207d99a74fbe169e3eba035e633b65d94",
     page_size=30
 )
