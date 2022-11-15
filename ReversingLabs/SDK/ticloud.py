@@ -2369,7 +2369,7 @@ class NewMalwareFilesFeed(TiCloudAPI):
         return response
 
     def pull(self, sample_available=False, record_limit=1000):
-        """Returns a list of malware detections since the point in time set by the set_start method.
+        """Returns a list of malware detections since the point in time set by the self.set_start() method.
         If the user has not previously used this method, nor has the self.set_start() method been called,
         it will return records starting with the current timestamp.
         Every subsequent call will continue from the timestamp where the previous call ended.
