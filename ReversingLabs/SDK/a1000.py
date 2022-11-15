@@ -5,6 +5,7 @@ A1000
 A Python module for the ReversingLabs A1000 appliance REST API.
 """
 
+import datetime
 import requests
 import time
 from warnings import warn
@@ -46,6 +47,14 @@ class A1000(object):
                                                   "/download/"
     __SET_OR_DELETE_CLASSIFICATION_ENDPOINT = "/api/samples/{hash_value}/setclassification/{system}/"
     __TAGS_ENDPOINT = "/api/tag/{hash_value}/"
+    __RETRIEVE_YARA_RULESETS_ENDPOINT_V2 = "/api/yara/v2/rulesets/"
+    __RETRIEVE_YARA_RULESET_CONTENTS_ENDPOINT = "/api/yara/ruleset/content/?name={ruleset_name}"
+    __RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2 = "/api/yara/v2/ruleset/matches/"
+    __YARA_RULESET_ENDPOINT = "/api/yara/ruleset/"
+    __ENABLE_OR_DISABLE_YARA_RULESET_ENDPOINT = "/api/yara/ruleset/{operation}/"
+    __GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT = "/api/yara/ticloud/time/"
+    __YARA_LOCAL_RETROSCAN_ENDPOINT = "/api/uploads/local-retro-hunt/"
+    __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
 
@@ -1498,6 +1507,318 @@ class A1000(object):
 
         return response
 
+    def get_yara_rulesets_on_the_appliance_v2(self, owner_type=None, status=None, source=None, page=None, page_size=None):
+        """Retrieves a list of YARA rulesets that are on the A1000 appliance. The list can be filtered by several
+        criteria (ruleset status, source, and owner) using optional parameters.
+            :param owner_type: supported values: my (default - currently authenticated user), user, system, all
+            :type owner_type: str
+            :param status: supported values: all (default), error, active, disabled, pending, invalid, capped
+            :type status: str
+            :param source: supported values: all (default), local, cloud
+            :type source: str
+            :param page: when this parameter is omitted from the request, all available results are returned at once
+            :type page: str
+            :param page_size: parameter that controls how many results to return per page in the response
+            :type page_size: str
+            :return: response
+            :rtype: requests.Response
+        """
+        params = {"type": owner_type, "status": status, "source": source, "page": page, "page_size": page_size}
+        params_string_array = []
+
+        if bool(params["page"]) != bool(params["page_size"]):
+            raise WrongInputError("page and page_size parametes must be used together")
+
+        for key, val in params.items():
+            if val:
+                if not isinstance(val, str):
+                    raise WrongInputError("{key} parameter must be a string".format(key=key))
+                params_string_array.append("{key}={val}".format(key=key, val=val))
+
+        if len(params_string_array) > 0:
+            query_string = "&".join(params_string_array)
+            endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_YARA_RULESETS_ENDPOINT_V2,
+                                                          query_string=query_string)
+        else:
+            endpoint = self.__RETRIEVE_YARA_RULESETS_ENDPOINT_V2
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_contents(self, ruleset_name):
+        """
+        Retrieves the full contents of the requested ruleset in raw text/plain format. All rulesets can be retrieved,
+        regardless of their current status on the appliance (enabled, disabled…)
+            :param ruleset_name: name of the YARA ruleset to retrieve. Ruleset names are case-sensitive
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__RETRIEVE_YARA_RULESET_CONTENTS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_matches_v2(self, ruleset_name, page=None, page_size=None):
+        """Retrieves the list of YARA matches (both local and cloud) for requested rulesets. If multiple rulesets are
+        provided in the request, only the samples that match all requested rulesets are listed in the response.
+            :param ruleset_name:
+            :type ruleset_name: str
+            :param page: when this parameter is omitted from the request, all available results are returned at once
+            :type page: str
+            :param page_size: parameter that controls how many results to return per page in the response
+            :type page_size: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        params = {"name": ruleset_name, "page": page, "page_size": page_size}
+        params_string_array = []
+
+        if bool(params["page"]) != bool(params["page_size"]):
+            raise WrongInputError("page and page_size parametes must be used together")
+
+        for key, val in params.items():
+            if val:
+                if not isinstance(val, str):
+                    raise WrongInputError("{key} parameter must be a string".format(key=key))
+                params_string_array.append("{key}={val}".format(key=key, val=val))
+
+        query_string = "&".join(params_string_array)
+        endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2,
+                                                      query_string=query_string)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def create_or_update_yara_ruleset(self, name, content, publish=None, ticloud=None):
+        """Creates a new YARA ruleset if it doesn’t exist. If a ruleset with the specified name already exists, a new
+        revision (update) of the ruleset is created.
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param content: content of the YARA ruleset to create or update
+            :type content: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :param ticloud: determines whether the ruleset should be synchronized with TitaniumCloud or not
+            :type ticloud: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        data = self.__create_post_payload(
+            name=name,
+            content=content,
+            publish=publish,
+            ticloud=ticloud
+        )
+
+        endpoint = self.__YARA_RULESET_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_yara_ruleset(self, name, publish=None):
+        """Deletes the specified YARA ruleset and its matches from the appliance.
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        post_json = self.__create_post_payload(
+            name=name,
+            publish=publish,
+
+        )
+        endpoint = self.__YARA_RULESET_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__delete_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def enable_or_disable_yara_ruleset(self, enabled, name, publish=None):
+        """Enables/disables ruleset on the appliance. Administrators can manage any ruleset while regular A1000 users
+        can only menage their own rulesets.
+            :param enabled: whether to enable (enabled=True) or disable (enabled=False) the specified ruleset
+            :type enabled: bool
+            :param name: name of the ruleset to enable/disable
+            :type name: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        data = self.__create_post_payload(
+            name=name,
+            publish=publish,
+        )
+
+        if enabled and enabled not in (True, False):
+            raise WrongInputError("enabled parameter must be boolean.")
+
+        endpoint = self.__ENABLE_OR_DISABLE_YARA_RULESET_ENDPOINT.format(operation="enable" if enabled else "disable")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_synchronization_time(self):
+        """Gets information about the current synchronization status for TitaniumCloud-enabled rulesets.
+            :return: response
+            :rtype: requests.Response:
+        """
+        endpoint = self.__GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def post_yara_ruleset_synchronization_time(self, sync_time):
+        """Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets.
+            :param sync_time: format should be UTC (YYYY-MM-DD hh:mm)
+            :type sync_time: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        try:
+            datetime.datetime.strptime(sync_time, '%Y-%m-%d %H:%M')
+        except ValueError:
+            raise WrongInputError("Incorrect sync_time format, should be YYYY-MM-DD hh:mm")
+
+        endpoint = self.__GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"time": sync_time})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def start_or_stop_yara_local_retro_scan(self, operation):
+        """Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
+        in progress on the appliance.
+            :param operation: accepted values: START, STOP (case-sensitive)
+            :type operation: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        if operation not in ("START", "STOP"):
+            raise WrongInputError("operation parameter must be either 'START' or 'STOP'")
+
+        endpoint = self.__YARA_LOCAL_RETROSCAN_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"operation": operation})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_local_retro_scan_status(self):
+        """Allows users to check the status of Local Retro on the A1000 appliance. The response indicates the current
+        state of Local Retro, time and date when the latest Local Retro scan was started and/or stopped, and a list of
+        previous Local Retro scans with the same details.
+            :return: response
+            :rtype: requests.Response:
+        """
+        endpoint = self.__YARA_LOCAL_RETROSCAN_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def start_or_stop_yara_cloud_retro_scan(self, operation, ruleset_name):
+        """Allows users to start and stop a Cloud Retro scan for a specified ruleset on the A1000 appliance, as well as
+        to clear all Cloud Retro results for the ruleset.
+            :param operation: accepted values: START, STOP, CLEAR (case-sensitive)
+            :type operation: str
+            :param ruleset_name: name of the YARA ruleset that the Cloud Retro scan should be run on
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response::
+        """
+        if operation not in ("START", "STOP", "CLEAR"):
+            raise WrongInputError("operation parameter must be either 'START', 'STOP' or 'CLEAR'")
+
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__YARA_CLOUD_RETROSCANS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"operation": operation})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_cloud_retro_scan_status(self, ruleset_name):
+        """Allows users to check the status of Cloud Retro for the specified YARA ruleset. The response indicates the
+        current state of Cloud Retro, time and date when the latest Cloud Retro scan was started and/or stopped, and a
+        list of previous Cloud Retro scans with the same details.
+            :param ruleset_name: name of the YARA ruleset for which to check for the Cloud Retro scan status
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response::
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__YARA_CLOUD_RETROSCANS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def advanced_search(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
                         sorting_order="desc"):
         """THIS METHOD IS DEPRECATED. Use advanced_search_v2 instead.
@@ -1743,7 +2064,7 @@ class A1000(object):
     def __create_post_payload(custom_filename=None, file_url=None,  crawler=None, archive_password=None,
                               rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True,
                               classification=None, risk_score=None, threat_platform=None, threat_type=None,
-                              threat_name=None):
+                              threat_name=None, name=None, content=None, publish=None, ticloud=None):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
@@ -1825,6 +2146,18 @@ class A1000(object):
         if threat_name and not isinstance(threat_name, str):
             raise WrongInputError("threat_type parameter must be string.")
 
+        if name and not isinstance(name, str):
+            raise WrongInputError("name parameter must be string.")
+
+        if content and not isinstance(content, str):
+            raise WrongInputError("content parameter must be string.")
+
+        if publish and publish not in (True, False):
+            raise WrongInputError("publish parameter must be boolean.")
+
+        if ticloud and ticloud not in (True, False):
+            raise WrongInputError("ticloud parameter must be boolean.")
+
         data = {}
 
         if custom_filename:
@@ -1868,6 +2201,18 @@ class A1000(object):
 
         if len(data) == 0:
             data = None
+
+        if name:
+            data['name'] = name
+
+        if content:
+            data['content'] = content
+
+        if publish:
+            data['publish'] = publish
+
+        if ticloud:
+            data['ticloud'] = ticloud
 
         return data
 
