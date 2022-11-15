@@ -77,6 +77,19 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a file path string and returns a response containing the analysis task ID
 - `upload_sample_from_file`
     - Accepts a file open in 'rb' mode and returns a response containing the analysis task ID
+- `upload_sample_from_url`
+    - Accepts a url and returns a response containing the analysis task ID
+- `check_submitted_url_status`
+    - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
+        report if the report is ready
+- `get_submitted_url_report`
+    - Accepts a task ID returned by upload_sample_from_url and returns a response
+    - This method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready
+- `upload_sample_from_url_and_get_report`
+    - Accepts a url and returns a response containing the analysis report
+    - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready
 - `get_summary_report_v2`
   - Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them
   -  This method utilizes the set number of retries and wait time in seconds to time
@@ -111,6 +124,45 @@ If username and password are used instead, a token fetching request will be done
 - `check_sample_removal_status_v2`
   - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted
+- `create_pdf_report`
+  - Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
+        The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
+        sample
+- `check_pdf_report_creation`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method. The response includes an informative message about the status of the PDF
+        report previously requested
+- `download_pdf_report`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method
+- `get_titanium_core_report_v2`
+  - Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
+        The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
+        request, all available parts of the static analysis report are returned in the response
+- `create_dynamic_analysis_report`
+  - Accepts a single hash string and initiates the creation of PDF or HTML reports for samples that have gone
+        through dynamic analysis in the ReversingLabs Cloud Sandbox.
+        The response includes links to the report creation status endpoint and report download ednpoint for the
+        requested sample
+- `check_dynamic_analysis_report_status`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method. The response includes an informative
+        message about the status of the report previously requested
+- `download_dynamic_analysis_report`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method
+- `set_classification`
+  - Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
+        or locally on the A1000. Returns a response containing a new classification
+- `delete_classification`
+  - Accepts a single hash string, allows the user to delete the classification of a sample, either in
+        TitaniumCloud or locally on the A1000
+- `get_user_tags`
+  - Accepts a single hash string and returns lists of existing user tags for the requested sample
+- `post_user_tags`
+  - Accepts a single hash string and adds one or more user tags to the requested sample
+- `delete_user_tags`
+  - Accepts a single hash string and removes one or more user tags from the requested sample
 - `advanced_search_v2`
   - Sends a query string to the A1000 Advanced Search API v2
 - `advanced_search_v2_aggregated`
@@ -528,7 +580,7 @@ from ReversingLabs.SDK.tiscale import TitaniumScale
 
 titanium_scale = TitaniumScale(
     host="https://tiscale.address",
-    token="js765akj329786afhg",
+    token="examplesecrettoken",  # replace with a proper token
     verify=True,
     wait_time_seconds=5,
     retries=6
