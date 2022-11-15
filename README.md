@@ -28,9 +28,14 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class URLThreatIntelligence](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-11)
       - [Class AnalyzeURL](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-12)
       - [Class FileUpload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
-      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
-      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
-      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
+      - [Class DeleteFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
+      - [Class ReanalyzeFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
+      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
+      - [Class CertificateIndex](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-17)
+      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-18)
+      - [Class CertificateThumbprintSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-19)
+      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-20)
+      - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
       - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
@@ -378,6 +383,24 @@ class FileUpload(TiCloudAPI)
 
 #### Class:
 ```python
+class DeleteFile(TiCloudAPI)
+````
+#### Methods:
+- `delete_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples you want to delete from the cloud
+  - You can only delete samples that were uploaded by the same cloud account
+
+#### Class:
+```python
+class ReanalyzeFile(TiCloudAPI)
+````
+#### Methods:
+- `ranalyze_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
+  - The samples need to be already present in the cloud in order to be reanalyzed
+
+#### Class:
+```python
 class DynamicAnalysis(TiCloudAPI)
 ````
 #### Methods:
@@ -387,6 +410,17 @@ class DynamicAnalysis(TiCloudAPI)
 - `get_dynamic_analysis_results`
     - Returns dynamic analysis results for a desired sample
     - The analysis of the selected sample must be finished for the results to be available
+
+#### Class:
+```python
+class CertificateIndex(TiCloudAPI)
+````
+#### Methods:
+- `get_certificate_information`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+- `get_certificate_information_aggregated`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+    - This method automatically handles paging and returns a list of results instead of a Response object
     
 #### Class:
 ```python
@@ -398,11 +432,34 @@ class CertificateAnalytics(TiCloudAPI)
 
 #### Class:
 ```python
+class CertificateThumbprintSearch(TiCloudAPI)
+````
+#### Methods:
+- `search_common_names`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+- `search_common_names_aggregated`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
 class RansomwareIndicators(TiCloudAPI)
 ````
 #### Methods:
 - `get_indicators`
-    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools.
+    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools
+
+#### Class:
+```python
+class NewMalwareFilesFeed(TiCloudAPI)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns malware detections from the requested time
+- `pull`
+    - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the set_start method been called, it will return records starting with the current timestamp
+- `set_start`
+    - This method sets the starting time for the pull method
 
 ***
 
@@ -453,7 +510,7 @@ a1000 = A1000(
     retries=10
 )
 
-response = a1000.upload_sample_and_get_results(
+response = a1000.upload_sample_and_get_summary_report_v2(
     file_path="/path/to/file.exe",
     retry=True,
     custom_filename="CustomName",
@@ -466,7 +523,7 @@ json_report = response.json()
 ```python
 from ReversingLabs.SDK.a1000 import A1000
 
-# Using token for authorization
+# Using the token for authorization
 a1000 = A1000(
     host="http://a1000.address",
     token="1js76asmklaslk288japj29s89z",
@@ -475,7 +532,7 @@ a1000 = A1000(
     retries=15
 )
 
-response = a1000.get_extracted_files(
+response = a1000.list_extracted_files_v2(
     sample_hash="cf23df2207d99a74fbe169e3eba035e633b65d94",
     page_size=30
 )

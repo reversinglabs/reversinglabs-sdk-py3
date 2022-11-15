@@ -123,6 +123,43 @@ class TiCloudAPI(object):
 
         return response
 
+    def _delete_request(self, url, payload_json=None):
+        """A generic DELETE request method for all ticloud module classes.
+            :param url: request URL
+            :type url: str
+            :param payload_json: JSON body
+            :type payload_json: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        response = requests.delete(
+            url=url,
+            auth=self._credentials,
+            json=payload_json,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        return response
+
+    def _put_request(self, url):
+        """A generic PUT request method for all ticloud module classes.
+            :param url: request URL
+            :type url: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = requests.put(
+            url=url,
+            auth=self._credentials,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        return response
+
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
             :param response: response object
@@ -570,8 +607,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         if classification:
             classification = str(classification).upper()
             if classification not in CLASSIFICATIONS:
-                raise WrongInputError("Only {classifications} is allowed "
-                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+                raise WrongInputError("Only the following options are allowed as the classification parameter: "
+                                      "{classifications} ".format(classifications=CLASSIFICATIONS))
 
             optional_parameters = "{params}&classification={classification}".format(
                 params=optional_parameters,
@@ -1091,8 +1128,8 @@ class ExpressionSearch(TiCloudAPI):
             :type date: str or any
             :param max_results: maximum results to be returned in the list; default value is 5000
             :type max_results: int
-            :return: response
-            :rtype: requests.Response
+            :return: list of results
+            :rtype: list
         """
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
@@ -1690,6 +1727,133 @@ class FileUpload(TiCloudAPI):
         return sample_name
 
 
+class DeleteFile(TiCloudAPI):
+    """TCA-0204"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/delete/sample/v1/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/delete/sample/v1/bulk_query/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DeleteFile, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                         allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def delete_samples(self, sample_hashes, delete_on=None):
+        """Accepts a single hash string or a list of hash strings
+        belonging to samples you want to delete from the cloud.
+        You can only delete samples that were uploaded by the same cloud account.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
+        An optional parameter for setting a future deletion time can be used in the form of a Unix timestamp.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :param delete_on: future deletion time
+            :type delete_on: int
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=sample_hashes if isinstance(sample_hashes, list) else [sample_hashes],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
+
+        if delete_on and not isinstance(delete_on, int):
+            raise WrongInputError("delete_on parameter must be an integer unix timestamp.")
+
+        if isinstance(sample_hashes, str):
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
+                hash_type=hash_type,
+                hash_value=sample_hashes
+            )
+
+            if delete_on:
+                endpoint = "{endpoint}?delete_on={delete_on}".format(
+                    endpoint=endpoint,
+                    delete_on=delete_on
+                )
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._delete_request(url=url)
+
+        elif isinstance(sample_hashes, list):
+            payload_json = {"rl": {"query": {"hash_type": hash_type, "hashes": sample_hashes}}}
+
+            if delete_on:
+                payload_json["rl"]["query"]["delete_on"] = str(delete_on)
+
+            url = self._url.format(endpoint=self.__BULK_QUERY_ENDPOINT)
+
+            response = self._delete_request(url=url, payload_json=payload_json)
+
+        else:
+            raise WrongInputError("Only hash string or list of hash strings are allowed as the "
+                                  "sample_hashes parameter.")
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class ReanalyzeFile(TiCloudAPI):
+    """TCA-0205"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/rescan/v1/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/rescan/v1/bulk_query/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ReanalyzeFile, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                            allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def ranalyze_samples(self, sample_hashes):
+        """Accepts a single hash string or a list of hash strings
+        belonging to samples in the cloud you want to reanalyze.
+        The samples need to be already present in the cloud in order to be reanalyzed.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=sample_hashes if isinstance(sample_hashes, list) else [sample_hashes],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes if isinstance(sample_hashes, list) else [sample_hashes])
+
+        if isinstance(sample_hashes, str):
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
+                hash_type=hash_type,
+                hash_value=sample_hashes
+            )
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url)
+
+        elif isinstance(sample_hashes, list):
+            payload_json = {"rl": {"query": {"hash_type": hash_type, "hashes": sample_hashes}}}
+
+            url = self._url.format(endpoint=self.__BULK_QUERY_ENDPOINT)
+
+            response = self._post_request(url=url, post_json=payload_json)
+
+        else:
+            raise WrongInputError("Only hash string or list of hash strings are allowed as the "
+                                  "sample_hashes parameter.")
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
 
@@ -1785,6 +1949,130 @@ class DynamicAnalysis(TiCloudAPI):
         return response
 
 
+class CertificateIndex(TiCloudAPI):
+    """TCA-0501"""
+
+    __CERTIFICATE_INDEX_ENDPOINT = "/api/certificate/index/v1/query/thumbprint/{thumbprint}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CertificateIndex, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                               allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_certificate_information(self, certificate_thumbprint, extended_results=True,
+                                    results_per_page=100, classification=None, next_page_hash=None):
+        """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
+         matching the requested thumbprint.
+         Extended information for each returned hash can be requested.
+            :param certificate_thumbprint: hash string
+            :type certificate_thumbprint: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param results_per_page: number of returned results per page; default and maximum is 100
+            :type results_per_page: int
+            :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
+            :type classification: str or None
+            :param next_page_hash: hash string of the next page of results
+            :type next_page_hash: str or None
+            :return: response
+            :rtype: requests.Response
+         """
+        validate_hashes(
+            hash_input=[certificate_thumbprint],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        extended_results = str(extended_results).lower()
+        if extended_results not in ("true", "false"):
+            raise WrongInputError("extended_results parameter must be boolean.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        optional_params = "?format=json&extended={extended_results}&limit={results_per_page}".format(
+            extended_results=extended_results,
+            results_per_page=results_per_page
+        )
+
+        if next_page_hash:
+            optional_params = "/page/{page_hash}{optional_params}".format(
+                page_hash=next_page_hash,
+                optional_params=optional_params
+            )
+
+        if classification:
+            classification = str(classification).upper()
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only the following options are allowed as the classification parameter: "
+                                      "{classifications} ".format(classifications=CLASSIFICATIONS))
+
+            optional_params = "{optional_params}&classification={classification}".format(
+                optional_params=optional_params,
+                classification=classification
+            )
+
+        endpoint = "{endpoint}{params}".format(
+            endpoint=self.__CERTIFICATE_INDEX_ENDPOINT.format(thumbprint=certificate_thumbprint),
+            params=optional_params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_certificate_information_aggregated(self, certificate_thumbprint, extended_results=True, classification=None,
+                                               max_results=5000):
+        """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
+         matching the requested thumbprint.
+         This method automatically handles paging and returns a list of results instead of a Response object.
+         Extended information for each returned hash can be requested.
+            :param certificate_thumbprint: hash string
+            :type certificate_thumbprint: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
+            :type classification: str or None
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_hash = None
+
+        while True:
+            response = self.get_certificate_information(
+                certificate_thumbprint=certificate_thumbprint,
+                extended_results=extended_results,
+                results_per_page=100,
+                classification=classification,
+                next_page_hash=next_page_hash
+            )
+
+            response_json = response.json()
+
+            samples = response_json.get("rl").get("samples", [])
+            results.extend(samples)
+
+            next_page_hash = response_json.get("rl").get("next_page", None)
+
+            if len(results) > max_results or not next_page_hash:
+                break
+
+        return results[:max_results]
+
+
 class CertificateAnalytics(TiCloudAPI):
     """TCA-0502"""
 
@@ -1838,6 +2126,104 @@ class CertificateAnalytics(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class CertificateThumbprintSearch(TiCloudAPI):
+    """TCA-0503"""
+
+    __CERTIFICATE_SEARCH_ENDPOINT = "/api/certificate/search/v1/query/subject/json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CertificateThumbprintSearch, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def search_common_names(self, common_name, next_page_common_name=None, next_page_thumbprint=None,
+                            results_per_page=100):
+        """Accepts a certificate common name and returns common names matching the request, along with the list of
+        thumbprints of all the certificates sharing that common name.
+        The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
+        To use paging, both next_page_common_name and next_page_thumbprint parameters must be provided.
+            :param common_name: certificate common name
+            :type common_name: str
+            :param next_page_common_name: common name on the next page of results
+            :type next_page_common_name: str or None
+            :param next_page_thumbprint: hash thumbprint on the next page of result
+            :type next_page_thumbprint: str or None
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(common_name, str):
+            raise WrongInputError("common_name parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        post_json = {"rl": {"query": {"common_name": common_name, "limit": results_per_page,
+                                      "response_format": "json"}}}
+
+        if all((next_page_common_name, next_page_thumbprint)):
+            if not isinstance(next_page_common_name, str) or not isinstance(next_page_thumbprint, str):
+                raise WrongInputError("Both next_page_common_name and next_page_thumbprint parameters need to be "
+                                      "strings.")
+
+            post_json["rl"]["query"]["next_page_common_name"] = next_page_common_name
+            post_json["rl"]["query"]["next_page_thumbprint"] = next_page_thumbprint
+
+        elif any((next_page_common_name, next_page_thumbprint)):
+            raise WrongInputError("Both next_page_common_name and next_page_thumbprint parameters need to be used "
+                                  "together for paging.")
+
+        url = self._url.format(endpoint=self.__CERTIFICATE_SEARCH_ENDPOINT)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def search_common_names_aggregated(self, common_name, max_results=5000):
+        """Accepts a certificate common name and returns common names matching the request, along with the list of
+        thumbprints of all the certificates sharing that common name.
+        The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
+        This method automatically handles paging and returns a list of results instead of a Response object.
+            :param common_name: certificate common name
+            :type common_name: str
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_common_name, next_page_thumbprint = None, None
+
+        while True:
+            response = self.search_common_names(
+                common_name=common_name,
+                next_page_common_name=next_page_common_name,
+                next_page_thumbprint=next_page_thumbprint,
+                results_per_page=100
+            )
+
+            response_json = response.json()
+
+            common_names = response_json.get("rl").get("search", [])
+            results.extend(common_names)
+
+            next_page_common_name = response_json.get("rl").get("next_page_common_name", None)
+            next_page_thumbprint = response_json.get("rl").get("next_page_thumbprint", None)
+
+            if len(results) > max_results or not any((next_page_common_name, next_page_thumbprint)):
+                break
+
+        return results[:max_results]
 
 
 class RansomwareIndicators(TiCloudAPI):
@@ -1904,6 +2290,152 @@ class RansomwareIndicators(TiCloudAPI):
         url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewMalwareFilesFeed(TiCloudAPI):
+    """TCF-0101"""
+
+    __TIMESTAMP_PULL_ENDPOINT = "/api/feed/malware/detection/v1/query/{time_format}/{time_value}?format=json"
+    __PULL_ENDPOINT = "/api/feed/malware/detection/v1/query/pull?format=json"
+    __START_ENDPOINT = "/api/feed/malware/detection/v1/query/start/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewMalwareFilesFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                  allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def pull_with_timestamp(self, time_format, time_value, sample_available=False, record_limit=1000):
+        """Accepts a time format definition and a time value. Returns malware detections from the requested time.
+        To fetch the next batch of records, use the last_timestamp from the response increased by 1.
+        The time value needs to be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format.lower() not in ("timestamp", "utc"):
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format.lower() == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
+            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
+
+        params = "&sample_available={available}&limit={record_limit}".format(
+            available=str(sample_available).lower(),
+            record_limit=record_limit
+        )
+
+        endpoint = "{base}{params}".format(
+            base=self.__TIMESTAMP_PULL_ENDPOINT.format(time_format=time_format, time_value=time_value),
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull(self, sample_available=False, record_limit=1000):
+        """Returns a list of malware detections since the point in time set by the self.set_start() method.
+        If the user has not previously used this method, nor has the self.set_start() method been called,
+        it will return records starting with the current timestamp.
+        Every subsequent call will continue from the timestamp where the previous call ended.
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
+            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
+
+        params = "&sample_available={available}&limit={record_limit}".format(
+            available=str(sample_available).lower(),
+            record_limit=record_limit
+        )
+
+        endpoint = "{base}{params}".format(
+            base=self.__PULL_ENDPOINT,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def set_start(self, time_format, time_value):
+        """This method sets the starting time for the self.pull() method.
+        The starting time must be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+        """
+        if time_format.lower() not in ("timestamp", "utc"):
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format.lower() == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        endpoint = self.__START_ENDPOINT.format(time_format=time_format, time_value=time_value)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
 
         self._raise_on_error(response)
 
@@ -2004,3 +2536,29 @@ def get_rha1_type(host, username, password, verify, hash_input, allow_none_retur
                          "{allowed_files}".format(allowed_files=", ".join(RHA1_TYPE_MAP)))
 
     return rha1_type
+
+
+def resolve_hash_type(sample_hashes):
+    """A method for resolving the hash type from a list of sample hashes.
+     The method also checks if all the hashes in the list are of the same type.
+     The list can also have only one element.
+        :param sample_hashes: hash string or a list of hash strings
+        :type sample_hashes: list[str]
+        :return: hash type
+        :rtype: str
+    """
+    first_hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[0]))
+
+    for iteration in range(len(sample_hashes) - 1):
+        hash_type = HASH_LENGTH_MAP.get(len(sample_hashes[iteration + 1]))
+
+        if hash_type != first_hash_type:
+            raise WrongInputError("All hashes in the list must be of the same type. Hash on "
+                                  "position {position} is a/an {hash_type} and differs from "
+                                  "the first hash, which is a/an {first_hash_type}".format(
+                                    position=iteration + 1,
+                                    hash_type=hash_type,
+                                    first_hash_type=first_hash_type
+                                    ))
+
+    return first_hash_type
