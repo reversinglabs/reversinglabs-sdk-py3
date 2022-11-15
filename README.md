@@ -119,11 +119,44 @@ If username and password are used instead, a token fetching request will be done
 - `check_sample_removal_status_v2`
   - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted
-- `get_user_tags_for_a_sample`
+- `create_pdf_report`
+  - Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
+        The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
+        sample
+- `check_pdf_report_creation`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report_for_a_sample method. The response includes an informative message about the status of the PDF
+        report previously requested
+- `download_pdf_report`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report_for_a_sample method
+- `get_titanium_core_report_for_a_sample_v2`
+  - Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
+        The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
+        request, all available parts of the static analysis report are returned in the response
+- `create_dynamic_analysis_report`
+  - Accepts a single hash string and initiates the creation of PDF or HTML reports for samples that have gone
+        through dynamic analysis in the ReversingLabs Cloud Sandbox.
+        The response includes links to the report creation status endpoint and report download ednpoint for the
+        requested sample
+- `check_dynamic_analysis_report_status`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report_for_a_sample method. The response includes an informative
+        message about the status of the report previously requested
+- `download_dynamic_analysis_report`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report_for_a_sample method
+- `set_classification`
+  - Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
+        or locally on the A1000. Returns a response containing a new classification
+- `delete_classification`
+  - Accepts a single hash string, allows the user to delete the classification of a sample, either in
+        TitaniumCloud or locally on the A1000
+- `get_user_tags`
   - Accepts a single hash string and returns lists of existing user tags for the requested sample
-- `post_user_tags_for_a_sample`
+- `post_user_tags`
   - Accepts a single hash string and adds one or more user tags to the requested sample
-- `delete_user_tags_for_a_sample`
+- `delete_user_tags`
   - Accepts a single hash string and removes one or more user tags from the requested sample
 - `advanced_search_v2`
   - Sends a query string to the A1000 Advanced Search API v2
