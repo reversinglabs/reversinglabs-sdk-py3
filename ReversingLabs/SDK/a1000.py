@@ -2125,6 +2125,15 @@ class A1000(object):
             :param threat_name: If specified, must be an alphanumeric string not longer than 32 characters. If not
             specified, the default value is 'Generic'.
             :type threat_name: str
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param content: content of the YARA ruleset to create or update
+            :type content: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :param ticloud: determines whether the ruleset should be synchronized with TitaniumCloud or not
+            :type ticloud: bool
             :return: dictionary of defined optional fields or None
             :rtype: dict or None
         """
