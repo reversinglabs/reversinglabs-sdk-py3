@@ -1712,7 +1712,7 @@ class A1000(object):
 
         return response
 
-    def post_yara_ruleset_synchronization_time(self, sync_time):
+    def update_yara_ruleset_synchronization_time(self, sync_time):
         """Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets.
             :param sync_time: format should be UTC (YYYY-MM-DD hh:mm)
             :type sync_time: str

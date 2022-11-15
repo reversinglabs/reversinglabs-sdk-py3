@@ -178,7 +178,7 @@ If username and password are used instead, a token fetching request will be done
   - Administrators can manage any ruleset while regular A1000 users can only menage their own rulesets
 - `get_yara_ruleset_synchronization_time`
   - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
-- `post_yara_ruleset_synchronization_time`
+- `update_yara_ruleset_synchronization_time`
   - Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets
 - `start_or_stop_yara_local_retro_scan`
   - Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
