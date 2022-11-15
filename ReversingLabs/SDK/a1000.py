@@ -57,6 +57,7 @@ class A1000(object):
     __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
+    __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -2039,6 +2040,34 @@ class A1000(object):
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
 
         return results
+
+    def list_containers_for_hashes(self, sample_hashes):
+        """Gets a list of all top-level containers from which the requested sample has been extracted during analysis.
+        This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
+        file hashes. If a requested hash doesn’t have a container, it will not be included in the response.
+            :param sample_hashes: a list of one or more hash values, but must all be of the same type(SHA1, SHA256,
+            or MD5)
+            :type sample_hashes list[str]
+            :return: response
+            :rtype: requests.Response::
+        """
+        if not isinstance(sample_hashes, list):
+            raise WrongInputError("sample_hashes parameter must be a list of strings.")
+
+        validate_hashes(
+            hash_input=sample_hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        endpoint = self.__LIST_CONTAINERS_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"hash_values": sample_hashes})
+
+        self.__raise_on_error(response)
+
+        return response
 
     def __get_token(self, username, password):
         """Returns an obtained token using the provided username and password.
