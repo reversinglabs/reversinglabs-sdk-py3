@@ -33,7 +33,7 @@ class CloudDeepScan(object):
         self.client_id = client_id
         self.client_secret = client_secret
 
-        self.__submission_endpoint = "/api/v1/submissions"
+        self.__submissions_endpoint = "/api/v1/submissions"
         self.__uploads_endpoint = "/api/v1/uploads"
         self.__reports_endpoint = "/api/v1/reports"
 
