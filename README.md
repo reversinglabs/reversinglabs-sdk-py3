@@ -451,7 +451,7 @@ class RansomwareIndicators(TiCloudAPI)
 
 #### Class:
 ```python
-class NewMalwareFilesFeed(TiCloudAPI)
+class NewMalwareFilesFeed(ContinuousFeed)
 ````
 #### Methods:
 - `pull_with_timestamp`
@@ -460,6 +460,28 @@ class NewMalwareFilesFeed(TiCloudAPI)
     - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the set_start method been called, it will return records starting with the current timestamp
 - `set_start`
     - This method sets the starting time for the pull method
+
+#### Class:
+```python
+class MWPChangeEventsFeed(ContinuousFeed)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns samples with a newly calculated or changed malware presence (MWP) classification and threat name from the requested time
+- `pull`
+    - Returns a list of classification and threat name changes since the point in time set by the set_start() method
+- `set_start`
+    - This method sets the starting time for the pull() method
+
+#### Class:
+```python
+class NewMalwareURIFeed(TiCloudAPI)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+- `pull_latest`
+    - Returns a maximum of 1000 latest records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
 
 ***
 
