@@ -36,6 +36,8 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class CertificateThumbprintSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-19)
       - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-20)
       - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
+      - [Class MWPChangeEventsFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-22)
+      - [Class NewMalwareURIFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-23)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
       - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
