@@ -120,7 +120,7 @@ class CloudDeepScan(object):
         response = self.__api_request(
             method="POST",
             endpoint="/api/v1/uploads",
-            json={"file_name": file_name, "file_size": file_size}
+            json={"name": file_name, "size": file_size}
         )
         try:
             response_data = response.json()
