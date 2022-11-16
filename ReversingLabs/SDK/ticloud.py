@@ -2559,6 +2559,75 @@ class MWPChangeEventsFeed(ContinuousFeed):
         return response
 
 
+class NewMalwareURIFeed(TiCloudAPI):
+    """TCF-0301"""
+
+    __TIMESTAMP_PULL_ENDPOINT = "/api/feed/malware_uri/v1/query/{time_format}/{time_value}?format=json"
+    __PULL_LATEST_ENDPOINT = "/api/feed/malware_uri/v1/query/latest?format=json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewMalwareURIFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def pull_with_timestamp(self, time_format, time_value):
+        """Accepts a time format definition and a time value. Returns records with Ps, domains, URLs,
+        emails, and sample hashes extracted from malware samples.
+        To fetch the next batch of records, use the last_timestamp from the response increased by 1.
+        The time value needs to be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format.lower() not in ("timestamp", "utc"):
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format.lower() == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        endpoint = self.__TIMESTAMP_PULL_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_latest(self):
+        """Returns a maximum of 1000 latest records with Ps, domains, URLs,
+        emails, and sample hashes extracted from malware samples."""
+        url = self._url.format(endpoint=self.__PULL_LATEST_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
