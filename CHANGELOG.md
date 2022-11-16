@@ -26,7 +26,8 @@ v1.3.0 (2022-11-16)
 #### Changes
 
 - **ticloud** module:
-  - Added the `DeleteFile`, `ReanalyzeFile`, `CertificateIndex`, `CertificateThumbprintSearch`, `NewMalwareFilesFeed` classes.
+  - Added the `DeleteFile`, `ReanalyzeFile`, `CertificateIndex`, `CertificateThumbprintSearch`, `NewMalwareFilesFeed`, `MWPChangeEventsFeed` and `NewMalwareURIFeed` classes.
+  - Several feed classes now extend the new `ContinuousFeed` parent class.
 - **a1000** module:
   - Added the `upload_sample_from_url`, `check_submitted_url_status`, `get_submitted_url_report`, `upload_sample_from_url_and_get_report`, `get_summary_report_v2`, `get_user_tags_for_a_sample`, `post_user_tags`, `delete_user_tags`, `create_pdf_report`, `check_pdf_report_creation`, `download_pdf_report`, `get_titanium_core_report_for_a_sample_v2`, `create_dynamic_analysis_report`, `check_dynamic_analysis_report_status`, `download_dynamic_analysis_report, set_classification`, `delete_classification`, `get_yara_rulesets_on_the_appliance_v2`, `get_yara_ruleset_contents`, `get_yara_ruleset_matches_v2`, `create_or_update_yara_ruleset`, `delete_yara_ruleset`, `enable_or_disable_yara_ruleset`, `get_yara_ruleset_synchronization_time`, `update_yara_ruleset_synchronization_time`, `start_or_stop_yara_local_retro_scan`, `get_yara_local_retro_scan_status`, `start_or_stop_yara_cloud_retro_scan`, `get_yara_cloud_retro_scan_status` and `list_containers_for_hashes` methods.
   - Added the `archive_password` and `rl_cloud_sandbox_platform` parameters into the `upload_sample_from_path` and `upload_sample_from_file` methods.
