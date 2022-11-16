@@ -33,6 +33,10 @@ class CloudDeepScan(object):
         self.client_id = client_id
         self.client_secret = client_secret
 
+        self.__submission_endpoint = "/api/v1/submissions"
+        self.__uploads_endpoint = "/api/v1/uploads"
+        self.__reports_endpoint = "/api/v1/reports"
+
         self.__token = None
         self.__token_expires_at = None
 
@@ -65,7 +69,7 @@ class CloudDeepScan(object):
         :return: status object describing submission status
         :rtype: CloudDeepScanSubmissionStatus
         """
-        response = self.__api_request(method="GET", endpoint=f"/api/v1/submissions/{submission_id}")
+        response = self.__api_request(method="GET", endpoint=f"{self.__submissions_endpoint}/{submission_id}")
         try:
             status = CloudDeepScanSubmissionStatus(
                 id_=response["id"],
@@ -88,7 +92,7 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(
             method="GET",
-            endpoint="/api/v1/reports",
+            endpoint=self.__reports_endpoint,
             params={"hash": sample_hash, "history": 0},
             allow_redirects=True
         )
@@ -119,7 +123,7 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(
             method="POST",
-            endpoint="/api/v1/uploads",
+            endpoint=self.__uploads_endpoint,
             json={"name": file_name, "size": file_size}
         )
         try:
@@ -141,7 +145,7 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(
             method="PATCH",
-            endpoint=f"/api/v1/uploads/{upload_id}",
+            endpoint=f"{self.__uploads_endpoint}/{upload_id}",
             json={"object_key": object_key, "etags": etags}
         )
         if response.status_code != 204:
