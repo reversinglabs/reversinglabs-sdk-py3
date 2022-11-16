@@ -2296,7 +2296,120 @@ class RansomwareIndicators(TiCloudAPI):
         return response
 
 
-class NewMalwareFilesFeed(TiCloudAPI):
+class ContinuousFeed(TiCloudAPI):
+    """Parent class for continuous feeds"""
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ContinuousFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                             allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def _pull_with_timestamp(self, timestamp_endpoint, time_format, time_value, sample_available=False, record_limit=1000):
+        """Common method for pulling records with a timestamp in continuous feeds."""
+        if time_format.lower() not in ("timestamp", "utc"):
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format.lower() == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
+            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
+
+        params = "&sample_available={available}&limit={record_limit}".format(
+            available=str(sample_available).lower(),
+            record_limit=record_limit
+        )
+
+        timestamp_endpoint = "{base}{params}".format(
+            base=timestamp_endpoint.format(time_format=time_format, time_value=time_value),
+            params=params
+        )
+
+        url = self._url.format(endpoint=timestamp_endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def _pull(self, pull_endpoint, sample_available=False, record_limit=1000):
+        """Common method for pulling records without a timestamp in continuous feeds."""
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
+            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
+
+        params = "&sample_available={available}&limit={record_limit}".format(
+            available=str(sample_available).lower(),
+            record_limit=record_limit
+        )
+
+        endpoint = "{base}{params}".format(
+            base=pull_endpoint,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def _set_start(self, start_endpoint, time_format, time_value):
+        """Common method for setting a starting time in continuous feeds."""
+        if time_format.lower() not in ("timestamp", "utc"):
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format.lower() == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        endpoint = start_endpoint.format(time_format=time_format, time_value=time_value)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewMalwareFilesFeed(ContinuousFeed):
     """TCF-0101"""
 
     __TIMESTAMP_PULL_ENDPOINT = "/api/feed/malware/detection/v1/query/{time_format}/{time_value}?format=json"
@@ -2307,8 +2420,6 @@ class NewMalwareFilesFeed(TiCloudAPI):
                  allow_none_return=False):
         super(NewMalwareFilesFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
                                                   allow_none_return=allow_none_return)
-
-        self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def pull_with_timestamp(self, time_format, time_value, sample_available=False, record_limit=1000):
         """Accepts a time format definition and a time value. Returns malware detections from the requested time.
@@ -2325,46 +2436,13 @@ class NewMalwareFilesFeed(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format.lower() not in ("timestamp", "utc"):
-            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
-
-        if time_format.lower() == "timestamp":
-            try:
-                int(time_value)
-
-            except ValueError:
-                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
-                                      "timestamp string.")
-
-        elif time_format.lower() == "utc":
-            try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
-
-            except ValueError:
-                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
-                                      "YYYY-MM-DDThh:mm:ss format.")
-
-        if not isinstance(sample_available, bool):
-            raise WrongInputError("sample_available parameter must be boolean.")
-
-        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
-            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
-
-        params = "&sample_available={available}&limit={record_limit}".format(
-            available=str(sample_available).lower(),
+        response = self._pull_with_timestamp(
+            timestamp_endpoint=self.__TIMESTAMP_PULL_ENDPOINT,
+            time_format=time_format,
+            time_value=time_value,
+            sample_available=sample_available,
             record_limit=record_limit
         )
-
-        endpoint = "{base}{params}".format(
-            base=self.__TIMESTAMP_PULL_ENDPOINT.format(time_format=time_format, time_value=time_value),
-            params=params
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
-
-        self._raise_on_error(response)
 
         return response
 
@@ -2380,27 +2458,11 @@ class NewMalwareFilesFeed(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if not isinstance(sample_available, bool):
-            raise WrongInputError("sample_available parameter must be boolean.")
-
-        if not all((isinstance(record_limit, int), 0 < record_limit <= 1000)):
-            raise WrongInputError("record_limit parameter must be an integer with the value 1-1000.")
-
-        params = "&sample_available={available}&limit={record_limit}".format(
-            available=str(sample_available).lower(),
+        response = self._pull(
+            pull_endpoint=self.__PULL_ENDPOINT,
+            sample_available=sample_available,
             record_limit=record_limit
         )
-
-        endpoint = "{base}{params}".format(
-            base=self.__PULL_ENDPOINT,
-            params=params
-        )
-
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
-
-        self._raise_on_error(response)
 
         return response
 
@@ -2411,6 +2473,116 @@ class NewMalwareFilesFeed(TiCloudAPI):
             :type time_format: str
             :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
             :type time_value: str
+        """
+        response = self._set_start(
+            start_endpoint=self.__START_ENDPOINT,
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        return response
+
+
+class MWPChangeEventsFeed(ContinuousFeed):
+    """TCF-0111"""
+
+    __TIMESTAMP_PULL_ENDPOINT = "/api/feed/mwp_change_events/v1/query/{time_format}/{time_value}?format=json"
+    __PULL_ENDPOINT = "/api/feed/mwp_change_events/v1/query/pull?format=json"
+    __START_ENDPOINT = "/api/feed/mwp_change_events/v1/query/start/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(MWPChangeEventsFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                  allow_none_return=allow_none_return)
+
+    def pull_with_timestamp(self, time_format, time_value, sample_available=False, record_limit=1000):
+        """Accepts a time format definition and a time value. Returns samples with a newly calculated or changed malware
+        presence (MWP) classification and threat name from the requested time.
+        To fetch the next batch of records, use the last_timestamp from the response increased by 1.
+        The time value needs to be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self._pull_with_timestamp(
+            timestamp_endpoint=self.__TIMESTAMP_PULL_ENDPOINT,
+            time_format=time_format,
+            time_value=time_value,
+            sample_available=sample_available,
+            record_limit=record_limit
+        )
+
+        return response
+
+    def pull(self, sample_available=False, record_limit=1000):
+        """Returns a list of classification and threat name changes since the point in
+        time set by the self.set_start() method.
+        If the user has not previously used this method, nor has the self.set_start() method been called,
+        it will return records starting with the current timestamp.
+        Every subsequent call will continue from the timestamp where the previous call ended.
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self._pull(
+            pull_endpoint=self.__PULL_ENDPOINT,
+            sample_available=sample_available,
+            record_limit=record_limit
+        )
+
+        return response
+
+    def set_start(self, time_format, time_value):
+        """This method sets the starting time for the self.pull() method.
+        The starting time must be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+        """
+        response = self._set_start(
+            start_endpoint=self.__START_ENDPOINT,
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        return response
+
+
+class NewMalwareURIFeed(TiCloudAPI):
+    """TCF-0301"""
+
+    __TIMESTAMP_PULL_ENDPOINT = "/api/feed/malware_uri/v1/query/{time_format}/{time_value}?format=json"
+    __PULL_LATEST_ENDPOINT = "/api/feed/malware_uri/v1/query/latest?format=json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewMalwareURIFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def pull_with_timestamp(self, time_format, time_value):
+        """Accepts a time format definition and a time value. Returns records with Ps, domains, URLs,
+        emails, and sample hashes extracted from malware samples.
+        To fetch the next batch of records, use the last_timestamp from the response increased by 1.
+        The time value needs to be within the last 365 days.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
         """
         if time_format.lower() not in ("timestamp", "utc"):
             raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
@@ -2431,11 +2603,25 @@ class NewMalwareFilesFeed(TiCloudAPI):
                 raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
                                       "YYYY-MM-DDThh:mm:ss format.")
 
-        endpoint = self.__START_ENDPOINT.format(time_format=time_format, time_value=time_value)
+        endpoint = self.__TIMESTAMP_PULL_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._put_request(url=url)
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_latest(self):
+        """Returns a maximum of 1000 latest records with Ps, domains, URLs,
+        emails, and sample hashes extracted from malware samples."""
+        url = self._url.format(endpoint=self.__PULL_LATEST_ENDPOINT)
+
+        response = self._get_request(url=url)
 
         self._raise_on_error(response)
 

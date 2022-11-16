@@ -29,7 +29,7 @@ ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "samplety
 
 
 class NotFoundError(Exception):
-    def __init__(self, message="No reference was found for this input"):
+    def __init__(self, message="Not found. No reference was found for this input"):
         super(NotFoundError, self).__init__(message)
 
 
