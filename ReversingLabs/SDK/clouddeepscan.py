@@ -8,6 +8,9 @@ A Python module for the ReversingLabs Cloud Deep Scan REST API.
 import os
 import time
 import requests
+import concurrent
+from concurrent.futures import ThreadPoolExecutor
+from urllib3.connectionpool import connection_from_url
 from datetime import datetime
 from ReversingLabs.SDK.helper import CloudDeepScanException
 
@@ -33,6 +36,8 @@ class CloudDeepScan(object):
         self.client_id = client_id
         self.client_secret = client_secret
 
+
+        self.__in_memory_chunk_size = 2 * 1000 * 1000  # read chunks of 2MB in memory during the upload
         self.__submissions_endpoint = "/api/v1/submissions"
         self.__uploads_endpoint = "/api/v1/uploads"
         self.__reports_endpoint = "/api/v1/reports"
@@ -40,7 +45,7 @@ class CloudDeepScan(object):
         self.__token = None
         self.__token_expires_at = None
 
-    def upload_sample(self, sample_path):
+    def upload_sample(self, sample_path, max_concurrency=10):
         """Uploads sample to Cloud Deep Scan REST API
 
         :param sample_path: path to the sample that should be scanned
@@ -51,8 +56,10 @@ class CloudDeepScan(object):
         """
         file_name, file_size = self.__get_file_info(path=sample_path)
         upload = self.__create_upload(file_name=file_name, file_size=file_size)
-        etags = self.__upload_parts(sample_path=sample_path, parts=upload["parts"])
-        self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
+        etags = self.__upload_parts(sample_path=sample_path, parts=upload["parts"], max_concurrency=max_concurrency)
+        print(f"etags: {etags}")
+        if "upload_id" in upload:
+            self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
 
     def fetch_submission_status(self, submission_id):
@@ -235,7 +242,7 @@ class CloudDeepScan(object):
             return False
         return time.time() < self.__token_expires_at
 
-    def __upload_parts(self, sample_path, parts):
+    def __upload_parts(self, sample_path, parts, max_concurrency):
         """Uploads sample as parts to dedicated S3 bucket.
 
         :param sample_path: path to the sample that needs to be uploaded
@@ -247,15 +254,19 @@ class CloudDeepScan(object):
         :rtype: list[str]
         """
         etags = []
+        start_byte = 0
+        worker_count = len(parts) if len(parts) < max_concurrency else max_concurrency
+        pool = ThreadPoolExecutor(max_workers=worker_count)
         try:
-            with open(sample_path, "rb") as f:
-                for part in parts:    
-                    try:
-                        data = f.read(part["content_length"])
-                        etag = self.__upload_part_to_s3(url=part["url"], data=data)
-                    except KeyError:
-                        raise CloudDeepScanException("Failed to upload sample part: malformed response from REST API")
-                    etags.append(etag)
+            futures = []
+            for part in parts:    
+                future = pool.submit(self.__upload_part_to_s3, part["url"], sample_path, start_byte, part["content_length"])
+                futures.append(future)
+                start_byte += part["content_length"]
+            
+            for fut in concurrent.futures.as_completed(futures):
+                etags.append(fut.result())
+
         except PermissionError:
             raise CloudDeepScanException("Failed to read sample: permission denied")
         except FileNotFoundError:
@@ -264,7 +275,7 @@ class CloudDeepScan(object):
             raise CloudDeepScanException("Failed to read sample")
         return etags
 
-    def __upload_part_to_s3(self, url, data):
+    def __upload_part_to_s3(self, url, path, start_byte, content_length):
         """Uploads data to the given presigned s3 url
 
         :param url: presigned S3 upload URL
@@ -275,10 +286,35 @@ class CloudDeepScan(object):
         :return: etag of the successful upload
         :rtype: str
         """
+        uploaded_bytes = 0
         try:
-            response = requests.put(url, data=data)
-            response.raise_for_status()
+            conn_pool = connection_from_url(url=url)
+            connection = conn_pool._get_conn()
+            connection.putrequest(
+                "PUT",
+                url,
+                skip_accept_encoding=True,
+                skip_host=True,
+            )
+            connection.putheader("Content-Length", str(content_length))
+            connection.endheaders()
+
+            with open(path, "rb") as f:
+                f.seek(start_byte)
+                while uploaded_bytes != content_length:
+                    if (uploaded_bytes + self.__in_memory_chunk_size) <= content_length:
+                        chunk_size = self.__in_memory_chunk_size
+                    else:
+                        # Calculate remainder if it is less than the configured chunk size
+                        chunk_size = content_length - uploaded_bytes
+
+                    chunk = f.read(chunk_size)
+                    connection.send(chunk)
+                    uploaded_bytes += chunk_size
+
+            response = connection.getresponse()
             etag = response.headers["ETag"]
+            print(f"received etag: {etag}")
         except requests.exceptions.RequestException:
             raise CloudDeepScanException("Failed to upload sample part: upload request failed")
         except KeyError:
