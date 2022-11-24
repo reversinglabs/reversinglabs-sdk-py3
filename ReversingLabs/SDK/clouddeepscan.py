@@ -9,9 +9,10 @@ import os
 import time
 import requests
 import concurrent
-from concurrent.futures import ThreadPoolExecutor
-from urllib3.connectionpool import connection_from_url
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from urllib3.exceptions import HTTPError
+from urllib3.connectionpool import connection_from_url
 from ReversingLabs.SDK.helper import CloudDeepScanException
 
 
@@ -50,6 +51,9 @@ class CloudDeepScan(object):
 
         :param sample_path: path to the sample that should be scanned
         :type sample_path: str
+        :param max_concurrency: amount of part uploads that will be done in parallel,
+            used only if there are more parts than max_concurrency value
+        :type sample_path: int
         :raises CloudDeepScanException: if sample upload fails in any way
         :return: submission ID that can be used to fetch submission status
         :rtype: str
@@ -57,7 +61,6 @@ class CloudDeepScan(object):
         file_name, file_size = self.__get_file_info(path=sample_path)
         upload = self.__create_upload(file_name=file_name, file_size=file_size)
         etags = self.__upload_parts(sample_path=sample_path, parts=upload["parts"], max_concurrency=max_concurrency)
-        print(f"etags: {etags}")
         if "upload_id" in upload:
             self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
@@ -93,7 +96,7 @@ class CloudDeepScan(object):
         :param sample_hash: sha1 hash of sample content
         :type sample_hash: str
         :param report_output_path: relative or absolute path where output will be saved with file name included
-        e.g. "reports/report1.json"
+            e.g. "reports/report1.json"
         :type report_output_path: str
         :raises CloudDeepScanException: if report download fails in any way
         """
@@ -249,42 +252,42 @@ class CloudDeepScan(object):
         :type sample_path: str
         :param parts: list of part info dicitionaries returned from the API
         :type parts: list of dicts
+        :param max_concurrency: amount of uploads that will be done in parallel, used only if there are more parts than max_concurrency value
+        :type max_concurrency: int
         :raises CloudDeepScanException: if sample cannot be read from disk or response from API is malformed
         :return: list of etags that are required to complete download
         :rtype: list[str]
         """
-        etags = []
+        etags = ["" for part in parts]
         start_byte = 0
         worker_count = len(parts) if len(parts) < max_concurrency else max_concurrency
         pool = ThreadPoolExecutor(max_workers=worker_count)
-        try:
-            futures = []
-            for part in parts:    
-                future = pool.submit(self.__upload_part_to_s3, part["url"], sample_path, start_byte, part["content_length"])
-                futures.append(future)
-                start_byte += part["content_length"]
-            
-            for fut in concurrent.futures.as_completed(futures):
-                etags.append(fut.result())
+        futures = []
+        for part_number, part in enumerate(parts):
+            future = pool.submit(self.__upload_part_to_s3, part["url"], sample_path, start_byte, part["content_length"], part_number)
+            futures.append(future)
+            start_byte += part["content_length"]
 
-        except PermissionError:
-            raise CloudDeepScanException("Failed to read sample: permission denied")
-        except FileNotFoundError:
-            raise CloudDeepScanException("Failed to read sample: file does not exist")
-        except OSError:
-            raise CloudDeepScanException("Failed to read sample")
-        return etags
+        for fut in concurrent.futures.as_completed(futures):
+            etag, part_number = fut.result()
+            etags[part_number] = etag
 
-    def __upload_part_to_s3(self, url, path, start_byte, content_length):
+    def __upload_part_to_s3(self, url, path, start_byte, content_length, part_number):
         """Uploads data to the given presigned s3 url
 
         :param url: presigned S3 upload URL
         :type url: str
-        :param data: bytes of data that should be uploaded
-        :type data: bytes
+        :param path: path to the file that needs to be uploaded
+        :type path: str
+        :param start_byte: byte from which to start upload
+        :type start_byte: int
+        :param content_length: amount of bytes that should be uploaded
+        :type content_length: int
+        :param part_number: part number that is later used to order etags before completing upload
+        :type part_number: int
         :raises CloudDeepScanException: if upload fails
-        :return: etag of the successful upload
-        :rtype: str
+        :return: etag of the successful upload and part number
+        :rtype: tuple(str, int)
         """
         uploaded_bytes = 0
         try:
@@ -314,12 +317,18 @@ class CloudDeepScan(object):
 
             response = connection.getresponse()
             etag = response.headers["ETag"]
-            print(f"received etag: {etag}")
-        except requests.exceptions.RequestException:
-            raise CloudDeepScanException("Failed to upload sample part: upload request failed")
+        except HTTPError:
+            connection.close()
+            raise CloudDeepScanException("Failed to upload sample part: upload failed")
+        except PermissionError:
+            raise CloudDeepScanException("Failed to read sample: permission denied")
+        except FileNotFoundError:
+            raise CloudDeepScanException("Failed to read sample: file does not exist")
+        except OSError:
+            raise CloudDeepScanException("Failed to read sample")
         except KeyError:
             raise CloudDeepScanException("Failed to upload sample part: malformed upload response")
-        return etag
+        return etag, part_number
 
     @staticmethod
     def __parse_iso8601_time(timestamp):

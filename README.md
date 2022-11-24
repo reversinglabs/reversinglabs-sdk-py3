@@ -390,7 +390,7 @@ class CloudDeepScan(object)
 
 #### Methods:
 - `upload_sample`
-    - Accepts a file path string of a file that should be scanned and returns submission ID
+    - Accepts a file path string of a file that should be scanned and optional configuration of how many part uploads to do concurrently, returns submission ID
 - `fetch_submission_status`
     - Accepts submission ID and returns an instance of CloudDeepScanSubmissionStatus
 - `download_report`
