@@ -90,6 +90,40 @@ class CloudDeepScan(object):
         except (KeyError, ValueError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
+
+    def fetch_submission_history(self, sample_hash):
+        """Fetches history of submissions for the given sample content hash.
+        Returns list of scan report objects that have three fields:
+        - id: submission ID
+        - created_at: datetime with timezone info (UTC)
+        - report_uri: URI where full report can be found and downloaded
+
+
+        :param sample_hash: SHA1 hash of the sample content
+        :type sample_hash: str
+        :raises CloudDeepScanException: if anything goes wrong during the communication with the API
+        :return: List of CloudDeepScanReport objects
+        :rtype: list[CloudDeepScanReport]
+        """
+        response = self.__api_request(
+            method="GET",
+            endpoint=self.__reports_endpoint,
+            params={"hash": sample_hash, "history": 1},
+        )
+        submission_history = []
+        try:
+            for submission in response.json():
+                report = CloudDeepScanReport(
+                    id_=submission["id"],
+                    created_at=self.__parse_iso8601_time(timestamp=submission["created_at"]),
+                    report_uri=submission["report"]
+                )
+                submission_history.append(report)
+        except (KeyError, ValueError):
+            raise CloudDeepScanException("Failed to get submission history: malformed REST API response")
+        return submission_history
+
+
     def download_report(self, sample_hash, report_output_path):
         """Downloads latest JSON report for the given hash and saves it to the provided path.
 
@@ -378,3 +412,26 @@ class CloudDeepScanSubmissionStatus(object):
 
     def __repr__(self):
         return f"CloudDeepScanSubmissionStatus('{self.id}')"
+
+
+class CloudDeepScanReport(object):
+
+    def __init__(self, id_, created_at, report_uri):
+        """Submission report representation
+
+        :param id_: submission id
+        :type id_: str
+        :param created_at: time when submission was created
+        :type created_at: datetime
+        :param report_uri: URI where report can be found
+        :type report_uri: str
+        """
+        self.id = id_
+        self.created_at = created_at
+        self.report_uri = report_uri
+
+    def __eq__(self, other):
+        return self.id == other.id and self.created_at == other.created_at and self.report_uri == other.report_uri
+
+    def __repr__(self):
+        return f"CloudDeepScanReport('{self.id}')"

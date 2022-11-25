@@ -99,6 +99,8 @@ class NotAcceptableError(Exception):
 
 
 class CloudDeepScanException(Exception):
+    """Base exception for the clouddeepscan module
+    """
     pass
 
 

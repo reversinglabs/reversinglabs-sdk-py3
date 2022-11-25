@@ -41,6 +41,8 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-13)
       - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-4)
+      - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
+      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-5)
   * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
 
 
@@ -393,6 +395,8 @@ class CloudDeepScan(object)
     - Accepts a file path string of a file that should be scanned and optional configuration of how many part uploads to do concurrently, returns submission ID
 - `fetch_submission_status`
     - Accepts submission ID and returns an instance of CloudDeepScanSubmissionStatus
+- `fetch_submission_history`
+    - Accepts sha1 hash of the sample and returns a list of all the previous scan reports for the sample
 - `download_report`
     - Accepts sha1 hash of the sample and path of the output file where JSON report will be stored and stores report to that location
 
@@ -404,7 +408,17 @@ class CloudDeepScanSubmissionStatus(object)
 #### Parameters:
 `id_` - submission ID of the submission  
 `created_at` - datetime instance of time when submission is created  
-`status` - submission status, can be one of: scanned, scanning, error  
+`status` - submission status, can be one of: scanned, scanning, error
+
+#### Class:
+```python
+class CloudDeepScanReport(object)
+```
+
+#### Parameters:
+`id_` - ID of the submission  
+`created_at` - datetime instance of time when submission is created  
+`report_uri` - uri where report can be found  
 
 
 ***
@@ -546,8 +560,7 @@ results = titanium_scale.upload_sample_and_get_results(
 
 #### CloudDeepScan
 ```python
-from ReversingLabs.SDK.clouddeepscan import CloudDeepScan
-from ReversingLabs.SDK.helper import CloudDeepScanException
+from ReversingLabs.SDK.clouddeepscan import CloudDeepScan, CloudDeepScanException
 
 
 cloud_deep_scan = CloudDeepScan(
@@ -558,19 +571,29 @@ cloud_deep_scan = CloudDeepScan(
 )
 try:
     submission_id = cloud_deep_scan.upload_sample(sample_path="/path/to/file/suspicious_file.exe")
-except CloudDeepScanException as e:
-    print(f"Whoops, something went wrong: {str(e)}")
+except CloudDeepScanException:
+    pass
 
 try:
     submission_data = cloud_deep_scan.fetch_submission_status(submission_id=submission_id)  # Returns CloudDeepScanSubmissionStatus instance
     print(submission_data.id) # submission id
     print(str(submission_data.created_at)) # datetime instance
     print(submission_data.status) # status
-except CloudDeepScanException as e:
-    print(f"Whoops, something went wrong: {str(e)}")
+except CloudDeepScanException:
+    pass
 
 try:
     cloud_deep_scan.download_report(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95", report_output_path="reports/report1.json")  # report parent directory must exist
-except CloudDeepScanException as e:
-    print(f"Whoops, something went wrong: {str(e)}")
+except CloudDeepScanException:
+    pass
+
+try:
+    submission_history = cloud_deep_scan.fetch_submission_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
+    for submission in submission_history:
+        print(submission.id) # submission id
+        print(str(submission.created_at)) # datetime instance
+        print(submission.report_uri) # URI path to the report file
+except CloudDeepScanException:
+    pass
+
 ```
