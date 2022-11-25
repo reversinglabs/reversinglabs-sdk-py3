@@ -8,7 +8,6 @@ A Python module for the ReversingLabs Cloud Deep Scan REST API.
 import os
 import time
 import requests
-import warnings
 import concurrent
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -60,11 +59,9 @@ class CloudDeepScan(object):
         :rtype: str
         """
         if max_concurrent_requests > 1000:
-            warnings.warn("Maximum number of concurrent requests is 1000, defaulting to 1000")
-            max_concurrent_requests = 1000
+            raise RuntimeError("maximum number of concurrent requests is 1000")
         if max_concurrent_requests < 1:
-            warnings.warn("Minimum number of concurrent requests is 1, defaulting to 1")
-            max_concurrent_requests = 1
+            raise RuntimeError("minimum number of concurrent requests is 1")
 
         file_name, file_size = self.__get_file_info(path=sample_path)
         upload = self.__create_upload(file_name=file_name, file_size=file_size)
