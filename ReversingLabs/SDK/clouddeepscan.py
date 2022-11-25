@@ -302,8 +302,8 @@ class CloudDeepScan(object):
             futures.append(future)
             start_byte += part["content_length"]
 
-        for fut in concurrent.futures.as_completed(futures):
-            etag, part_number = fut.result()
+        for completed_future in concurrent.futures.as_completed(futures):
+            etag, part_number = completed_future.result()
             etags[part_number] = etag
 
     def __upload_part_to_s3(self, url, path, start_byte, content_length, part_number):
