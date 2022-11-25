@@ -8,6 +8,7 @@ A Python module for the ReversingLabs Cloud Deep Scan REST API.
 import os
 import time
 import requests
+import warnings
 import concurrent
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -46,21 +47,32 @@ class CloudDeepScan(object):
         self.__token = None
         self.__token_expires_at = None
 
-    def upload_sample(self, sample_path, max_concurrency=10):
+    def upload_sample(self, sample_path, max_concurrent_requests=10):
         """Uploads sample to Cloud Deep Scan REST API
 
         :param sample_path: path to the sample that should be scanned
         :type sample_path: str
-        :param max_concurrency: amount of part uploads that will be done in parallel,
-            used only if there are more parts than max_concurrency value
+        :param max_concurrent_requests: amount of part uploads that will be done in parallel,
+            used only if there are more parts than max_concurrent_requests value
         :type sample_path: int
         :raises CloudDeepScanException: if sample upload fails in any way
         :return: submission ID that can be used to fetch submission status
         :rtype: str
         """
+        if max_concurrent_requests > 1000:
+            warnings.warn("Maximum number of concurrent requests is 1000, defaulting to 1000")
+            max_concurrent_requests = 1000
+        if max_concurrent_requests < 1:
+            warnings.warn("Minimum number of concurrent requests is 1, defaulting to 1")
+            max_concurrent_requests = 1
+
         file_name, file_size = self.__get_file_info(path=sample_path)
         upload = self.__create_upload(file_name=file_name, file_size=file_size)
-        etags = self.__upload_parts(sample_path=sample_path, parts=upload["parts"], max_concurrency=max_concurrency)
+        etags = self.__upload_parts(
+            sample_path=sample_path,
+            parts=upload["parts"],
+            max_concurrent_requests=max_concurrent_requests
+        )
         if "upload_id" in upload:
             self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
@@ -279,22 +291,22 @@ class CloudDeepScan(object):
             return False
         return time.time() < self.__token_expires_at
 
-    def __upload_parts(self, sample_path, parts, max_concurrency):
+    def __upload_parts(self, sample_path, parts, max_concurrent_requests):
         """Uploads sample as parts to dedicated S3 bucket.
 
         :param sample_path: path to the sample that needs to be uploaded
         :type sample_path: str
         :param parts: list of part info dicitionaries returned from the API
         :type parts: list of dicts
-        :param max_concurrency: amount of uploads that will be done in parallel, used only if there are more parts than max_concurrency value
-        :type max_concurrency: int
+        :param max_concurrent_requests: amount of uploads that will be done in parallel, used only if there are more parts than max_concurrent_requests value
+        :type max_concurrent_requests: int
         :raises CloudDeepScanException: if sample cannot be read from disk or response from API is malformed
         :return: list of etags that are required to complete download
         :rtype: list[str]
         """
         etags = ["" for part in parts]
         start_byte = 0
-        worker_count = len(parts) if len(parts) < max_concurrency else max_concurrency
+        worker_count = len(parts) if len(parts) < max_concurrent_requests else max_concurrent_requests
         pool = ThreadPoolExecutor(max_workers=worker_count)
         futures = []
         for part_number, part in enumerate(parts):
