@@ -25,7 +25,7 @@ class CloudDeepScan(object):
 
         :param token_endpoint: token endpoint that is used to fetch authorization token
         :type token_endpoint: str
-        :param rest_hostname: REST API hostname that is used as base URL to generate endpoints
+        :param rest_hostname: REST API hostname which represents a base URL of all Cloud Deep Scan API endpoints
         :type rest_hostname: str
         :param client_id: ID of OAuth2.0 client used for authorization
         :type client_id: str
