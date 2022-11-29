@@ -91,13 +91,14 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(method="GET", endpoint=f"{self.__submissions_endpoint}/{submission_id}")
         try:
+            response_data = response.json()
             status = CloudDeepScanSubmissionStatus(
-                id_=response["id"],
-                created_at=self.__parse_iso8601_time(timestamp=response["created_at"]),
-                status=response["status"]
+                id_=response_data["id"],
+                created_at=self.__parse_iso8601_time(timestamp=response_data["created_at"]),
+                status=response_data["status"]
             )
             return status
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
 
@@ -129,7 +130,7 @@ class CloudDeepScan(object):
                     report_uri=submission["report"]
                 )
                 submission_history.append(report)
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
             raise CloudDeepScanException("Failed to get submission history: malformed REST API response")
         return submission_history
 
