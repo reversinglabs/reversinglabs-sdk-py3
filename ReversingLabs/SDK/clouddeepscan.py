@@ -316,6 +316,7 @@ class CloudDeepScan(object):
         for completed_future in concurrent.futures.as_completed(futures):
             etag, part_number = completed_future.result()
             etags[part_number] = etag
+        return etags
 
     def __upload_part_to_s3(self, url, path, start_byte, content_length, part_number):
         """Uploads data to the given presigned s3 url
