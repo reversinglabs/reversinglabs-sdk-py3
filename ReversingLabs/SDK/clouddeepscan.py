@@ -223,7 +223,8 @@ class CloudDeepScan(object):
         base_headers = {
             "Authorization": f"Bearer {token}"
         }
-        headers = kwargs.get("headers", {}).update(base_headers)
+        headers = base_headers
+        headers.update(kwargs.get("headers", {}))
         # Make sure there is a default timeout so requests don't get stuck
         timeout = kwargs.get("timeout", 10)
         try:
