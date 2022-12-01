@@ -395,8 +395,10 @@ class CloudDeepScan(object)
     - Accepts a file path string of a file that should be scanned and optional configuration of how many part uploads to do concurrently, returns submission ID
 - `fetch_submission_status`
     - Accepts submission ID and returns an instance of CloudDeepScanSubmissionStatus
+- `fetch_submission_status_history`
+    - Accepts either sample name or sample hash and returns list of CloudDeepScanSubmissionStatus objects
 - `fetch_submission_history`
-    - Accepts sha1 hash of the sample and returns a list of all the previous scan reports for the sample
+    - Accepts sha1 hash of the sample or name of the sample (only one must be provided) and returns a list of all the previous scan reports for the sample
 - `download_report`
     - Accepts sha1 hash of the sample and path of the output file where JSON report will be stored and stores report to that location
 
@@ -575,10 +577,19 @@ except CloudDeepScanException:
     pass
 
 try:
-    submission_data = cloud_deep_scan.fetch_submission_status(submission_id=submission_id)  # Returns CloudDeepScanSubmissionStatus instance
-    print(submission_data.id) # submission id
-    print(str(submission_data.created_at)) # datetime instance
-    print(submission_data.status) # status
+    status_data = cloud_deep_scan.fetch_submission_status(submission_id=submission_id)  # Returns CloudDeepScanSubmissionStatus instance
+    print(status_data.id) # submission id
+    print(str(status_data.created_at)) # datetime instance
+    print(status_data.status) # status
+except CloudDeepScanException:
+    pass
+
+try:
+    status_history = cloud_deep_scan.fetch_submission_status_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
+    for status in status_history:
+        print(submission.id) # submission id
+        print(str(submission.created_at)) # datetime instance
+        print(submission.status) # status
 except CloudDeepScanException:
     pass
 
@@ -595,5 +606,4 @@ try:
         print(submission.report_uri) # URI path to the report file
 except CloudDeepScanException:
     pass
-
 ```

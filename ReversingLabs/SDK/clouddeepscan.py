@@ -101,6 +101,44 @@ class CloudDeepScan(object):
         except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
+    def fetch_submission_status_history(self, sample_hash=None, sample_name=None):
+        """Fetches submission statuse history filtered by hash or sample name.
+        Either sample_name or sample_hash must be provided.
+        Returns list of status objects with three fields:
+        - id: submission ID
+        - created_at: datetime with timezone info (UTC)
+        - status: can be one of scanned, scanning and error
+        If none samples are found by hash or name, returns empty list.
+
+        :param sample_hash: SHA1 hash of the sample, defaults to None
+        :type sample_hash: str, optional
+        :param sample_name: name of the sample, defaults to None
+        :type sample_name: str, optional
+        :rtype: list[CloudDeepScanSubmissionStatus]
+        """
+        if sample_hash is None and sample_name is None:
+            raise RuntimeError("Either sample_hash or sample_name parameter must be specified")
+        if sample_hash is not None and sample_name is not None:
+            raise RuntimeError("Only one parameter either sample_hash or sample_name parameter can be specified")
+
+        response = self.__api_request(
+            method="GET",
+            endpoint=self.__submissions_endpoint,
+            params={"hash": sample_hash, "name": sample_name}
+        )
+        try:
+            response_data = response.json()
+            submission_statuses = []
+            for submission in response_data:
+                status = CloudDeepScanSubmissionStatus(
+                    id_=submission["id"],
+                    created_at=self.__parse_iso8601_time(timestamp=submission["created_at"]),
+                    status=submission["status"]
+                )
+                submission_statuses.append(status)
+            return submission_statuses
+        except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
+            raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
     def fetch_submission_history(self, sample_hash):
         """Fetches history of submissions for the given sample content hash.

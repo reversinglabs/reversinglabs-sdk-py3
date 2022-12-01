@@ -1,7 +1,7 @@
 from setuptools import setup
 
 
-requires = ["requests", "urllib3"]
+requires = ["requests==2.28.1", "urllib3==1.26.13"]
 
 packages = ["ReversingLabs",
             "ReversingLabs.SDK"]
