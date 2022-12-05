@@ -95,7 +95,7 @@ class CloudDeepScan(object):
                 id_=response_data["id"],
                 created_at=self.__parse_iso8601_time(timestamp=response_data["created_at"]),
                 status=response_data["status"],
-                report_uri=submission["report"],
+                report_uri=response_data["report"],
             )
             return status
         except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
