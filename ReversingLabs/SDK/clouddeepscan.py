@@ -37,11 +37,9 @@ class CloudDeepScan(object):
         self.client_id = client_id
         self.client_secret = client_secret
 
-
         self.__in_memory_chunk_size = 2 * 1000 * 1000  # read chunks of 2MB in memory during the upload
-        self.__submissions_endpoint = "/api/v1/submissions"
-        self.__uploads_endpoint = "/api/v1/uploads"
-        self.__reports_endpoint = "/api/v1/reports"
+        self.__submissions_endpoint = "/v1/submissions"
+        self.__uploads_endpoint = "/v1/uploads"
 
         self.__token = None
         self.__token_expires_at = None
@@ -75,13 +73,14 @@ class CloudDeepScan(object):
             self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
 
-    def fetch_submission_status(self, submission_id):
+    def fetch_submission(self, submission_id):
         """Fetches submission status by submission ID.
         Submission ID is returned when sample is uploaded.
         Returned status object has three fields:
         - id: submission ID
         - created_at: datetime with timezone info (UTC)
         - status: can be one of scanned, scanning and error
+        - report_uri: can be either None if status is not "scanned" or URL pointing to report location
 
         :param submission_id: submission ID that status is requested for
         :type submission_id: str
@@ -91,23 +90,25 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(method="GET", endpoint=f"{self.__submissions_endpoint}/{submission_id}")
         try:
-            response_data = response.json()
+            response_data = response.json()["data"]
             status = CloudDeepScanSubmissionStatus(
                 id_=response_data["id"],
                 created_at=self.__parse_iso8601_time(timestamp=response_data["created_at"]),
-                status=response_data["status"]
+                status=response_data["status"],
+                report_uri=submission["report"],
             )
             return status
         except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
 
-    def fetch_submission_status_history(self, sample_hash=None, sample_name=None):
-        """Fetches submission statuse history filtered by hash or sample name.
+    def fetch_submission_history(self, sample_hash=None, sample_name=None):
+        """Fetches submission history filtered by hash or sample name.
         Either sample_name or sample_hash must be provided.
         Returns list of status objects with three fields:
         - id: submission ID
         - created_at: datetime with timezone info (UTC)
         - status: can be one of scanned, scanning and error
+        - report_uri: can be either None if status is not "scanned" or URL pointing to report location
         If none samples are found by hash or name, returns empty list.
 
         :param sample_hash: SHA1 hash of the sample, defaults to None
@@ -127,51 +128,19 @@ class CloudDeepScan(object):
             params={"hash": sample_hash, "name": sample_name}
         )
         try:
-            response_data = response.json()
+            response_data = response.json()["data"]
             submission_statuses = []
             for submission in response_data:
                 status = CloudDeepScanSubmissionStatus(
                     id_=submission["id"],
                     created_at=self.__parse_iso8601_time(timestamp=submission["created_at"]),
-                    status=submission["status"]
+                    status=submission["status"],
+                    report_uri=submission["report"],
                 )
                 submission_statuses.append(status)
             return submission_statuses
         except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
             raise CloudDeepScanException("Failed to get submission status: malformed REST API response")
-
-    def fetch_submission_history(self, sample_hash):
-        """Fetches history of submissions for the given sample content hash.
-        Returns list of scan report objects that have three fields:
-        - id: submission ID
-        - created_at: datetime with timezone info (UTC)
-        - report_uri: URI where full report can be found and downloaded
-
-
-        :param sample_hash: SHA1 hash of the sample content
-        :type sample_hash: str
-        :raises CloudDeepScanException: if anything goes wrong during the communication with the API
-        :return: List of CloudDeepScanReport objects
-        :rtype: list[CloudDeepScanReport]
-        """
-        response = self.__api_request(
-            method="GET",
-            endpoint=self.__reports_endpoint,
-            params={"hash": sample_hash, "history": 1},
-        )
-        submission_history = []
-        try:
-            for submission in response.json():
-                report = CloudDeepScanReport(
-                    id_=submission["id"],
-                    created_at=self.__parse_iso8601_time(timestamp=submission["created_at"]),
-                    report_uri=submission["report"]
-                )
-                submission_history.append(report)
-        except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
-            raise CloudDeepScanException("Failed to get submission history: malformed REST API response")
-        return submission_history
-
 
     def download_report(self, sample_hash, report_output_path):
         """Downloads latest JSON report for the given hash and saves it to the provided path.
@@ -185,8 +154,7 @@ class CloudDeepScan(object):
         """
         response = self.__api_request(
             method="GET",
-            endpoint=self.__reports_endpoint,
-            params={"hash": sample_hash, "history": 0},
+            endpoint=f"{self.__submissions_endpoint}/report/{sample_hash}",
             allow_redirects=True
         )
         try:
@@ -220,7 +188,7 @@ class CloudDeepScan(object):
             json={"name": file_name, "size": file_size}
         )
         try:
-            response_data = response.json()
+            response_data = response.json()["data"]
         except requests.exceptions.JSONDecodeError:
             raise CloudDeepScanException("Failed to create upload: malformed API response")
         return response_data
@@ -410,7 +378,7 @@ class CloudDeepScan(object):
         except FileNotFoundError:
             raise CloudDeepScanException("Failed to read sample: file does not exist")
         except OSError:
-            raise CloudDeepScanException("Failed to read sample")
+            raise CloudDeepScanException("Failed to upload sample part")
         except KeyError:
             raise CloudDeepScanException("Failed to upload sample part: malformed upload response")
         return etag, part_number
@@ -436,7 +404,7 @@ class CloudDeepScan(object):
         except FileNotFoundError:
             raise CloudDeepScanException("Sample does not exist")
         except OSError:
-            raise CloudDeepScanException("Failed to read sample")
+            raise CloudDeepScanException("Failed to get file info")
         file_size = stat_result.st_size
         file_name = os.path.basename(path)
         return file_name, file_size
@@ -444,7 +412,7 @@ class CloudDeepScan(object):
 
 class CloudDeepScanSubmissionStatus(object):
 
-    def __init__(self, id_, created_at, status):
+    def __init__(self, id_, created_at, status, report_uri):
         """Submission status representation
 
         :param id_: submission id
@@ -453,36 +421,16 @@ class CloudDeepScanSubmissionStatus(object):
         :type created_at: datetime
         :param status: submission status, can be one of: scanned, scanning, error
         :type status: str
+        :param report_uri: URI where report can be found
+        :type report_uri: str, optional
         """
         self.id = id_
         self.created_at = created_at
         self.status = status
-
-    def __eq__(self, other):
-        return self.id == other.id and self.created_at == other.created_at and self.status == other.status
-
-    def __repr__(self):
-        return f"CloudDeepScanSubmissionStatus('{self.id}')"
-
-
-class CloudDeepScanReport(object):
-
-    def __init__(self, id_, created_at, report_uri):
-        """Submission report representation
-
-        :param id_: submission id
-        :type id_: str
-        :param created_at: time when submission was created
-        :type created_at: datetime
-        :param report_uri: URI where report can be found
-        :type report_uri: str
-        """
-        self.id = id_
-        self.created_at = created_at
         self.report_uri = report_uri
 
     def __eq__(self, other):
-        return self.id == other.id and self.created_at == other.created_at and self.report_uri == other.report_uri
+        return self.id == other.id and self.created_at == other.created_at and self.status == other.status and self.report_uri == other.report_uri
 
     def __repr__(self):
-        return f"CloudDeepScanReport('{self.id}')"
+        return f"CloudDeepScanSubmissionStatus('{self.id}')"
