@@ -69,8 +69,8 @@ class CloudDeepScan(object):
             parts=upload["parts"],
             max_concurrent_requests=max_concurrent_requests
         )
-        if "upload_id" in upload:
-            self.__complete_upload(upload_id=upload["upload_id"], etags=etags, object_key=upload["object_key"])
+        if "id" in upload:
+            self.__complete_upload(upload_id=upload["id"], etags=etags, object_key=upload["object_key"])
         return upload["submission_id"]
 
     def fetch_submission(self, submission_id):
