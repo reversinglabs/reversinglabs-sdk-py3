@@ -208,7 +208,18 @@ If username and password are used instead, a token fetching request will be done
   - Gets a list of all top-level containers from which the requested sample has been extracted during analysis
   - This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
         file hashes
-  
+- `network_url_report`
+  - Accepts a URL string and returns a report about the requested URL
+- `network_domain_report`
+  - Accepts a domain string and returns a report about the requested domain
+- `network_ip_addr_report`
+  - Accepts an IP address string and returns a report about the requested IP address
+- `network_ip_to_domain`
+  - Accepts an IP address string and returns a list of IP-to-domain mappings
+- `network_urls_from_ip`
+  - Accepts an IP address string and returns a list of URLs hosted on the requested IP address
+- `network_files_from_ip`
+  - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
 
 ***
 
