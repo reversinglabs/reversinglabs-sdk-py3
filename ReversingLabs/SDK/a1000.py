@@ -8,6 +8,7 @@ A Python module for the ReversingLabs A1000 appliance REST API.
 import datetime
 import requests
 import time
+from urllib import parse
 from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
@@ -58,6 +59,13 @@ class A1000(object):
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
     __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
+    __URL_REPORT_ENDPOINT = "/api/network-threat-intel/url/"
+    __DOMAIN_REPORT_ENDPOINT = "/api/network-threat-intel/domain/{domain}/"
+    __IP_REPORT_ENDPOINT = "/api/network-threat-intel/ip/{ip}/report/"
+    __IP_TO_DOMAIN_ENDPOINT = "/api/network-threat-intel/ip/{ip}/resolutions/"
+    __URLS_FROM_IP_ENDPOINT = "/api/network-threat-intel/ip/{ip}/urls/"
+    __FILES_FROM_IP_ENDPOINT = "/api/network-threat-intel/ip/{ip}/downloaded_files/"
+
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -1780,7 +1788,7 @@ class A1000(object):
             :param ruleset_name: name of the YARA ruleset that the Cloud Retro scan should be run on
             :type ruleset_name: str
             :return: response
-            :rtype: requests.Response::
+            :rtype: requests.Response
         """
         if operation not in ("START", "STOP", "CLEAR"):
             raise WrongInputError("operation parameter must be either 'START', 'STOP' or 'CLEAR'")
@@ -1805,7 +1813,7 @@ class A1000(object):
             :param ruleset_name: name of the YARA ruleset for which to check for the Cloud Retro scan status
             :type ruleset_name: str
             :return: response
-            :rtype: requests.Response::
+            :rtype: requests.Response
         """
         if not isinstance(ruleset_name, str):
             raise WrongInputError("ruleset_name parameter must be a string")
@@ -2049,7 +2057,7 @@ class A1000(object):
             or MD5)
             :type sample_hashes list[str]
             :return: response
-            :rtype: requests.Response::
+            :rtype: requests.Response
         """
         if not isinstance(sample_hashes, list):
             raise WrongInputError("sample_hashes parameter must be a list of strings.")
@@ -2064,6 +2072,131 @@ class A1000(object):
         url = self._url.format(endpoint=endpoint)
 
         response = self.__post_request(url=url, data={"hash_values": sample_hashes})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_url_report(self, requested_url):
+        """Accepts a URL string and returns a report about the requested URL.
+            :param requested_url: URL for analysis
+            :type requested_url: str
+            :return: response
+            :rtype: requests.Response
+        """
+
+        if not isinstance(requested_url, str):
+            raise WrongInputError("url parameter must be string.")
+
+        encoded_url = parse.quote_plus(requested_url)
+
+        endpoint = "{endpoint}?url={url}".format(
+            endpoint=self.__URL_REPORT_ENDPOINT,
+            url=encoded_url
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_domain_report(self, domain):
+        """Accepts a domain string and returns a report about the requested domain.
+            :param domain: domain for analysis
+            :type domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(domain=domain)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_ip_addr_report(self, ip_addr):
+        """Accepts an IP address string and returns a report about the requested IP address.
+            :param ip_addr: IP address for analysis
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__IP_REPORT_ENDPOINT
+        )
+
+        return response
+
+    def network_ip_to_domain(self, ip_addr):
+        """Accepts an IP address string and returns a list of IP-to-domain mappings.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__IP_TO_DOMAIN_ENDPOINT
+        )
+
+        return response
+
+    def network_urls_from_ip(self, ip_addr):
+        """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__URLS_FROM_IP_ENDPOINT
+        )
+
+        return response
+
+    def network_files_from_ip(self, ip_addr):
+        """Accepts an IP address string and returns a list of hashes and
+        classifications for files found on the requested IP address.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__FILES_FROM_IP_ENDPOINT
+        )
+
+        return response
+
+    def __ip_addr_endpoints(self, ip_addr, specific_endpoint):
+        """Private method for all IP related endpoints from the Network Threat Intelligence API.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_addr, str):
+            raise WrongInputError("ip_addr parameter must be string.")
+
+        endpoint = specific_endpoint.format(ip=ip_addr)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
 
         self.__raise_on_error(response)
 
@@ -2237,9 +2370,6 @@ class A1000(object):
         if threat_name:
             data['threat_name'] = threat_name
 
-        if len(data) == 0:
-            data = None
-
         if name:
             data['name'] = name
 
@@ -2251,6 +2381,9 @@ class A1000(object):
 
         if ticloud:
             data['ticloud'] = ticloud
+
+        if not data:
+            return None
 
         return data
 
