@@ -1941,7 +1941,7 @@ class A1000(object):
 
         return results
 
-    def advanced_search_v2(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
+    def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
         """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
@@ -1953,6 +1953,8 @@ class A1000(object):
 
             :param query_string: query string
             :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
             :param page_number: page number
             :type page_number: int
             :param records_per_page: number of records returned per page; maximum value is 100
@@ -1968,13 +1970,17 @@ class A1000(object):
         if not isinstance(query_string, str):
             raise WrongInputError("The search query must be a string.")
 
+        if not isinstance(ticloud, bool):
+            raise WrongInputError("ticloud parameter must be boolean.")
+
         if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 100:
             raise WrongInputError("records_per_page parameter must be an integer with a value "
                                   "between 1 and 100 (included).")
 
         url = self._url.format(endpoint=self.__ADVANCED_SEARCH_ENDPOINT_V2)
 
-        post_json = {"query": query_string, "page": page_number, "records_per_page": records_per_page}
+        post_json = {"query": query_string, "ticloud": ticloud, "page": page_number,
+                     "records_per_page": records_per_page}
 
         if sorting_criteria:
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
@@ -1995,7 +2001,7 @@ class A1000(object):
 
         return response
 
-    def advanced_search_v2_aggregated(self,  query_string, max_results=5000, sorting_criteria=None,
+    def advanced_search_v2_aggregated(self,  query_string, ticloud=False, max_results=5000, sorting_criteria=None,
                                       sorting_order="desc"):
         """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
@@ -2009,6 +2015,8 @@ class A1000(object):
 
             :param query_string: search query - see API documentation for details on writing search queries
             :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
             :param max_results: maximum results to be returned in a list; default value is 5000
             :type max_results: int
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
@@ -2029,6 +2037,7 @@ class A1000(object):
         while more_pages:
             response = self.advanced_search_v2(
                 query_string=query_string,
+                ticloud=ticloud,
                 page_number=next_page,
                 records_per_page=100,
                 sorting_criteria=sorting_criteria,
