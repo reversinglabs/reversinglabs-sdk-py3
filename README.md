@@ -496,6 +496,50 @@ class NewMalwareURIFeed(TiCloudAPI)
 - `pull_latest`
     - Returns a maximum of 1000 latest records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
 
+#### Class:
+```python
+class ImpHashSimilarity(TiCloudAPI)
+````
+#### Methods:
+- `get_imphash_index`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+- `get_imphash_index_aggregated`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
+class YARAHunting(TiCloudAPI)
+````
+#### Methods:
+- `create_ruleset`
+    - Creates a new YARA ruleset
+    - The ruleset_text parameter needs to be a stringified YARA ruleset / a Unicode string
+- `delete_ruleset`
+    - Deletes a YARA ruleset
+- `get_ruleset_info`
+    - Get information for a specific YARA ruleset or all YARA rulesets in the collection
+- `get_ruleset_text`
+    - Get the text of a YARA ruleset
+- `yara_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
+
+#### Class:
+```python
+class YARARetroHunting(TiCloudAPI)
+````
+#### Methods:
+- `enable_retro_hunt`
+    - Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud prior to deployment of YARA retro
+- `start_retro_hunt`
+    - Starts the retro hunt for the specified ruleset
+- `check_status`
+    - Checks the retro hunt status for the specified ruleset
+- `cancel_retro_hunt`
+    - Cancels the retro hunt for the specified ruleset
+- `yara_retro_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
+
 ***
 
 ## Module: tiscale
