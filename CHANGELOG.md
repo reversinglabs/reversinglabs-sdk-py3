@@ -34,3 +34,16 @@ v1.3.0 (2022-11-16)
 - **helper** module:
   - Added the `BadGatewayError` exception class.
   - Adjusted the message of the `TooManyRequestsError` exception class to reflect quota limit breached situations.
+
+
+
+v1.4.0 (2023-01-04)
+-------------------
+
+#### Changes
+
+- **ticloud** module:
+  - Added the `ImpHashSimilarity`, `YARAHunting` and `YARARetroHunting` classes.
+- **a1000** module:
+  - Added the `network_url_report`, `network_domain_report`, `network_ip_addr_report`, `network_ip_to_domain`, `network_urls_from_ip` and `network_files_from_ip` methods.
+  - Added the `ticloud` parameter into the `advanced_search_v2` and `advanced_search_v2_aggregated` methods.

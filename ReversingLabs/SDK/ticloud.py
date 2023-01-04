@@ -2628,6 +2628,383 @@ class NewMalwareURIFeed(TiCloudAPI):
         return response
 
 
+class ImpHashSimilarity(TiCloudAPI):
+    """TCA-0302"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/imphash_index/v1/query/{hash_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ImpHashSimilarity, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_imphash_index(self, imphash, next_page_sha1=None):
+        """Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash.
+            :param imphash: imphash string
+            :type imphash: str
+            :param next_page_sha1: SHA-1 string on the next page of results
+            :type next_page_sha1: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(imphash, str):
+            raise WrongInputError("imphash parameter must be string.")
+
+        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(hash_value=imphash)
+
+        if next_page_sha1:
+            validate_hashes(
+                hash_input=[next_page_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+
+            endpoint = "{base}/start_sha1/{next_page_sha1}".format(
+                base=endpoint,
+                next_page_sha1=next_page_sha1
+            )
+
+        endpoint = "{path}?format=json".format(path=endpoint)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_imphash_index_aggregated(self, imphash, max_results=5000):
+        """Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash.
+        This method automatically handles paging and returns a list of results instead of a Response object.
+           :param imphash: imphash string
+           :type imphash: str
+           :param max_results: maximum number of results to be returned in the list
+           :type max_results: int
+           :return: list of results
+           :rtype: list
+       """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_sha1 = None
+
+        while True:
+            response = self.get_imphash_index(
+                imphash=imphash,
+                next_page_sha1=next_page_sha1
+            )
+
+            response_json = response.json()
+
+            sha1_list = response_json.get("rl").get("imphash_index").get("sha1_list", [])
+            results.extend(sha1_list)
+
+            next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1")
+
+            if len(results) > max_results or not next_page_sha1:
+                break
+
+        return results[:max_results]
+
+
+class YARAHunting(TiCloudAPI):
+    """TCA-0303"""
+
+    __RULESET_ENDPOINT = "/api/yara/admin/v1/ruleset"
+    __YARA_MATCHES_ENDPOINT = "/api/feed/yara/v1/query/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(YARAHunting, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                          allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def create_ruleset(self, ruleset_name, ruleset_text, sample_available=None):
+        """Creates a new YARA ruleset.
+        The ruleset_text parameter needs to be a stringified YARA ruleset / a Unicode string.
+        The sample_available parameter defines which samples will be returned:
+            - True: only samples available for download
+            - False: only samples not available for download
+            - None: all samples
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :param ruleset_text: YARA ruleset text
+            :type ruleset_text: str
+            :param sample_available: which samples to return
+            :type sample_available: bool or None
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be string.")
+
+        if not isinstance(ruleset_text, str):
+            raise WrongInputError("ruleset_text parameter must be unicode string.")
+
+        post_json = {
+            "ruleset_name": ruleset_name,
+            "text": ruleset_text
+        }
+
+        if sample_available is not None:
+            if not isinstance(sample_available, bool):
+                raise WrongInputError("sample_available parameter must be be either None or boolean.")
+
+            post_json["sample_available"] = sample_available
+
+        url = self._url.format(endpoint=self.__RULESET_ENDPOINT)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def delete_ruleset(self, ruleset_name):
+        """Deletes a YARA ruleset.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be string.")
+
+        endpoint = "{base}/{ruleset_name}".format(
+            base=self.__RULESET_ENDPOINT,
+            ruleset_name=ruleset_name
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._delete_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_ruleset_info(self, ruleset_name=None):
+        """Get information for a specific YARA ruleset or all YARA rulesets in the collection.
+            :param ruleset_name: name of the ruleset; if set to None, all rulesets are returned
+            :type ruleset_name: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = self.__RULESET_ENDPOINT
+
+        if ruleset_name is not None:
+            if not isinstance(ruleset_name, str):
+                raise WrongInputError("ruleset_name parameter must be string.")
+
+            endpoint = "{base}/{ruleset_name}".format(
+                base=self.__RULESET_ENDPOINT,
+                ruleset_name=ruleset_name
+            )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_ruleset_text(self, ruleset_name):
+        """Get the text of a YARA ruleset.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be string.")
+
+        endpoint = "{base}/{ruleset_name}/text".format(
+            base=self.__RULESET_ENDPOINT,
+            ruleset_name=ruleset_name
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def yara_matches_feed(self, time_format, time_value):
+        """Returns a recordset of YARA ruleset matches in the specified time range.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        base = self.__YARA_MATCHES_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        endpoint = "{base}?format=json".format(base=base)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class YARARetroHunting(TiCloudAPI):
+    """TCA-0319"""
+
+    __RULESET_ENDPOINT = "/api/yara/admin/v1/ruleset"
+    __YARA_RETRO_MATCHES_ENDPOINT = "/api/feed/yara/retro/v1/query/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(YARARetroHunting, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                               allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def __retro_hunt_action(self, path_suffix, ruleset_name):
+        """Private method for retro hunt actions."""
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be string.")
+
+        if path_suffix in ("enable-retro-hunt", "start-retro-hunt", "cancel-retro-hunt"):
+            endpoint = "{base}/{path_suffix}".format(
+                base=self.__RULESET_ENDPOINT,
+                path_suffix=path_suffix
+            )
+
+            post_json = {"ruleset_name": ruleset_name}
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._post_request(url=url, post_json=post_json)
+
+        elif path_suffix == "status-retro-hunt":
+            endpoint = "{base}/{ruleset_name}/{path_suffix}".format(
+                base=self.__RULESET_ENDPOINT,
+                ruleset_name=ruleset_name,
+                path_suffix=path_suffix
+            )
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url)
+
+        else:
+            raise WrongInputError("The supplied path_suffix is not valid.")
+
+        self._raise_on_error(response)
+
+        return response
+
+    def enable_retro_hunt(self, ruleset_name):
+        """Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud
+        prior to deployment of YARA retro.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__retro_hunt_action(
+            path_suffix="enable-retro-hunt",
+            ruleset_name=ruleset_name
+        )
+
+        return response
+
+    def start_retro_hunt(self, ruleset_name):
+        """Starts the retro hunt for the specified ruleset.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__retro_hunt_action(
+            path_suffix="start-retro-hunt",
+            ruleset_name=ruleset_name
+        )
+
+        return response
+
+    def check_status(self, ruleset_name):
+        """Checks the retro hunt status for the specified ruleset.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__retro_hunt_action(
+            path_suffix="status-retro-hunt",
+            ruleset_name=ruleset_name
+        )
+
+        return response
+
+    def cancel_retro_hunt(self, ruleset_name):
+        """Cancels the retro hunt for the specified ruleset.
+            :param ruleset_name: name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__retro_hunt_action(
+            path_suffix="cancel-retro-hunt",
+            ruleset_name=ruleset_name
+        )
+
+        return response
+
+    def yara_retro_matches_feed(self, time_format, time_value):
+        """Returns a recordset of YARA ruleset matches in the specified time range.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        base = self.__YARA_RETRO_MATCHES_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        endpoint = "{base}?format=json".format(base=base)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.

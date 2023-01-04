@@ -38,10 +38,13 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
       - [Class MWPChangeEventsFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-22)
       - [Class NewMalwareURIFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-23)
+      - [Class ImpHashSimilarity](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-24)
+      - [Class YARAHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-25)
+      - [Class YARARetroHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-26)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
-      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
+      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-27)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-12)
+      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
   * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
 
 
@@ -208,7 +211,18 @@ If username and password are used instead, a token fetching request will be done
   - Gets a list of all top-level containers from which the requested sample has been extracted during analysis
   - This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
         file hashes
-  
+- `network_url_report`
+  - Accepts a URL string and returns a report about the requested URL
+- `network_domain_report`
+  - Accepts a domain string and returns a report about the requested domain
+- `network_ip_addr_report`
+  - Accepts an IP address string and returns a report about the requested IP address
+- `network_ip_to_domain`
+  - Accepts an IP address string and returns a list of IP-to-domain mappings
+- `network_urls_from_ip`
+  - Accepts an IP address string and returns a list of URLs hosted on the requested IP address
+- `network_files_from_ip`
+  - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
 
 ***
 
@@ -484,6 +498,50 @@ class NewMalwareURIFeed(TiCloudAPI)
     - Accepts a time format definition and a time value. Returns records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
 - `pull_latest`
     - Returns a maximum of 1000 latest records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+
+#### Class:
+```python
+class ImpHashSimilarity(TiCloudAPI)
+````
+#### Methods:
+- `get_imphash_index`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+- `get_imphash_index_aggregated`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
+class YARAHunting(TiCloudAPI)
+````
+#### Methods:
+- `create_ruleset`
+    - Creates a new YARA ruleset
+    - The ruleset_text parameter needs to be a stringified YARA ruleset / a Unicode string
+- `delete_ruleset`
+    - Deletes a YARA ruleset
+- `get_ruleset_info`
+    - Get information for a specific YARA ruleset or all YARA rulesets in the collection
+- `get_ruleset_text`
+    - Get the text of a YARA ruleset
+- `yara_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
+
+#### Class:
+```python
+class YARARetroHunting(TiCloudAPI)
+````
+#### Methods:
+- `enable_retro_hunt`
+    - Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud prior to deployment of YARA retro
+- `start_retro_hunt`
+    - Starts the retro hunt for the specified ruleset
+- `check_status`
+    - Checks the retro hunt status for the specified ruleset
+- `cancel_retro_hunt`
+    - Cancels the retro hunt for the specified ruleset
+- `yara_retro_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
 
 ***
 
