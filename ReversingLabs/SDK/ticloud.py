@@ -2932,7 +2932,7 @@ class YARARetroHunting(TiCloudAPI):
         return response
 
     def start_retro_hunt(self, ruleset_name):
-        """Enables the retro hunt for the specified ruleset.
+        """Starts the retro hunt for the specified ruleset.
             :param ruleset_name: name of the ruleset
             :type ruleset_name: str
             :return: response
