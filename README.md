@@ -38,10 +38,13 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
       - [Class MWPChangeEventsFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-22)
       - [Class NewMalwareURIFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-23)
+      - [Class ImpHashSimilarity](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-24)
+      - [Class YARAHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-25)
+      - [Class YARARetroHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-26)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
-      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
+      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-27)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-12)
+      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
   * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
 
 
