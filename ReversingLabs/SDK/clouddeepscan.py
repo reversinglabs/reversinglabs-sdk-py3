@@ -52,7 +52,7 @@ class CloudDeepScan(object):
         :param max_concurrent_requests: amount of part uploads that will be done in parallel,
             used only if there are more parts than max_concurrent_requests value, defaults to 10,
             minimum is 1, maximum is 1000. Keep in mind that raising this number will impact RAM usage of the upload.
-        :type sample_path: int
+        :type max_concurrent_requests: int
         :raises CloudDeepScanException: if sample upload fails in any way
         :return: submission ID that can be used to fetch submission status
         :rtype: str
