@@ -80,7 +80,7 @@ class CloudDeepScan(object):
         - id: submission ID
         - created_at: datetime with timezone info (UTC)
         - status: can be one of scanned, scanning and error
-        - report_uri: can be either None if status is not "scanned" or URL pointing to report location
+        - report: can be either None if status is not "scanned" or URL pointing to report location
 
         :param submission_id: submission ID that status is requested for
         :type submission_id: str
@@ -95,7 +95,7 @@ class CloudDeepScan(object):
                 id_=response_data["id"],
                 created_at=self.__parse_iso8601_time(timestamp=response_data["created_at"]),
                 status=response_data["status"],
-                report_uri=response_data["report"],
+                report=response_data["report"],
             )
             return status
         except (KeyError, ValueError, requests.exceptions.JSONDecodeError):
@@ -108,7 +108,7 @@ class CloudDeepScan(object):
         - id: submission ID
         - created_at: datetime with timezone info (UTC)
         - status: can be one of scanned, scanning and error
-        - report_uri: can be either None if status is not "scanned" or URL pointing to report location
+        - report: can be either None if status is not "scanned" or URL pointing to report location
         If none samples are found by hash or name, returns empty list.
 
         :param sample_hash: SHA1 hash of the sample, defaults to None
@@ -135,7 +135,7 @@ class CloudDeepScan(object):
                     id_=submission["id"],
                     created_at=self.__parse_iso8601_time(timestamp=submission["created_at"]),
                     status=submission["status"],
-                    report_uri=submission["report"],
+                    report=submission["report"],
                 )
                 submission_statuses.append(status)
             return submission_statuses
@@ -412,7 +412,7 @@ class CloudDeepScan(object):
 
 class CloudDeepScanSubmissionStatus(object):
 
-    def __init__(self, id_, created_at, status, report_uri):
+    def __init__(self, id_, created_at, status, report):
         """Submission status representation
 
         :param id_: submission id
@@ -421,16 +421,16 @@ class CloudDeepScanSubmissionStatus(object):
         :type created_at: datetime
         :param status: submission status, can be one of: scanned, scanning, error
         :type status: str
-        :param report_uri: URI where report can be found
-        :type report_uri: str, optional
+        :param report: URI where report can be found
+        :type report: str, optional
         """
         self.id = id_
         self.created_at = created_at
         self.status = status
-        self.report_uri = report_uri
+        self.report = report
 
     def __eq__(self, other):
-        return self.id == other.id and self.created_at == other.created_at and self.status == other.status and self.report_uri == other.report_uri
+        return self.id == other.id and self.created_at == other.created_at and self.status == other.status and self.report == other.report
 
     def __repr__(self):
         return f"CloudDeepScanSubmissionStatus('{self.id}')"

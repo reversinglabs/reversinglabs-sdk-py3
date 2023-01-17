@@ -407,7 +407,7 @@ class CloudDeepScanSubmissionStatus(object)
 `id_` - submission ID of the submission  
 `created_at` - datetime instance of time when submission is created  
 `status` - submission status, can be one of: scanned, scanning, error
-`report_uri` - URL pointing to report location, None if status is not "scanned"
+`report` - URL pointing to report location, None if status is not "scanned"
 
 ***
 
@@ -567,7 +567,7 @@ try:
     print(status_data.id)  # submission id
     print(str(status_data.created_at))  # datetime instance
     print(status_data.status)  # status
-    print(status_data.report_uri)  # URI path to the report file
+    print(status_data.report)  # URI path to the report file
 except CloudDeepScanException:
     pass
 
@@ -577,7 +577,7 @@ try:
         print(status_data.id)  # submission id
         print(str(status_data.created_at))  # datetime instance
         print(status_data.status)  # status
-        print(status_data.report_uri)  # URI path to the report file
+        print(status_data.report)  # URI path to the report file
 except CloudDeepScanException:
     pass
 
