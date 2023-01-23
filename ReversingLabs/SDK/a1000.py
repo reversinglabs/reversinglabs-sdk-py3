@@ -5,8 +5,10 @@ A1000
 A Python module for the ReversingLabs A1000 appliance REST API.
 """
 
+import datetime
 import requests
 import time
+from urllib import parse
 from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
@@ -36,9 +38,34 @@ class A1000(object):
     __DELETE_SAMPLE_ENDPOINT = "/api/samples/{hash_value}/"
     __DELETE_SAMPLES_BULK_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/"
     __CHECK_SAMPLE_REMOVAL_STATUS_ENDPOINT_V2 = "/api/samples/v2/delete_bulk/status/?id={task_id}"
+    __PDF_REPORT_CREATE_ENDPOINT = "/api/pdf/{hash_value}/create"
+    __PDF_REPORT_STATUS_ENDPOINT = "/api/pdf/{hash_value}/status"
+    __PDF_REPORT_DOWNLOAD_ENDPOINT = "/api/pdf/{hash_value}/download"
+    __TITANIUM_CORE_REPORT_ENDPOINT_V2 = "/api/v2/samples/{hash_value}/ticore/?fields={fields}"
+    __DYNAMIC_ANALYSIS_REPORT_CREATE_ENDPOINT = "/api/rl_dynamic_analysis/export/summary/{hash_value}/{format}/create/"
+    __DYNAMIC_ANALYSIS_REPORT_STATUS_ENDPOINT = "/api/rl_dynamic_analysis/export/summary/{hash_value}/{format}/status/"
+    __DYNAMIC_ANALYSIS_REPORT_DOWNLOAD_ENDPOINT = "/api/rl_dynamic_analysis/export/summary/{hash_value}/{format}" \
+                                                  "/download/"
+    __SET_OR_DELETE_CLASSIFICATION_ENDPOINT = "/api/samples/{hash_value}/setclassification/{system}/"
     __TAGS_ENDPOINT = "/api/tag/{hash_value}/"
+    __RETRIEVE_YARA_RULESETS_ENDPOINT_V2 = "/api/yara/v2/rulesets/"
+    __RETRIEVE_YARA_RULESET_CONTENTS_ENDPOINT = "/api/yara/ruleset/content/?name={ruleset_name}"
+    __RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2 = "/api/yara/v2/ruleset/matches/"
+    __YARA_RULESET_ENDPOINT = "/api/yara/ruleset/"
+    __ENABLE_OR_DISABLE_YARA_RULESET_ENDPOINT = "/api/yara/ruleset/{operation}/"
+    __GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT = "/api/yara/ticloud/time/"
+    __YARA_LOCAL_RETROSCAN_ENDPOINT = "/api/uploads/local-retro-hunt/"
+    __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
     __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
+    __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
+    __URL_REPORT_ENDPOINT = "/api/network-threat-intel/url/"
+    __DOMAIN_REPORT_ENDPOINT = "/api/network-threat-intel/domain/{domain}/"
+    __IP_REPORT_ENDPOINT = "/api/network-threat-intel/ip/{ip}/report/"
+    __IP_TO_DOMAIN_ENDPOINT = "/api/network-threat-intel/ip/{ip}/resolutions/"
+    __URLS_FROM_IP_ENDPOINT = "/api/network-threat-intel/ip/{ip}/urls/"
+    __FILES_FROM_IP_ENDPOINT = "/api/network-threat-intel/ip/{ip}/downloaded_files/"
+
 
     # Used by the deprecated get_results method
     __FIELDS = ("id", "sha1", "sha256", "sha512", "md5", "category", "file_type", "file_subtype", "identification_name",
@@ -53,6 +80,10 @@ class A1000(object):
                    "classification_source", "classification", "riskscore", "classification_result", "ticore", "tags",
                    "summary", "ticloud", "aliases", "networkthreatintelligence", "domainthreatintelligence"
                    )
+
+    __TITANIUM_CORE_FIELDS = "sha1, sha256, sha512, md5, imphash, info, application, protection, security, behaviour," \
+                             " certificate, document, mobile, media, web, email, strings, interesting_strings," \
+                             " classification, indicators, tags, attack, story"
 
     def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, fields_v2=__FIELDS_V2,
                  wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
@@ -1135,7 +1166,271 @@ class A1000(object):
 
         return response
 
-    def get_user_tags_for_a_sample(self, sample_hash):
+    def __utilize_pdf_endpoint(self, sample_hash, endpoint):
+        """Accepts a single hash string and utilizes pdf report endpoint for initiation, status checking and downloading
+        of a PDF analysis report for the requested sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param endpoint: endpoint string
+            :type endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        endpoint = endpoint.format(
+            hash_value=sample_hash,
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def create_pdf_report(self, sample_hash: object) -> object:
+        """Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
+        The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
+        sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_CREATE_ENDPOINT)
+        return response
+
+    def check_pdf_report_creation(self, sample_hash):
+        """Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method. The response includes an informative message about the status of the PDF
+        report previously requested.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_STATUS_ENDPOINT)
+        return response
+
+    def download_pdf_report(self, sample_hash):
+        """Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_pdf_endpoint(sample_hash, self.__PDF_REPORT_DOWNLOAD_ENDPOINT)
+        return response
+
+    def get_titanium_core_report_v2(self, sample_hash, fields=None):
+        """Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
+        The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
+        request, all available parts of the static analysis report are returned in the response.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param fields: a string of comma separated TitaniumCore 'fields' to query
+            :type fields: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if fields and not isinstance(fields, str):
+            raise WrongInputError("fields parameter must be a string.")
+
+        if not fields:
+            fields = self._titanium_core_fields
+
+        endpoint = self.__TITANIUM_CORE_REPORT_ENDPOINT_V2.format(
+            hash_value=sample_hash,
+            fields=fields
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def __utilize_dynamic_analysis_endpoint(self, sample_hash, report_format, endpoint):
+        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analylsis endpoint for
+        initiation, status checking and downloading of PDF or HTML reports
+        for samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param report_format: report format ('html' or 'pdf')
+            :rtype report_format: str
+            :param endpoint: endpoint string
+            :type endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(SHA1,)
+        )
+
+        if report_format not in ("html", "pdf"):
+            raise WrongInputError("report_format parameter must be either 'html' or 'pdf'.")
+
+        endpoint = endpoint.format(
+            hash_value=sample_hash,
+            format=report_format,
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def create_dynamic_analysis_report(self, sample_hash, report_format):
+        """Accepts a single hash string and and a report format and initiates the creation of PDF or HTML reports for
+        samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
+        The response includes links to the report creation status endpoint and report download ednpoint for the
+        requested sample.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param report_format: report format ('html' or 'pdf')
+            :rtype report_format: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_CREATE_ENDPOINT)
+        return response
+
+    def check_dynamic_analysis_report_status(self, sample_hash, report_format):
+        """Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method. The response includes an informative
+        message about the status of the report previously requested.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param report_format: report format ('html' or 'pdf')
+            :rtype report_format: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_STATUS_ENDPOINT)
+        return response
+
+    def download_dynamic_analysis_report(self, sample_hash, report_format):
+        """Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param report_format: report format ('html' or 'pdf')
+            :rtype report_format: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__utilize_dynamic_analysis_endpoint(sample_hash,
+                                                            report_format,
+                                                            self.__DYNAMIC_ANALYSIS_REPORT_DOWNLOAD_ENDPOINT)
+        return response
+
+    def set_classification(self, sample_hash, classification, system, risk_score=None, threat_platform=None,
+                           threat_type=None, threat_name=None):
+        """Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
+        or locally on the A1000. Returns a response containing a new classification.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param system: 'local' or 'ticloud'
+            :type system: str
+            :param classification: 'goodware', 'suspicious' or 'malicious'
+            :type classification: str
+            :param risk_score: If specified, it must be within range for the specified classification. If not specified,
+            a default value is used: Goodware: 0, Suspicious: 6, Malicious: 10
+            :type risk_score: str
+            :param threat_platform: if specified, it must be on the supported list (platforms and subplatforms - see
+            official API docs). If not specified, the default value is 'Win32'.
+            :type threat_platform: str
+            :param threat_type: If specified, it must be on the supported list (malware types - see official API docs).
+            If not specified, the default value is 'Malware'.
+            :type threat_type: str
+            :param threat_name: If specified, must be an alphanumeric string not longer than 32 characters. If not
+            specified, the default value is 'Generic'.
+            :type threat_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if system not in ("local", "ticloud"):
+            raise WrongInputError("system parameter must be either 'local' or 'ticloud'.")
+
+        endpoint = self.__SET_OR_DELETE_CLASSIFICATION_ENDPOINT.format(
+            hash_value=sample_hash,
+            system=system
+        )
+
+        data = self.__create_post_payload(
+            classification=classification,
+            risk_score=risk_score,
+            threat_platform=threat_platform,
+            threat_type=threat_type,
+            threat_name=threat_name
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_classification(self, sample_hash, system="local"):
+        """Accepts a single hash string, allows the user to delete the classification of a sample, either in
+        TitaniumCloud or locally on the A1000.
+            :param sample_hash: hash string
+            :type sample_hash: str
+            :param system: 'local' or 'ticloud'
+            :type system: str
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+        )
+
+        if system and system not in ("local", "ticloud"):
+            raise WrongInputError("system parameter must be either 'local' or 'ticloud'.")
+
+        endpoint = self.__SET_OR_DELETE_CLASSIFICATION_ENDPOINT.format(
+            hash_value=sample_hash,
+            system=system
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__delete_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_user_tags(self, sample_hash):
         """Accepts a single hash string and returns lists of existing user tags for the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1144,7 +1439,7 @@ class A1000(object):
            """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         endpoint = self.__TAGS_ENDPOINT.format(
@@ -1159,7 +1454,7 @@ class A1000(object):
 
         return response
 
-    def post_user_tags_for_a_sample(self, sample_hash, tags):
+    def post_user_tags(self, sample_hash, tags):
         """Accepts a single hash string and adds one or more user tags to the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1170,7 +1465,7 @@ class A1000(object):
         """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         if not isinstance(tags, list):
@@ -1190,7 +1485,7 @@ class A1000(object):
 
         return response
 
-    def delete_user_tags_for_a_sample(self, sample_hash, tags):
+    def delete_user_tags(self, sample_hash, tags):
         """Accepts a single hash string and removes one or more user tags from the requested sample.
            :param sample_hash: hash string
            :type sample_hash: str
@@ -1201,7 +1496,7 @@ class A1000(object):
         """
         validate_hashes(
             hash_input=[sample_hash],
-            allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
+            allowed_hash_types=(MD5, SHA1, SHA256)
         )
 
         if not isinstance(tags, list):
@@ -1216,6 +1511,318 @@ class A1000(object):
         url = self._url.format(endpoint=endpoint)
 
         response = self.__delete_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_rulesets_on_the_appliance_v2(self, owner_type=None, status=None, source=None, page=None, page_size=None):
+        """Retrieves a list of YARA rulesets that are on the A1000 appliance. The list can be filtered by several
+        criteria (ruleset status, source, and owner) using optional parameters.
+            :param owner_type: supported values: my (default - currently authenticated user), user, system, all
+            :type owner_type: str
+            :param status: supported values: all (default), error, active, disabled, pending, invalid, capped
+            :type status: str
+            :param source: supported values: all (default), local, cloud
+            :type source: str
+            :param page: when this parameter is omitted from the request, all available results are returned at once
+            :type page: str
+            :param page_size: parameter that controls how many results to return per page in the response
+            :type page_size: str
+            :return: response
+            :rtype: requests.Response
+        """
+        params = {"type": owner_type, "status": status, "source": source, "page": page, "page_size": page_size}
+        params_string_array = []
+
+        if bool(params["page"]) != bool(params["page_size"]):
+            raise WrongInputError("page and page_size parametes must be used together")
+
+        for key, val in params.items():
+            if val:
+                if not isinstance(val, str):
+                    raise WrongInputError("{key} parameter must be a string".format(key=key))
+                params_string_array.append("{key}={val}".format(key=key, val=val))
+
+        if len(params_string_array) > 0:
+            query_string = "&".join(params_string_array)
+            endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_YARA_RULESETS_ENDPOINT_V2,
+                                                          query_string=query_string)
+        else:
+            endpoint = self.__RETRIEVE_YARA_RULESETS_ENDPOINT_V2
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_contents(self, ruleset_name):
+        """
+        Retrieves the full contents of the requested ruleset in raw text/plain format. All rulesets can be retrieved,
+        regardless of their current status on the appliance (enabled, disabled…)
+            :param ruleset_name: name of the YARA ruleset to retrieve. Ruleset names are case-sensitive
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__RETRIEVE_YARA_RULESET_CONTENTS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_matches_v2(self, ruleset_name, page=None, page_size=None):
+        """Retrieves the list of YARA matches (both local and cloud) for requested rulesets. If multiple rulesets are
+        provided in the request, only the samples that match all requested rulesets are listed in the response.
+            :param ruleset_name:
+            :type ruleset_name: str
+            :param page: when this parameter is omitted from the request, all available results are returned at once
+            :type page: str
+            :param page_size: parameter that controls how many results to return per page in the response
+            :type page_size: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        params = {"name": ruleset_name, "page": page, "page_size": page_size}
+        params_string_array = []
+
+        if bool(params["page"]) != bool(params["page_size"]):
+            raise WrongInputError("page and page_size parametes must be used together")
+
+        for key, val in params.items():
+            if val:
+                if not isinstance(val, str):
+                    raise WrongInputError("{key} parameter must be a string".format(key=key))
+                params_string_array.append("{key}={val}".format(key=key, val=val))
+
+        query_string = "&".join(params_string_array)
+        endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2,
+                                                      query_string=query_string)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def create_or_update_yara_ruleset(self, name, content, publish=None, ticloud=None):
+        """Creates a new YARA ruleset if it doesn’t exist. If a ruleset with the specified name already exists, a new
+        revision (update) of the ruleset is created.
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param content: content of the YARA ruleset to create or update
+            :type content: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :param ticloud: determines whether the ruleset should be synchronized with TitaniumCloud or not
+            :type ticloud: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        data = self.__create_post_payload(
+            name=name,
+            content=content,
+            publish=publish,
+            ticloud=ticloud
+        )
+
+        endpoint = self.__YARA_RULESET_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_yara_ruleset(self, name, publish=None):
+        """Deletes the specified YARA ruleset and its matches from the appliance.
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        post_json = self.__create_post_payload(
+            name=name,
+            publish=publish,
+
+        )
+        endpoint = self.__YARA_RULESET_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__delete_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def enable_or_disable_yara_ruleset(self, enabled, name, publish=None):
+        """Enables/disables ruleset on the appliance. Administrators can manage any ruleset while regular A1000 users
+        can only menage their own rulesets.
+            :param enabled: whether to enable (enabled=True) or disable (enabled=False) the specified ruleset
+            :type enabled: bool
+            :param name: name of the ruleset to enable/disable
+            :type name: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :return: response
+            :rtype: requests.Response:
+        """
+        data = self.__create_post_payload(
+            name=name,
+            publish=publish,
+        )
+
+        if enabled and enabled not in (True, False):
+            raise WrongInputError("enabled parameter must be boolean.")
+
+        endpoint = self.__ENABLE_OR_DISABLE_YARA_RULESET_ENDPOINT.format(operation="enable" if enabled else "disable")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data=data)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_ruleset_synchronization_time(self):
+        """Gets information about the current synchronization status for TitaniumCloud-enabled rulesets.
+            :return: response
+            :rtype: requests.Response:
+        """
+        endpoint = self.__GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def update_yara_ruleset_synchronization_time(self, sync_time):
+        """Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets.
+            :param sync_time: format should be UTC (YYYY-MM-DD hh:mm)
+            :type sync_time: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        try:
+            datetime.datetime.strptime(sync_time, '%Y-%m-%d %H:%M')
+        except ValueError:
+            raise WrongInputError("Incorrect sync_time format, should be YYYY-MM-DD hh:mm")
+
+        endpoint = self.__GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"time": sync_time})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def start_or_stop_yara_local_retro_scan(self, operation):
+        """Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
+        in progress on the appliance.
+            :param operation: accepted values: START, STOP (case-sensitive)
+            :type operation: str
+            :return: response
+            :rtype: requests.Response:
+        """
+        if operation not in ("START", "STOP"):
+            raise WrongInputError("operation parameter must be either 'START' or 'STOP'")
+
+        endpoint = self.__YARA_LOCAL_RETROSCAN_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"operation": operation})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_local_retro_scan_status(self):
+        """Allows users to check the status of Local Retro on the A1000 appliance. The response indicates the current
+        state of Local Retro, time and date when the latest Local Retro scan was started and/or stopped, and a list of
+        previous Local Retro scans with the same details.
+            :return: response
+            :rtype: requests.Response:
+        """
+        endpoint = self.__YARA_LOCAL_RETROSCAN_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def start_or_stop_yara_cloud_retro_scan(self, operation, ruleset_name):
+        """Allows users to start and stop a Cloud Retro scan for a specified ruleset on the A1000 appliance, as well as
+        to clear all Cloud Retro results for the ruleset.
+            :param operation: accepted values: START, STOP, CLEAR (case-sensitive)
+            :type operation: str
+            :param ruleset_name: name of the YARA ruleset that the Cloud Retro scan should be run on
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if operation not in ("START", "STOP", "CLEAR"):
+            raise WrongInputError("operation parameter must be either 'START', 'STOP' or 'CLEAR'")
+
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__YARA_CLOUD_RETROSCANS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"operation": operation})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_cloud_retro_scan_status(self, ruleset_name):
+        """Allows users to check the status of Cloud Retro for the specified YARA ruleset. The response indicates the
+        current state of Cloud Retro, time and date when the latest Cloud Retro scan was started and/or stopped, and a
+        list of previous Cloud Retro scans with the same details.
+            :param ruleset_name: name of the YARA ruleset for which to check for the Cloud Retro scan status
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ruleset_name, str):
+            raise WrongInputError("ruleset_name parameter must be a string")
+
+        endpoint = self.__YARA_CLOUD_RETROSCANS_ENDPOINT.format(ruleset_name=ruleset_name)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
 
         self.__raise_on_error(response)
 
@@ -1334,7 +1941,7 @@ class A1000(object):
 
         return results
 
-    def advanced_search_v2(self, query_string, page_number=1, records_per_page=20, sorting_criteria=None,
+    def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
         """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
@@ -1346,6 +1953,8 @@ class A1000(object):
 
             :param query_string: query string
             :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
             :param page_number: page number
             :type page_number: int
             :param records_per_page: number of records returned per page; maximum value is 100
@@ -1361,13 +1970,17 @@ class A1000(object):
         if not isinstance(query_string, str):
             raise WrongInputError("The search query must be a string.")
 
+        if not isinstance(ticloud, bool):
+            raise WrongInputError("ticloud parameter must be boolean.")
+
         if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 100:
             raise WrongInputError("records_per_page parameter must be an integer with a value "
                                   "between 1 and 100 (included).")
 
         url = self._url.format(endpoint=self.__ADVANCED_SEARCH_ENDPOINT_V2)
 
-        post_json = {"query": query_string, "page": page_number, "records_per_page": records_per_page}
+        post_json = {"query": query_string, "ticloud": ticloud, "page": page_number,
+                     "records_per_page": records_per_page}
 
         if sorting_criteria:
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
@@ -1388,7 +2001,7 @@ class A1000(object):
 
         return response
 
-    def advanced_search_v2_aggregated(self,  query_string, max_results=5000, sorting_criteria=None,
+    def advanced_search_v2_aggregated(self,  query_string, ticloud=False, max_results=5000, sorting_criteria=None,
                                       sorting_order="desc"):
         """Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
@@ -1402,6 +2015,8 @@ class A1000(object):
 
             :param query_string: search query - see API documentation for details on writing search queries
             :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
             :param max_results: maximum results to be returned in a list; default value is 5000
             :type max_results: int
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
@@ -1422,6 +2037,7 @@ class A1000(object):
         while more_pages:
             response = self.advanced_search_v2(
                 query_string=query_string,
+                ticloud=ticloud,
                 page_number=next_page,
                 records_per_page=100,
                 sorting_criteria=sorting_criteria,
@@ -1441,6 +2057,159 @@ class A1000(object):
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
 
         return results
+
+    def list_containers_for_hashes(self, sample_hashes):
+        """Gets a list of all top-level containers from which the requested sample has been extracted during analysis.
+        This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
+        file hashes. If a requested hash doesn’t have a container, it will not be included in the response.
+            :param sample_hashes: a list of one or more hash values, but must all be of the same type(SHA1, SHA256,
+            or MD5)
+            :type sample_hashes list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_hashes, list):
+            raise WrongInputError("sample_hashes parameter must be a list of strings.")
+
+        validate_hashes(
+            hash_input=sample_hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        endpoint = self.__LIST_CONTAINERS_ENDPOINT
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url, data={"hash_values": sample_hashes})
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_url_report(self, requested_url):
+        """Accepts a URL string and returns a report about the requested URL.
+            :param requested_url: URL for analysis
+            :type requested_url: str
+            :return: response
+            :rtype: requests.Response
+        """
+
+        if not isinstance(requested_url, str):
+            raise WrongInputError("url parameter must be string.")
+
+        encoded_url = parse.quote_plus(requested_url)
+
+        endpoint = "{endpoint}?url={url}".format(
+            endpoint=self.__URL_REPORT_ENDPOINT,
+            url=encoded_url
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_domain_report(self, domain):
+        """Accepts a domain string and returns a report about the requested domain.
+            :param domain: domain for analysis
+            :type domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(domain=domain)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def network_ip_addr_report(self, ip_addr):
+        """Accepts an IP address string and returns a report about the requested IP address.
+            :param ip_addr: IP address for analysis
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__IP_REPORT_ENDPOINT
+        )
+
+        return response
+
+    def network_ip_to_domain(self, ip_addr):
+        """Accepts an IP address string and returns a list of IP-to-domain mappings.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__IP_TO_DOMAIN_ENDPOINT
+        )
+
+        return response
+
+    def network_urls_from_ip(self, ip_addr):
+        """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__URLS_FROM_IP_ENDPOINT
+        )
+
+        return response
+
+    def network_files_from_ip(self, ip_addr):
+        """Accepts an IP address string and returns a list of hashes and
+        classifications for files found on the requested IP address.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_addr_endpoints(
+            ip_addr=ip_addr,
+            specific_endpoint=self.__FILES_FROM_IP_ENDPOINT
+        )
+
+        return response
+
+    def __ip_addr_endpoints(self, ip_addr, specific_endpoint):
+        """Private method for all IP related endpoints from the Network Threat Intelligence API.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_addr, str):
+            raise WrongInputError("ip_addr parameter must be string.")
+
+        endpoint = specific_endpoint.format(ip=ip_addr)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__get_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
 
     def __get_token(self, username, password):
         """Returns an obtained token using the provided username and password.
@@ -1464,7 +2233,9 @@ class A1000(object):
 
     @staticmethod
     def __create_post_payload(custom_filename=None, file_url=None,  crawler=None, archive_password=None,
-                              rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
+                              rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True,
+                              classification=None, risk_score=None, threat_platform=None, threat_type=None,
+                              threat_name=None, name=None, content=None, publish=None, ticloud=None):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
@@ -1482,6 +2253,29 @@ class A1000(object):
             :type comment: str
             :param cloud_analysis: use cloud analysis
             :type cloud_analysis: bool
+            :param classification: 'goodware', 'suspicious' or 'malicious'
+            :type classification: str
+            :param risk_score: If specified, it must be within range for the specified classification. If not specified,
+            a default value is used: Goodware: 0, Suspicious: 6, Malicious: 10
+            :type risk_score: str
+            :param threat_platform: if specified, it must be on the supported list (platforms and subplatforms - see
+            official API docs). If not specified, the default value is 'Win32'.
+            :type threat_platform: str
+            :param threat_type: If specified, it must be on the supported list (malware types - see pfficial API docs).
+            If not specified, the default value is 'Malware'.
+            :type threat_type: str
+            :param threat_name: If specified, must be an alphanumeric string not longer than 32 characters. If not
+            specified, the default value is 'Generic'.
+            :type threat_name: str
+            :param name: name of the ruleset to create or update
+            :type name: str
+            :param content: content of the YARA ruleset to create or update
+            :type content: str
+            :param publish: determines whether the ruleset should be synchronized to other appliances in the same
+            C1000 cluster
+            :type publish: bool
+            :param ticloud: determines whether the ruleset should be synchronized with TitaniumCloud or not
+            :type ticloud: bool
             :return: dictionary of defined optional fields or None
             :rtype: dict or None
         """
@@ -1512,6 +2306,38 @@ class A1000(object):
         if cloud_analysis not in (True, False):
             raise WrongInputError("cloud_analysis parameter must be boolean.")
 
+        allowed_classifications_and_risk_scores = {'goodware': [0, 1, 2, 3, 4, 5],
+                                                   'suspicious': [6, 7, 8, 9, 10],
+                                                   'malicious': [6, 7, 8, 9, 10]}
+
+        if classification and classification not in allowed_classifications_and_risk_scores.keys():
+            raise WrongInputError("classification parameter must be some of the following values:" +
+                                  " ".join(str(key) for key in allowed_classifications_and_risk_scores.keys()))
+        else:
+            if risk_score and risk_score not in allowed_classifications_and_risk_scores[classification]:
+                raise WrongInputError(f"risk_score {risk_score} is not allowed for classification '{classification}'.")
+
+        if threat_platform and not isinstance(threat_platform, str):
+            raise WrongInputError("threat_platform parameter must be string.")
+
+        if threat_type and not isinstance(threat_type, str):
+            raise WrongInputError("threat_type parameter must be string.")
+
+        if threat_name and not isinstance(threat_name, str):
+            raise WrongInputError("threat_type parameter must be string.")
+
+        if name and not isinstance(name, str):
+            raise WrongInputError("name parameter must be string.")
+
+        if content and not isinstance(content, str):
+            raise WrongInputError("content parameter must be string.")
+
+        if publish and publish not in (True, False):
+            raise WrongInputError("publish parameter must be boolean.")
+
+        if ticloud and ticloud not in (True, False):
+            raise WrongInputError("ticloud parameter must be boolean.")
+
         data = {}
 
         if custom_filename:
@@ -1538,8 +2364,35 @@ class A1000(object):
         if file_url:
             data["url"] = file_url
 
-        if len(data) == 0:
-            data = None
+        if classification:
+            data['classification'] = classification
+
+        if risk_score:
+            data['risk_score'] = risk_score
+
+        if threat_platform:
+            data['threat_platform'] = threat_platform
+
+        if threat_type:
+            data['threat_type'] = threat_type
+
+        if threat_name:
+            data['threat_name'] = threat_name
+
+        if name:
+            data['name'] = name
+
+        if content:
+            data['content'] = content
+
+        if publish:
+            data['publish'] = publish
+
+        if ticloud:
+            data['ticloud'] = ticloud
+
+        if not data:
+            return None
 
         return data
 
@@ -1609,7 +2462,7 @@ class A1000(object):
 
         return response
 
-    def __delete_request(self, url):
+    def __delete_request(self, url, post_json=None):
         """A generic DELETE request method for all A1000 methods.
         :param url: request URL
         :type url: str
@@ -1618,6 +2471,7 @@ class A1000(object):
         """
         response = requests.delete(
             url=url,
+            json=post_json,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers

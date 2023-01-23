@@ -29,7 +29,7 @@ ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "samplety
 
 
 class NotFoundError(Exception):
-    def __init__(self, message="No reference was found for this input"):
+    def __init__(self, message="Not found. No reference was found for this input"):
         super(NotFoundError, self).__init__(message)
 
 
@@ -78,6 +78,11 @@ class InternalServerError(Exception):
         super(InternalServerError, self).__init__(message)
 
 
+class BadGatewayError(Exception):
+    def __init__(self, message="The server received an invalid response from another server"):
+        super(BadGatewayError, self).__init__(message)
+
+
 class ServiceUnavailableError(Exception):
     def __init__(self, message="Service unavailable"):
         super(ServiceUnavailableError, self).__init__(message)
@@ -89,7 +94,7 @@ class NotAllowedError(Exception):
 
 
 class TooManyRequestsError(Exception):
-    def __init__(self, message="Too many requests - limit reached"):
+    def __init__(self, message="Too many requests. Your quota limit might be reached"):
         super(TooManyRequestsError, self).__init__(message)
 
 
@@ -116,6 +121,7 @@ RESPONSE_CODE_ERROR_MAP = {
     HTTPStatus.CONFLICT: ConflictError,
     HTTPStatus.REQUEST_ENTITY_TOO_LARGE: RequestTooLargeError,
     HTTPStatus.INTERNAL_SERVER_ERROR: InternalServerError,
+    HTTPStatus.BAD_GATEWAY: BadGatewayError,
     HTTPStatus.SERVICE_UNAVAILABLE: ServiceUnavailableError
 }
 
@@ -127,6 +133,9 @@ def validate_hashes(hash_input, allowed_hash_types):
         :param allowed_hash_types: allowed hash types
         :type allowed_hash_types: tuple
     """
+    if not hash_input:
+        raise WrongInputError("At least one hash needs to be supplied as input.")
+
     for hash_string in hash_input:
         try:
             codecs.decode(hash_string, "hex")

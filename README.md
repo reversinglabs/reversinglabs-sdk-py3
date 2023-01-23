@@ -28,13 +28,23 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class URLThreatIntelligence](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-11)
       - [Class AnalyzeURL](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-12)
       - [Class FileUpload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
-      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
-      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
-      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
+      - [Class DeleteFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
+      - [Class ReanalyzeFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
+      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
+      - [Class CertificateIndex](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-17)
+      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-18)
+      - [Class CertificateThumbprintSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-19)
+      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-20)
+      - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
+      - [Class MWPChangeEventsFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-22)
+      - [Class NewMalwareURIFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-23)
+      - [Class ImpHashSimilarity](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-24)
+      - [Class YARAHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-25)
+      - [Class YARARetroHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-26)
   * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
-      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
+      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-27)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-12)
+      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
   * [Module: clouddeepscan](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-clouddeepscan)
       - [Class CloudDeepScan](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-3)
@@ -125,19 +135,100 @@ If username and password are used instead, a token fetching request will be done
 - `check_sample_removal_status_v2`
   - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted
-- `get_user_tags_for_a_sample`
+- `create_pdf_report`
+  - Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
+        The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
+        sample
+- `check_pdf_report_creation`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method. The response includes an informative message about the status of the PDF
+        report previously requested
+- `download_pdf_report`
+  - Accepts a single hash string that should correspond to the hash used in the request with
+        create_pdf_report method
+- `get_titanium_core_report_v2`
+  - Accepts a single hash string and gets the full TitaniumCore static analysis report for the requested sample.
+        The requested sample must be present on the appliance. If the optional fields parameter is not provided in the
+        request, all available parts of the static analysis report are returned in the response
+- `create_dynamic_analysis_report`
+  - Accepts a single hash string and initiates the creation of PDF or HTML reports for samples that have gone
+        through dynamic analysis in the ReversingLabs Cloud Sandbox.
+        The response includes links to the report creation status endpoint and report download ednpoint for the
+        requested sample
+- `check_dynamic_analysis_report_status`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method. The response includes an informative
+        message about the status of the report previously requested
+- `download_dynamic_analysis_report`
+  - Accepts a single hash string and report format parameters that should correspond to the parameters used in
+        the request with create_dynamic_analysis_report method
+- `set_classification`
+  - Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
+        or locally on the A1000. Returns a response containing a new classification
+- `delete_classification`
+  - Accepts a single hash string, allows the user to delete the classification of a sample, either in
+        TitaniumCloud or locally on the A1000
+- `get_user_tags`
   - Accepts a single hash string and returns lists of existing user tags for the requested sample
-- `post_user_tags_for_a_sample`
+- `post_user_tags`
   - Accepts a single hash string and adds one or more user tags to the requested sample
-- `delete_user_tags_for_a_sample`
+- `delete_user_tags`
   - Accepts a single hash string and removes one or more user tags from the requested sample
+- `get_yara_rulesets_on_the_appliance_v2`
+  - Retrieves a list of YARA rulesets that are on the A1000 appliance
+  - The list can be filtered by several criteria (ruleset status, source, and owner) using optional parameters
+- `get_yara_ruleset_contents`
+  - Retrieves the full contents of the requested ruleset in raw text/plain format
+  - All rulesets can be retrieved, regardless of their current status on the appliance (enabled, disabled…)
+- `get_yara_ruleset_matches_v2`
+  - Retrieves the list of YARA matches (both local and cloud) for requested rulesets
+  - If multiple rulesets are provided in the request, only the samples that match all requested rulesets are listed in
+        the response.
+- `create_or_update_yara_ruleset`
+  - Creates a new YARA ruleset if it doesn’t exist
+  - If a ruleset with the specified name already exists, a new revision (update) of the ruleset is created
+- `delete_yara_ruleset`
+  - Deletes the specified YARA ruleset and its matches from the appliance
+- `enable_or_disable_yara_ruleset`
+  - Enables/disables ruleset on the appliance
+  - Administrators can manage any ruleset while regular A1000 users can only menage their own rulesets
+- `get_yara_ruleset_synchronization_time`
+  - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
+- `update_yara_ruleset_synchronization_time`
+  - Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets
+- `start_or_stop_yara_local_retro_scan`
+  - Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
+        in progress on the appliance
+- `get_yara_local_retro_scan_status`
+  - Gets the status of Local Retro scan on the A1000 appliance
+- `start_or_stop_yara_cloud_retro_scan`
+  - Allows users to start and stop a Cloud Retro scan for a specified ruleset on the A1000 appliance, as well as
+        to clear all Cloud Retro results for the ruleset
+- `get_yara_cloud_retro_scan_status`
+  - Gets the status of Cloud Retro for the specified YARA ruleset. The response indicates the
+        current state of Cloud Retro       
 - `advanced_search_v2`
   - Sends a query string to the A1000 Advanced Search API v2
 - `advanced_search_v2_aggregated`
   - Sends a query string to the A1000 Advanced Search API v2
   - Paging is done automatically and results from individual
         responses aggregated into one list and returned
-  
+- `list_containers_for_hashes`
+  - Gets a list of all top-level containers from which the requested sample has been extracted during analysis
+  - This is a bulk API, meaning that a single request can be used to simultaneously query containers for multiple
+        file hashes
+- `network_url_report`
+  - Accepts a URL string and returns a report about the requested URL
+- `network_domain_report`
+  - Accepts a domain string and returns a report about the requested domain
+- `network_ip_addr_report`
+  - Accepts an IP address string and returns a report about the requested IP address
+- `network_ip_to_domain`
+  - Accepts an IP address string and returns a list of IP-to-domain mappings
+- `network_urls_from_ip`
+  - Accepts an IP address string and returns a list of URLs hosted on the requested IP address
+- `network_files_from_ip`
+  - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
 
 ***
 
@@ -314,6 +405,24 @@ class FileUpload(TiCloudAPI)
 
 #### Class:
 ```python
+class DeleteFile(TiCloudAPI)
+````
+#### Methods:
+- `delete_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples you want to delete from the cloud
+  - You can only delete samples that were uploaded by the same cloud account
+
+#### Class:
+```python
+class ReanalyzeFile(TiCloudAPI)
+````
+#### Methods:
+- `ranalyze_samples`
+  - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
+  - The samples need to be already present in the cloud in order to be reanalyzed
+
+#### Class:
+```python
 class DynamicAnalysis(TiCloudAPI)
 ````
 #### Methods:
@@ -323,6 +432,17 @@ class DynamicAnalysis(TiCloudAPI)
 - `get_dynamic_analysis_results`
     - Returns dynamic analysis results for a desired sample
     - The analysis of the selected sample must be finished for the results to be available
+
+#### Class:
+```python
+class CertificateIndex(TiCloudAPI)
+````
+#### Methods:
+- `get_certificate_information`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+- `get_certificate_information_aggregated`
+    - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
+    - This method automatically handles paging and returns a list of results instead of a Response object
     
 #### Class:
 ```python
@@ -334,11 +454,100 @@ class CertificateAnalytics(TiCloudAPI)
 
 #### Class:
 ```python
+class CertificateThumbprintSearch(TiCloudAPI)
+````
+#### Methods:
+- `search_common_names`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+- `search_common_names_aggregated`
+    - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
 class RansomwareIndicators(TiCloudAPI)
 ````
 #### Methods:
 - `get_indicators`
-    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools.
+    - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools
+
+#### Class:
+```python
+class NewMalwareFilesFeed(ContinuousFeed)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns malware detections from the requested time
+- `pull`
+    - Returns a list of malware detections since the point in time set by the set_start method. If the user has not previously used this method, nor has the set_start method been called, it will return records starting with the current timestamp
+- `set_start`
+    - This method sets the starting time for the pull method
+
+#### Class:
+```python
+class MWPChangeEventsFeed(ContinuousFeed)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns samples with a newly calculated or changed malware presence (MWP) classification and threat name from the requested time
+- `pull`
+    - Returns a list of classification and threat name changes since the point in time set by the set_start() method
+- `set_start`
+    - This method sets the starting time for the pull() method
+
+#### Class:
+```python
+class NewMalwareURIFeed(TiCloudAPI)
+````
+#### Methods:
+- `pull_with_timestamp`
+    - Accepts a time format definition and a time value. Returns records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+- `pull_latest`
+    - Returns a maximum of 1000 latest records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+
+#### Class:
+```python
+class ImpHashSimilarity(TiCloudAPI)
+````
+#### Methods:
+- `get_imphash_index`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+- `get_imphash_index_aggregated`
+    - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
+    - This method automatically handles paging and returns a list of results instead of a Response object
+
+#### Class:
+```python
+class YARAHunting(TiCloudAPI)
+````
+#### Methods:
+- `create_ruleset`
+    - Creates a new YARA ruleset
+    - The ruleset_text parameter needs to be a stringified YARA ruleset / a Unicode string
+- `delete_ruleset`
+    - Deletes a YARA ruleset
+- `get_ruleset_info`
+    - Get information for a specific YARA ruleset or all YARA rulesets in the collection
+- `get_ruleset_text`
+    - Get the text of a YARA ruleset
+- `yara_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
+
+#### Class:
+```python
+class YARARetroHunting(TiCloudAPI)
+````
+#### Methods:
+- `enable_retro_hunt`
+    - Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud prior to deployment of YARA retro
+- `start_retro_hunt`
+    - Starts the retro hunt for the specified ruleset
+- `check_status`
+    - Checks the retro hunt status for the specified ruleset
+- `cancel_retro_hunt`
+    - Cancels the retro hunt for the specified ruleset
+- `yara_retro_matches_feed`
+    - Returns a recordset of YARA ruleset matches in the specified time range
 
 ***
 
@@ -426,7 +635,7 @@ a1000 = A1000(
     retries=10
 )
 
-response = a1000.upload_sample_and_get_results(
+response = a1000.upload_sample_and_get_summary_report_v2(
     file_path="/path/to/file.exe",
     retry=True,
     custom_filename="CustomName",
@@ -439,7 +648,7 @@ json_report = response.json()
 ```python
 from ReversingLabs.SDK.a1000 import A1000
 
-# Using token for authorization
+# Using the token for authorization
 a1000 = A1000(
     host="http://a1000.address",
     token="1js76asmklaslk288japj29s89z",
@@ -448,7 +657,7 @@ a1000 = A1000(
     retries=15
 )
 
-response = a1000.get_extracted_files(
+response = a1000.list_extracted_files_v2(
     sample_hash="cf23df2207d99a74fbe169e3eba035e633b65d94",
     page_size=30
 )
