@@ -46,10 +46,10 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
       - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
   * [Module: clouddeepscan](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-clouddeepscan)
-      - [Class CloudDeepScan](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
+      - [Class CloudDeepScan](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-28)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-3)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-13)
-      - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
+      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-27)
+      - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-29)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-4)
   * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
 
