@@ -781,12 +781,12 @@ except CloudDeepScanException:
     pass
 
 try:
-    status_history = cloud_deep_scan.fetch_submission_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
-    for status_data in status_history:
-        print(status_data.id)  # submission id
-        print(str(status_data.created_at))  # datetime instance
-        print(status_data.status)  # status
-        print(status_data.report)  # URI path to the report file
+    submission_history = cloud_deep_scan.fetch_submission_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
+    for submission_status in submission_history:
+        print(submission_status.id)  # submission id
+        print(str(submission_status.created_at))  # datetime instance
+        print(submission_status.status)  # status
+        print(submission_status.report)  # URI path to the report file
 except CloudDeepScanException:
     pass
 
