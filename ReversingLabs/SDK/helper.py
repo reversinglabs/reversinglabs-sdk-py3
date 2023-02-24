@@ -103,6 +103,12 @@ class NotAcceptableError(Exception):
         super(NotAcceptableError, self).__init__(message)
 
 
+class CloudDeepScanException(Exception):
+    """Base exception for the clouddeepscan module
+    """
+    pass
+
+
 RESPONSE_CODE_ERROR_MAP = {
     HTTPStatus.UNAUTHORIZED: UnauthorizedError,
     HTTPStatus.FORBIDDEN: ForbiddenError,

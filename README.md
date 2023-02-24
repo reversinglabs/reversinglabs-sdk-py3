@@ -45,6 +45,12 @@ The SDK consists of several modules, where each module represents one ReversingL
       - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-27)
       - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
       - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
+  * [Module: clouddeepscan](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-clouddeepscan)
+      - [Class CloudDeepScan](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-28)
+      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-3)
+      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-27)
+      - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-29)
+      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-4)
   * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
 
 
@@ -574,6 +580,43 @@ def __init__(self, host, token, wait_time_seconds=2, retries=10, verify=True, pr
     - This method combines uploading a sample and obtaining the analysis results
     - The result obtaining action of this method utilizes the set number of retries and wait time in seconds to time out if the analysis results are not ready
 
+***
+
+## Module: clouddeepscan
+Handles communication with Cloud Deep Scan API endpoints.
+
+#### Class:
+```python
+class CloudDeepScan(object)
+```
+
+#### Parameters:
+`token_endpoint` - token endpoint that is used to fetch authorization token  
+`rest_hostname` - REST API hostname that is used as base URL to generate endpoints  
+`client_id` - ID of OAuth2.0 client used for authorization  
+`client_secret` - secret of OAuth2.0 client used for authorization  
+
+
+#### Methods:
+- `upload_sample`
+    - Accepts a file path string of a file that should be scanned and optional configuration of how many part uploads to do concurrently, returns submission ID
+- `fetch_submission`
+    - Accepts submission ID and returns an instance of CloudDeepScanSubmissionStatus
+- `fetch_submission_history`
+    - Accepts either sample name or sample hash and returns list of CloudDeepScanSubmissionStatus objects
+- `download_report`
+    - Accepts sha1 hash of the sample and path of the output file where JSON report will be stored and stores report to that location
+
+#### Class:
+```python
+class CloudDeepScanSubmissionStatus(object)
+```
+
+#### Parameters:
+`id_` - submission ID of the submission  
+`created_at` - datetime instance of time when submission is created  
+`status` - submission status, can be one of: scanned, scanning, error
+`report` - URL pointing to report location, None if status is not "scanned"
 
 ***
 
@@ -709,4 +752,46 @@ results = titanium_scale.upload_sample_and_get_results(
     file_source=open("/path/to/file.exe", "rb"),
     full_report=True
 )
+```
+
+
+#### CloudDeepScan
+```python
+from ReversingLabs.SDK.clouddeepscan import CloudDeepScan, CloudDeepScanException
+
+
+cloud_deep_scan = CloudDeepScan(
+    token_endpoint="https://exampletokenendpoint.reversinglabs.com/oauth2/token",
+    rest_hostname="https://example.clouddeepscan.com",
+    client_id="035e633b65d94",
+    client_secret="f2207d99a74fbe169e3eba035e633b6"
+)
+try:
+    submission_id = cloud_deep_scan.upload_sample(sample_path="/path/to/file/suspicious_file.exe")
+except CloudDeepScanException:
+    pass
+
+try:
+    status_data = cloud_deep_scan.fetch_submission(submission_id=submission_id)  # Returns CloudDeepScanSubmissionStatus instance
+    print(status_data.id)  # submission id
+    print(str(status_data.created_at))  # datetime instance
+    print(status_data.status)  # status
+    print(status_data.report)  # URI path to the report file
+except CloudDeepScanException:
+    pass
+
+try:
+    submission_history = cloud_deep_scan.fetch_submission_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
+    for submission_status in submission_history:
+        print(submission_status.id)  # submission id
+        print(str(submission_status.created_at))  # datetime instance
+        print(submission_status.status)  # status
+        print(submission_status.report)  # URI path to the report file
+except CloudDeepScanException:
+    pass
+
+try:
+    cloud_deep_scan.download_report(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95", report_output_path="reports/report1.json")  # report parent directory must exist
+except CloudDeepScanException:
+    pass
 ```
