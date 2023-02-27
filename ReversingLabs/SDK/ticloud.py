@@ -1606,7 +1606,7 @@ class FileUpload(TiCloudAPI):
             :rtype: requests.Response
         """
         if not isinstance(file_path, str):
-            raise WrongInputError("file_path parameter must be integer.")
+            raise WrongInputError("file_path parameter must be string.")
 
         if sample_name:
             if not isinstance(sample_name, str):

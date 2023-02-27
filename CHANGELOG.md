@@ -47,3 +47,14 @@ v1.4.0 (2023-01-04)
 - **a1000** module:
   - Added the `network_url_report`, `network_domain_report`, `network_ip_addr_report`, `network_ip_to_domain`, `network_urls_from_ip` and `network_files_from_ip` methods.
   - Added the `ticloud` parameter into the `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
+
+
+
+v2.0.0 (2023-02-27)
+-------------------
+
+#### Changes
+
+- Added a new module for using the **ReversingLabs Cloud Deep Scan** service called **clouddeepscan**.
+- **clouddeepscan** module:
+  - Class `CloudDeepScan` methods: `upload_sample`, `fetch_submission`, `fetch_submission_history`, `download_report`
