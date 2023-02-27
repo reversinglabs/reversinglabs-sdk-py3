@@ -6,53 +6,7 @@ A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Py
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
 
-The SDK consists of several modules, where each module represents one ReversingLabs service or ReversingLabs TitaniumCloud.
-
-- [ReversingLabsSDK](https://github.com/reversinglabs/reversinglabs-sdk-py3#reversinglabssdk)
-  * [Module: a1000](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-a1000)
-      - [Class A1000](https://github.com/reversinglabs/reversinglabs-sdk-py3#class)
-      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-methods)
-  * [Module: ticloud](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-ticloud)
-      - [Common Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-1)
-      - [Class FileReputation](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-1)
-      - [Class AVScanners](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-2)
-      - [Class FileAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-3)
-      - [Class RHA1FunctionalSimilarity](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-4)
-      - [Class RHA1Analytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-5)
-      - [Class URIStatistics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-6)
-      - [Class URIIndex](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-7)
-      - [Class AdvancedSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-8)
-      - [Class ExpressionSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-9)
-      - [Class FileDownload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-10)
-      - [Class URLThreatIntelligence](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-11)
-      - [Class AnalyzeURL](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-12)
-      - [Class FileUpload](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-13)
-      - [Class DeleteFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-14)
-      - [Class ReanalyzeFile](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-15)
-      - [Class DynamicAnalysis](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-16)
-      - [Class CertificateIndex](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-17)
-      - [Class CertificateAnalytics](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-18)
-      - [Class CertificateThumbprintSearch](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-19)
-      - [Class RansomwareIndicators](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-20)
-      - [Class NewMalwareFilesFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-21)
-      - [Class MWPChangeEventsFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-22)
-      - [Class NewMalwareURIFeed](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-23)
-      - [Class ImpHashSimilarity](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-24)
-      - [Class YARAHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-25)
-      - [Class YARARetroHunting](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-26)
-  * [Module: tiscale](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-tiscale)
-      - [Class TitaniumScale](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-27)
-      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-2)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-26)
-  * [Module: clouddeepscan](https://github.com/reversinglabs/reversinglabs-sdk-py3#module-clouddeepscan)
-      - [Class CloudDeepScan](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-28)
-      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-3)
-      - [Methods](https://github.com/reversinglabs/reversinglabs-sdk-py3#methods-27)
-      - [Class CloudDeepScanSubmissionStatus](https://github.com/reversinglabs/reversinglabs-sdk-py3#class-29)
-      - [Parameters](https://github.com/reversinglabs/reversinglabs-sdk-py3#parameters-4)
-  * [Examples](https://github.com/reversinglabs/reversinglabs-sdk-py3#examples)
-
+The SDK consists of several modules, where each module represents either one ReversingLabs service, ReversingLabs appliance or the ReversingLabs TitaniumCloud.
 
 
 ## Module: a1000
@@ -763,8 +717,8 @@ from ReversingLabs.SDK.clouddeepscan import CloudDeepScan, CloudDeepScanExceptio
 cloud_deep_scan = CloudDeepScan(
     token_endpoint="https://exampletokenendpoint.reversinglabs.com/oauth2/token",
     rest_hostname="https://example.clouddeepscan.com",
-    client_id="035e633b65d94",
-    client_secret="f2207d99a74fbe169e3eba035e633b6"
+    client_id="exampleclientid",
+    client_secret="exampleclientsecret"
 )
 try:
     submission_id = cloud_deep_scan.upload_sample(sample_path="/path/to/file/suspicious_file.exe")
