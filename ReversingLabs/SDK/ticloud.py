@@ -251,6 +251,127 @@ class FileReputation(TiCloudAPI):
         return response
 
 
+class FileReputationUserOverride(TiCloudAPI):
+    """TCA-0102 - File Reputation User Override"""
+
+    __OVERRIDE_REQUEST_ENDPOINT = "/api/databrowser/malware_presence/user_override/{post_format}"
+    __LIST_OVERRIDES_ENDPOINT = "/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}/"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileReputationUserOverride, self).__init__(host, username, password, verify, proxies,
+                                                         user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def override_classification(self, override_samples=None, remove_override=None):
+        """Accepts two parameters:
+            1. A list of samples whose classification needs to be overriden
+            2. A list of samples whose classification override needs to me removed
+        Both parameters are lists of Python dictionaries.
+        For specific examples and a more detailed explanation, read the API documentation.
+            :param override_samples: samples whose classification needs to be overriden
+            :type override_samples: list[dict]
+            :param remove_override: samples whose classification override needs to me removed
+            :type remove_override: list[dict]
+            :return: response
+            :rtype: requests.Response
+        """
+        if override_samples is None:
+            override_samples = []
+
+        if remove_override is None:
+            remove_override = []
+
+        endpoint = self.__OVERRIDE_REQUEST_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"override_samples": override_samples},
+                            "remove_override": remove_override}}
+
+        response = self._post_request(
+            url=url,
+            post_json=post_json
+        )
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_active_overrides(self, hash_type, start_hash=None):
+        """Accepts a hash type designation and returns the hashes of all currently active
+        classification overrides for the current organization.
+        If used, the start_hash parameter marks the start of a certain page of results
+            :param hash_type: type of hashes that will be returned
+            :type hash_type: str
+            :param start_hash: hash string that marks the start of a certain page of results
+            :type start_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if hash_type not in (MD5, SHA1, SHA256):
+            raise WrongInputError("hash_type needs to be one of the following: {hash_types}".format(
+                hash_types=(MD5, SHA1, SHA256)))
+
+        endpoint = self.__LIST_OVERRIDES_ENDPOINT.format(hash_type=hash_type)
+
+        if start_hash is not None:
+            validate_hashes(
+                hash_input=[start_hash],
+                allowed_hash_types=(hash_type,)
+            )
+
+            endpoint = "{endpoint}?start_hash={start_hash}".format(
+                endpoint=endpoint,
+                start_hash=start_hash
+            )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_active_overrides_aggregated(self, hash_type, max_results=50000):
+        """Accepts a hash type designation and returns the hashes of all currently active
+        classification overrides for the current organization.
+        This method does the paging action automatically and a maximum number of results returned
+        in the list can be defined with the max_results parameter.
+            :param hash_type: type of hashes that will be returned
+            :type hash_type: str
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_hash = None
+
+        while True:
+            response = self.list_active_overrides(
+                hash_type=hash_type,
+                start_hash=next_hash
+            )
+
+            response_json = response.json()
+
+            hash_list = response_json.get("rl").get("user_override").get("hash_values", [])
+            results.extend(hash_list)
+
+            next_hash = response_json.get("rl").get("user_override").get("next_hash", None)
+
+            if len(results) > max_results or not next_hash:
+                break
+
+        return results[:max_results]
+
+
 class AVScanners(TiCloudAPI):
     """TCA-0103 - Historic Multi-AV Scan Records (XREF)"""
 
