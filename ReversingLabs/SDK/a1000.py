@@ -86,7 +86,8 @@ class A1000(object):
                              " classification, indicators, tags, attack, story"
 
     def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, fields_v2=__FIELDS_V2,
-                 wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
+                 ticore_fields=__TITANIUM_CORE_FIELDS, wait_time_seconds=2, retries=10, verify=True, proxies=None,
+                 user_agent=DEFAULT_USER_AGENT):
 
         self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
@@ -111,6 +112,7 @@ class A1000(object):
         }
         self._fields = fields
         self._fields_v2 = fields_v2
+        self._ticore_fields = ticore_fields
 
         if not isinstance(wait_time_seconds, int):
             raise WrongInputError("wait_time_seconds must be an integer.")
@@ -1247,8 +1249,8 @@ class A1000(object):
         if fields and not isinstance(fields, str):
             raise WrongInputError("fields parameter must be a string.")
 
-        if not fields:
-            fields = self._titanium_core_fields
+        if fields is None:
+            fields = self._ticore_fields
 
         endpoint = self.__TITANIUM_CORE_REPORT_ENDPOINT_V2.format(
             hash_value=sample_hash,
