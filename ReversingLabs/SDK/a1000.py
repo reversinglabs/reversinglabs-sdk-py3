@@ -183,7 +183,7 @@ class A1000(object):
             :type custom_filename: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -233,7 +233,7 @@ class A1000(object):
             :type custom_filename: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -277,7 +277,7 @@ class A1000(object):
             :type crawler: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -371,7 +371,7 @@ class A1000(object):
             :type crawler: string
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -565,11 +565,9 @@ class A1000(object):
                                   "Using both or none of the parameters in sot allowed.")
 
         if file_path:
-            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment,
-                                                           cloud_analysis)
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment, cloud_analysis)
         else:
-            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags,
-                                                           comment, cloud_analysis)
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags, comment, cloud_analysis)
 
         response_detail = upload_response.json().get("detail")
         sha1 = response_detail.get("sha1")
@@ -1195,7 +1193,7 @@ class A1000(object):
 
         return response
 
-    def create_pdf_report(self, sample_hash: object) -> object:
+    def create_pdf_report(self, sample_hash):
         """Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
         The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
         sample.
@@ -2247,7 +2245,7 @@ class A1000(object):
             :type crawler: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -2299,8 +2297,9 @@ class A1000(object):
         if archive_password and not isinstance(archive_password, str):
             raise WrongInputError("archive_password parameter must be string.")
 
-        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10"):
-            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either 'windows7' or 'windows10'.")
+        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10", "macos_11"):
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either "
+                                  "'windows7', 'windows10' or 'macos_11'.")
 
         if comment and not isinstance(comment, str):
             raise WrongInputError("comment parameter must be string.")
