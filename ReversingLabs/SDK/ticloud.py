@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import requests
+from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     AVAILABLE_PLATFORMS, RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
@@ -1933,7 +1934,7 @@ class ReanalyzeFile(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def ranalyze_samples(self, sample_hashes):
+    def reanalyze_samples(self, sample_hashes):
         """Accepts a single hash string or a list of hash strings
         belonging to samples in the cloud you want to reanalyze.
         The samples need to be already present in the cloud in order to be reanalyzed.
@@ -1974,6 +1975,23 @@ class ReanalyzeFile(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+    def ranalyze_samples(self, sample_hashes):
+        """THIS METHOD IS DEPRECATED.
+        Use reanalyze_samples instead.
+
+        Accepts a single hash string or a list of hash strings
+        belonging to samples in the cloud you want to reanalyze.
+        The samples need to be already present in the cloud in order to be reanalyzed.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
+
+        self.reanalyze_samples(sample_hashes=sample_hashes)
 
 
 class DynamicAnalysis(TiCloudAPI):
