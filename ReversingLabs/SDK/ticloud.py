@@ -255,7 +255,7 @@ class FileReputationUserOverride(TiCloudAPI):
     """TCA-0102 - File Reputation User Override"""
 
     __OVERRIDE_REQUEST_ENDPOINT = "/api/databrowser/malware_presence/user_override/{post_format}"
-    __LIST_OVERRIDES_ENDPOINT = "/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}/"
+    __LIST_OVERRIDES_ENDPOINT = "/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -314,7 +314,8 @@ class FileReputationUserOverride(TiCloudAPI):
             raise WrongInputError("hash_type needs to be one of the following: {hash_types}".format(
                 hash_types=(MD5, SHA1, SHA256)))
 
-        endpoint = self.__LIST_OVERRIDES_ENDPOINT.format(hash_type=hash_type)
+        base = self.__LIST_OVERRIDES_ENDPOINT.format(hash_type=hash_type)
+        endpoint = "{base}?format=json".format(base=base)
 
         if start_hash is not None:
             validate_hashes(
@@ -322,7 +323,7 @@ class FileReputationUserOverride(TiCloudAPI):
                 allowed_hash_types=(hash_type,)
             )
 
-            endpoint = "{endpoint}?start_hash={start_hash}".format(
+            endpoint = "{endpoint}&start_hash={start_hash}".format(
                 endpoint=endpoint,
                 start_hash=start_hash
             )
