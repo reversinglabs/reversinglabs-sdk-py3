@@ -1264,7 +1264,7 @@ class A1000(object):
         return response
 
     def __utilize_dynamic_analysis_endpoint(self, sample_hash, report_format, endpoint):
-        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analylsis endpoint for
+        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analysis endpoint for
         initiation, status checking and downloading of PDF or HTML reports
         for samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
             :param sample_hash: hash string
@@ -1298,9 +1298,9 @@ class A1000(object):
         return response
 
     def create_dynamic_analysis_report(self, sample_hash, report_format):
-        """Accepts a single hash string and and a report format and initiates the creation of PDF or HTML reports for
+        """Accepts a single hash string and a report format and initiates the creation of PDF or HTML reports for
         samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
-        The response includes links to the report creation status endpoint and report download ednpoint for the
+        The response includes links to the report creation status endpoint and report download endpoint for the
         requested sample.
             :param sample_hash: hash string
             :type sample_hash: str
