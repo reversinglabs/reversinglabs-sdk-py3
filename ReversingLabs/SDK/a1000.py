@@ -611,7 +611,7 @@ class A1000(object):
             :type cloud_analysis: bool
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: response
             :rtype: requests.Response
