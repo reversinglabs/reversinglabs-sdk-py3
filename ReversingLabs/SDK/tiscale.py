@@ -16,11 +16,15 @@ class TitaniumScale(object):
 
     __UPLOAD_ENDPOINT = "/api/tiscale/v1/upload"
 
-    def __init__(self, host, token, wait_time_seconds=2, retries=10, verify=True, proxies=None,
+    def __init__(self, host, token=None, wait_time_seconds=2, retries=10, verify=True, proxies=None,
                  user_agent=DEFAULT_USER_AGENT):
 
         self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
+
+        self._headers = {"User-Agent": user_agent}
+        if token:
+            self._headers["Authorization"] = "Token {token}".format(token=token)
 
         self._headers = {
             "User-Agent": user_agent,
