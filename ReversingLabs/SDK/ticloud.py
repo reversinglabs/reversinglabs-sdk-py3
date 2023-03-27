@@ -368,7 +368,7 @@ class FileReputationUserOverride(TiCloudAPI):
 
             next_hash = response_json.get("rl").get("user_override").get("next_hash", None)
 
-            if len(results) > max_results or not next_hash:
+            if len(results) >= max_results or not next_hash:
                 break
 
         return results[:max_results]
@@ -786,7 +786,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("group_by_rha1").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
@@ -1023,7 +1023,7 @@ class URIIndex(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("uri_index").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
@@ -1362,7 +1362,6 @@ class URLThreatIntelligence(TiCloudAPI):
 
     def get_url_report(self, url_input):
         """Accepts a URL string and returns a URL analysis report.
-        Request body format and response format can be defined.
             :param url_input: URL string
             :type url_input: str
             :return: response
@@ -1427,7 +1426,7 @@ class URLThreatIntelligence(TiCloudAPI):
             post_json["rl"]["query"]["page"] = page_string
 
         if classification:
-            classification = str(classification).upper()
+            classification = classification.upper()
             if classification not in CLASSIFICATIONS:
                 raise WrongInputError("Only {classifications} is allowed "
                                       "as the classification input.".format(classifications=CLASSIFICATIONS))
@@ -1703,6 +1702,106 @@ class AnalyzeURL(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class DomainThreatIntelligence(TiCloudAPI):
+    """TCA-0405 - Domain Threat Intelligence"""
+
+    __DOMAIN_REPORT_ENDPOINT = "/api/networking/domain/report/v1/query/{format}"
+    __DOWNLOADED_FILES_ENDPOINT = "/api/networking/domain/downloaded_files/v1/query/{format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DomainThreatIntelligence, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                       allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_domain_report(self, domain):
+        """Accepts a domain string and returns threat intelligence data for the submitted domain.
+            :param domain: domain string
+            :type domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json"}}}
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files(self, domain, extended=True, classification=None, page_string=None, results_per_page=1000):
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        if not isinstance(results_per_page, int) or not 1 <= results_per_page <= 1000:
+            raise WrongInputError("results_per_page parameter must be integer with value "
+                                  "between 1 and 1000 (included).")
+
+        if extended not in (True, False):
+            raise WrongInputError("extended parameter must be boolean.")
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json", "limit": results_per_page,
+                                      "extended": extended}}}
+
+        if classification:
+            classification = classification.upper()
+
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only {classifications} is allowed "
+                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+
+            post_json["rl"]["query"]["classification"] = classification
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = self.__DOWNLOADED_FILES_ENDPOINT.format(format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files_aggregated(self, domain, extended=True, classification=None, results_per_page=1000,
+                                        max_results=50000):
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.get_downloaded_files(
+                domain=domain,
+                extended=extended,
+                classification=classification,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            downloaded_files = response_json.get("rl").get("downloaded_files", [])
+            results.extend(downloaded_files)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
 
 
 class FileUpload(TiCloudAPI):
