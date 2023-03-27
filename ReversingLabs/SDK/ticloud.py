@@ -750,7 +750,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
 
         return response
 
-    def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None, max_results=5000):
+    def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None,
+                                      results_per_page=1000, max_results=5000):
         """ This method accepts a hash string and returns a list of results aggregated throughout the pages.
         A maximum number of desired results can be defined with the 'max_results' parameter.
             :param hash_input: sha1 hash string
@@ -759,6 +760,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             :type extended_results: bool
             :param classification: show only results of certain classification
             :type classification: str
+            :param results_per_page: number of results returned per page
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -776,7 +779,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
                 extended_results=extended_results,
                 classification=classification,
                 page_sha1=next_page_sha1,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1095,7 +1098,8 @@ class AdvancedSearch(TiCloudAPI):
 
         return response
 
-    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=5000):
+    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=50000,
+                          records_per_page=10000):
         """Sends the query string to the Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
@@ -1113,6 +1117,8 @@ class AdvancedSearch(TiCloudAPI):
             :type sorting_order: str
             :param max_results: maximum results to be returned in the list; default value is 5000
             :type max_results: int
+            :param records_per_page: number of records returned per page
+            :type records_per_page: int
             :return: list of results
             :rtype: list
         """
@@ -1129,7 +1135,7 @@ class AdvancedSearch(TiCloudAPI):
                 sorting_criteria=sorting_criteria,
                 sorting_order=sorting_order,
                 page_number=next_page,
-                records_per_page=10000
+                records_per_page=records_per_page
             )
 
             response_json = response.json()
@@ -1137,7 +1143,7 @@ class AdvancedSearch(TiCloudAPI):
             entries = response_json.get("rl").get("web_search_api").get("entries", [])
             results.extend(entries)
 
-            if len(results) > max_results:
+            if len(results) >= max_results:
                 results = results[:max_results]
                 return results
 
