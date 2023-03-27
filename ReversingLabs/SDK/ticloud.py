@@ -1279,7 +1279,8 @@ class ExpressionSearch(TiCloudAPI):
             results.extend(entries)
 
             next_page = response_json.get("rl").get("web_sample_search_download").get("next_page", None)
-            if len(results) > max_results:
+
+            if len(results) >= max_results:
                 break
 
         return results[:max_results]
@@ -1454,7 +1455,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, url_input, extended=True, classification=None, last_analysis=False,
-                                        analysis_id=None, max_results=5000):
+                                        analysis_id=None, results_per_page=1000, max_results=5000):
         """Accepts a URL string and returns a list of downloaded files aggregated through multiple pages of results.
         A maximum number of desired results in the list can be defined with the 'max_results' parameter.
         Optional parameters include file number limit,requesting an extended report, requesting only files of specific
@@ -1469,6 +1470,8 @@ class URLThreatIntelligence(TiCloudAPI):
             :type last_analysis: bool
             :param analysis_id: return only files from this analysis
             :type analysis_id: str
+            :param results_per_page: number of results to be returned in one page; maximum value is 1000
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1488,7 +1491,7 @@ class URLThreatIntelligence(TiCloudAPI):
                 last_analysis=last_analysis,
                 analysis_id=analysis_id,
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1498,7 +1501,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1545,9 +1548,11 @@ class URLThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def get_latest_url_analysis_feed_aggregated(self, max_results=5000):
+    def get_latest_url_analysis_feed_aggregated(self, results_per_page=1000, max_results=5000):
         """Returns the latest URL analyses reports aggregated as list.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
+            :param results_per_page: number of results per response; maximum value is 1000
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1562,7 +1567,7 @@ class URLThreatIntelligence(TiCloudAPI):
         while True:
             response = self.get_latest_url_analysis_feed(
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1572,7 +1577,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1637,7 +1642,8 @@ class URLThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def get_url_analysis_feed_from_date_aggregated(self, time_format, start_time, max_results=5000):
+    def get_url_analysis_feed_from_date_aggregated(self, time_format, start_time, results_per_page=1000,
+                                                   max_results=5000):
         """Accepts time format and a start time and returns URL analyses reports
         from that defined time onward aggregated as a list.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
@@ -1645,6 +1651,8 @@ class URLThreatIntelligence(TiCloudAPI):
             :type time_format: str
             :param start_time: time from which to retrieve results onwards
             :type start_time: str
+            :param results_per_page: number of results per response
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1661,7 +1669,7 @@ class URLThreatIntelligence(TiCloudAPI):
                 time_format=time_format,
                 start_time=start_time,
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1671,7 +1679,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1744,6 +1752,20 @@ class DomainThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files(self, domain, extended=True, classification=None, page_string=None, results_per_page=1000):
+        """Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
+            :param domain: domain string
+            :type domain: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of returned results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
         if not isinstance(domain, str):
             raise WrongInputError("domain parameter must be string.")
 
@@ -1782,6 +1804,22 @@ class DomainThreatIntelligence(TiCloudAPI):
 
     def get_downloaded_files_aggregated(self, domain, extended=True, classification=None, results_per_page=1000,
                                         max_results=50000):
+        """Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param results_per_page: number of returned results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
 
@@ -2273,7 +2311,7 @@ class CertificateIndex(TiCloudAPI):
         return response
 
     def get_certificate_information_aggregated(self, certificate_thumbprint, extended_results=True, classification=None,
-                                               max_results=5000):
+                                               results_per_page=100, max_results=5000):
         """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
          matching the requested thumbprint.
          This method automatically handles paging and returns a list of results instead of a Response object.
@@ -2285,6 +2323,8 @@ class CertificateIndex(TiCloudAPI):
             :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
             'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
             :type classification: str or None
+            :param results_per_page: number of returned results per page; default and maximum is 100
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -2300,7 +2340,7 @@ class CertificateIndex(TiCloudAPI):
             response = self.get_certificate_information(
                 certificate_thumbprint=certificate_thumbprint,
                 extended_results=extended_results,
-                results_per_page=100,
+                results_per_page=results_per_page,
                 classification=classification,
                 next_page_hash=next_page_hash
             )
@@ -2312,7 +2352,7 @@ class CertificateIndex(TiCloudAPI):
 
             next_page_hash = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page_hash:
+            if len(results) >= max_results or not next_page_hash:
                 break
 
         return results[:max_results]
@@ -2431,13 +2471,15 @@ class CertificateThumbprintSearch(TiCloudAPI):
 
         return response
 
-    def search_common_names_aggregated(self, common_name, max_results=5000):
+    def search_common_names_aggregated(self, common_name, results_per_page=100, max_results=5000):
         """Accepts a certificate common name and returns common names matching the request, along with the list of
         thumbprints of all the certificates sharing that common name.
         The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
         This method automatically handles paging and returns a list of results instead of a Response object.
             :param common_name: certificate common name
             :type common_name: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -2454,7 +2496,7 @@ class CertificateThumbprintSearch(TiCloudAPI):
                 common_name=common_name,
                 next_page_common_name=next_page_common_name,
                 next_page_thumbprint=next_page_thumbprint,
-                results_per_page=100
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -2465,7 +2507,7 @@ class CertificateThumbprintSearch(TiCloudAPI):
             next_page_common_name = response_json.get("rl").get("next_page_common_name", None)
             next_page_thumbprint = response_json.get("rl").get("next_page_thumbprint", None)
 
-            if len(results) > max_results or not any((next_page_common_name, next_page_thumbprint)):
+            if len(results) >= max_results or not any((next_page_common_name, next_page_thumbprint)):
                 break
 
         return results[:max_results]
@@ -2947,9 +2989,9 @@ class ImpHashSimilarity(TiCloudAPI):
             sha1_list = response_json.get("rl").get("imphash_index").get("sha1_list", [])
             results.extend(sha1_list)
 
-            next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1")
+            next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
