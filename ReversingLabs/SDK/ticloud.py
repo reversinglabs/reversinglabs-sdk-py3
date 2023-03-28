@@ -2006,7 +2006,7 @@ class DomainThreatIntelligence(TiCloudAPI):
         next_page = ""
 
         while True:
-            response = self.domain_to_ip_resolutions(
+            response = self.related_domains(
                 domain=domain,
                 page_string=next_page,
                 results_per_page=results_per_page
