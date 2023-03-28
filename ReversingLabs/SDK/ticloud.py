@@ -1723,6 +1723,7 @@ class DomainThreatIntelligence(TiCloudAPI):
 
     __DOMAIN_REPORT_ENDPOINT = "/api/networking/domain/report/v1/query/{format}"
     __DOWNLOADED_FILES_ENDPOINT = "/api/networking/domain/downloaded_files/v1/query/{format}"
+    __URLS_DOMAIN_ENDPOINT = "/api/networking/domain/urls/v1/query/{format}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -1761,7 +1762,7 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type classification: str
             :param page_string: string representing a page of results
             :type page_string: str
-            :param results_per_page: number of returned results per page
+            :param results_per_page: number of results per page
             :type results_per_page: int
             :return: response
             :rtype: requests.Response
@@ -1769,9 +1770,8 @@ class DomainThreatIntelligence(TiCloudAPI):
         if not isinstance(domain, str):
             raise WrongInputError("domain parameter must be string.")
 
-        if not isinstance(results_per_page, int) or not 1 <= results_per_page <= 1000:
-            raise WrongInputError("results_per_page parameter must be integer with value "
-                                  "between 1 and 1000 (included).")
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
 
         if extended not in (True, False):
             raise WrongInputError("extended parameter must be boolean.")
@@ -1794,7 +1794,6 @@ class DomainThreatIntelligence(TiCloudAPI):
             post_json["rl"]["query"]["page"] = page_string
 
         endpoint = self.__DOWNLOADED_FILES_ENDPOINT.format(format="json")
-
         url = self._url.format(endpoint=endpoint)
 
         response = self._post_request(url=url, post_json=post_json)
@@ -1813,7 +1812,7 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type extended: bool
             :param classification: return only results with this classification
             :type classification: str
-            :param results_per_page: number of returned results per page
+            :param results_per_page: number of results per page
             :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
@@ -1839,6 +1838,76 @@ class DomainThreatIntelligence(TiCloudAPI):
 
             downloaded_files = response_json.get("rl").get("downloaded_files", [])
             results.extend(downloaded_files)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def urls_from_domain(self, domain, page_string=None, results_per_page=1000):
+        """Accepts a domain string and returns a list of URLs associated with the requested domain.
+            :param domain: domain string
+            :type domain: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json", "limit": results_per_page}}}
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = self.__URLS_DOMAIN_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def urls_from_domain_aggregated(self, domain, results_per_page=1000, max_results=5000):
+        """Accepts a domain string and returns a list of URLs associated with the requested domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.urls_from_domain(
+                domain=domain,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            urls = response_json.get("rl").get("urls", [])
+            results.extend(urls)
 
             next_page = response_json.get("rl").get("next_page", None)
 
