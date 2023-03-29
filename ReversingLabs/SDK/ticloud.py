@@ -2062,6 +2062,8 @@ class IPThreatIntelligence(TiCloudAPI):
 
     __IP_REPORT_ENDPOINT = "/api/networking/ip/report/v1/query/{format}"
     __DOWNLOADED_FILES_ENDPOINT = "/api/networking/ip/downloaded_files/v1/query/{format}"
+    __URLS_IP_ENDPOINT = "/api/networking/ip/urls/v1/query/{format}"
+    __RESOLUTIONS_ENDPOINT = "/api/networking/ip/resolutions/v1/query/{format}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -2142,6 +2144,201 @@ class IPThreatIntelligence(TiCloudAPI):
 
         return response
 
+    def get_downloaded_files_aggregated(self, ip_address, extended=True, classification=None, results_per_page=1000,
+                                        max_results=50000):
+        """Accepts an IP address as a string and returns a list of files
+        downloaded from the submitted IP address.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.get_downloaded_files(
+                ip_address=ip_address,
+                extended=extended,
+                classification=classification,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            downloaded_files = response_json.get("rl").get("downloaded_files", [])
+            results.extend(downloaded_files)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def urls_from_ip(self, ip_address, page_string=None, results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_endpoints(
+            ip_address=ip_address,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__URLS_IP_ENDPOINT
+        )
+
+        return response
+
+    def urls_from_ip_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+        """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.urls_from_ip(
+                ip_address=ip_address,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            urls = response_json.get("rl").get("urls", [])
+            results.extend(urls)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def ip_to_domain_resolutions(self, ip_address, page_string=None, results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of IP-to-domain
+        mappings for the specified IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_endpoints(
+            ip_address=ip_address,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__RESOLUTIONS_ENDPOINT
+        )
+
+        return response
+
+    def ip_to_domain_resolutions_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+        """Accepts an IP address as a string and returns a list of IP-to-domain
+        mappings for the specified IP address.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.ip_to_domain_resolutions(
+                ip_address=ip_address,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            resolutions = response_json.get("rl").get("resolutions", [])
+            results.extend(resolutions)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def __ip_endpoints(self, ip_address, results_per_page, page_string, specific_endpoint):
+        """Private method for IP-related endpoints.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json", "limit": results_per_page}}}
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = specific_endpoint.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
 
 
 class FileUpload(TiCloudAPI):
