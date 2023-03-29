@@ -2057,6 +2057,93 @@ class DomainThreatIntelligence(TiCloudAPI):
         return response
 
 
+class IPThreatIntelligence(TiCloudAPI):
+    """TCA-0406 - IP Threat Intelligence"""
+
+    __IP_REPORT_ENDPOINT = "/api/networking/ip/report/v1/query/{format}"
+    __DOWNLOADED_FILES_ENDPOINT = "/api/networking/ip/downloaded_files/v1/query/{format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(IPThreatIntelligence, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                   allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_ip_report(self, ip_address):
+        """Accepts an IP address as a string and returns threat intelligence
+        data for the submitted IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        endpoint = self.__IP_REPORT_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json"}}}
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files(self, ip_address, extended=True, classification=None, page_string=None,
+                             results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of files
+        downloaded from the submitted IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        if extended not in (True, False):
+            raise WrongInputError("extended parameter must be boolean.")
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json", "limit": results_per_page,
+                                      "extended": extended}}}
+
+        if classification:
+            classification = classification.upper()
+
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only {classifications} is allowed "
+                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+
+            post_json["rl"]["query"]["classification"] = classification
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = self.__DOWNLOADED_FILES_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+
+
 class FileUpload(TiCloudAPI):
     """TCA-0202 and TCA-0203"""
 
