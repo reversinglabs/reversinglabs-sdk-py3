@@ -1,5 +1,6 @@
 ReversingLabs SDK Change Log
 =========
+
 v1.2.2 (2022-10-19)
 -------------------
 
@@ -10,7 +11,7 @@ v1.2.2 (2022-10-19)
 - Dropped support for Python 2.7
   - From this version on, the Python 2 version of the SDK (https://pypi.org/project/reversinglabs-sdk-py2/) will no longer be maintained.
 
-#### Changes
+#### Improvements
 
 - **a1000** module:
   - Added the `get_summary_report_v2`, `upload_sample_and_get_summary_report_v2`, `get_detailed_report_v2`, `get_classification_v3`, `reanalyze_samples_v2`, `list_extracted_files_v2`, `list_extracted_files_v2_aggregated`, `check_sample_removal_status_v2`, `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
@@ -23,7 +24,7 @@ v1.2.2 (2022-10-19)
 v1.3.0 (2022-11-16)
 -------------------
 
-#### Changes
+#### Improvements
 
 - **ticloud** module:
   - Added the `DeleteFile`, `ReanalyzeFile`, `CertificateIndex`, `CertificateThumbprintSearch`, `NewMalwareFilesFeed`, `MWPChangeEventsFeed` and `NewMalwareURIFeed` classes.
@@ -40,7 +41,7 @@ v1.3.0 (2022-11-16)
 v1.4.0 (2023-01-04)
 -------------------
 
-#### Changes
+#### Improvements
 
 - **ticloud** module:
   - Added the `ImpHashSimilarity`, `YARAHunting` and `YARARetroHunting` classes.
@@ -53,8 +54,38 @@ v1.4.0 (2023-01-04)
 v2.0.0 (2023-02-27)
 -------------------
 
-#### Changes
+#### Improvements
 
 - Added a new module for using the **ReversingLabs Cloud Deep Scan** service called **clouddeepscan**.
 - **clouddeepscan** module:
   - Class `CloudDeepScan` methods: `upload_sample`, `fetch_submission`, `fetch_submission_history`, `download_report`
+
+
+
+v2.1.0 (2023-03-31)
+-------------------
+
+#### Deprecations
+
+- **ticloud** module:
+  - Deprecated the `ranalyze_samples` method of the `ReanalyzeFile` class. **This method will be removed** from the SDK in the future **September 2023.** release. A new method called `reanalyze_samples` of the same `ReanalyzeFile` class should be used instead.
+
+#### Improvements
+
+- **ticloud** module:
+  - Added the `FileReputationUserOverride`, `DomainThreatIntelligence`, 
+  - Included an adjustable `results_per_page` parameter into several methods that perform paging automatically.
+- **a1000** module:
+  - All sample submission methods now also accept `"macos_11"` as the `rl_cloud_sandbox_platform` parameter.
+
+#### Bugfixes
+- **a1000** module:
+  - Leaving the `fields` argument in the `get_titanium_core_report_v2` method as None now results in requesting all the available fields instead of throwing an exception.
+
+---
+
+### Scheduled removals
+- **June 2023.**:
+  - `a1000.A1000.get_results`, `a1000.A1000.upload_sample_and_get_results`, `a1000.A1000.get_classification`, `a1000.A1000.reanalyze_samples`, `a1000.A1000.get_extracted_files`, `a1000.A1000.advanced_search`, `a1000.A1000.advanced_search_aggregated`
+- **September 2023.**:
+  - `ticloud.ReanalyzeFile.ranalyze_samples`
