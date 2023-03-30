@@ -16,6 +16,9 @@ v1.2.2 (2022-10-19)
 - **a1000** module:
   - Added the `get_summary_report_v2`, `upload_sample_and_get_summary_report_v2`, `get_detailed_report_v2`, `get_classification_v3`, `reanalyze_samples_v2`, `list_extracted_files_v2`, `list_extracted_files_v2_aggregated`, `check_sample_removal_status_v2`, `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
   - The added methods correspond to the new v2 and v3 versions of A1000 API-s.
+
+#### Bugfixes
+
 - **helper** module:
   - Catching the `binascii.Error` in the `validate_hashes` function.
 
@@ -73,14 +76,15 @@ v2.1.0 (2023-03-31)
 #### Improvements
 
 - **ticloud** module:
-  - Added the `FileReputationUserOverride`, `DomainThreatIntelligence`, 
+  - Added the `FileReputationUserOverride`, `DomainThreatIntelligence` and `IPThreatIntelligence` classes.
   - Included an adjustable `results_per_page` parameter into several methods that perform paging automatically.
+  - The `detonate_sample` method from the `DynamicAnalysis` class now also accepts `"macos11"` as the `platform` parameter.
 - **a1000** module:
   - All sample submission methods now also accept `"macos_11"` as the `rl_cloud_sandbox_platform` parameter.
 
 #### Bugfixes
 - **a1000** module:
-  - Leaving the `fields` argument in the `get_titanium_core_report_v2` method as None now results in requesting all the available fields instead of throwing an exception.
+  - Leaving the `fields` parameter in the `get_titanium_core_report_v2` method as None now results in requesting all the available fields instead of throwing an exception.
 
 ---
 
