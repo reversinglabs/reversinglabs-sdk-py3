@@ -2644,12 +2644,14 @@ class DynamicAnalysis(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def detonate_sample(self, sample_sha1, platform):
+    def detonate_sample(self, sample_sha1, platform, internet_simulation=False):
         """Submits a sample available in the cloud for dynamic analysis and returns processing info.
             :param sample_sha1: SHA-1 hash of the sample
             :type sample_sha1: str
             :param platform: desired platform on which the sample will be detonated; see available platforms
             :type platform: str
+            :param internet_simulation: perform the dynamic analysis without connecting to the internet
+            :type internet_simulation: bool
             :return: response
             :rtype: requests.Response
         """
@@ -2662,9 +2664,15 @@ class DynamicAnalysis(TiCloudAPI):
             raise WrongInputError("platform parameter must be one "
                                   "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
 
+        if not isinstance(internet_simulation, bool):
+            raise WrongInputError("internet_simulation parameter must be boolean.")
+        internet_simulation = str(internet_simulation).lower()
+
         url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
 
-        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json"}}
+        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json",
+                            "optional_parameters": "internet_simulation={simulation}".format(
+                                simulation=internet_simulation)}}
 
         response = self._post_request(
             url=url,
