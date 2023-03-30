@@ -12,9 +12,12 @@ from urllib import parse
 from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
-    MD5, SHA1, SHA256, SHA512, AVAILABLE_PLATFORMS, \
+    MD5, SHA1, SHA256, SHA512, \
     RequestTimeoutError, WrongInputError, \
     validate_hashes
+
+
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11")
 
 
 class A1000(object):
@@ -2297,9 +2300,9 @@ class A1000(object):
         if archive_password and not isinstance(archive_password, str):
             raise WrongInputError("archive_password parameter must be string.")
 
-        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10", "macos_11"):
-            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either "
-                                  "'windows7', 'windows10' or 'macos_11'.")
+        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in AVAILABLE_PLATFORMS:
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be one od the following: "
+                                  "{platforms}".format(platforms=AVAILABLE_PLATFORMS))
 
         if comment and not isinstance(comment, str):
             raise WrongInputError("comment parameter must be string.")

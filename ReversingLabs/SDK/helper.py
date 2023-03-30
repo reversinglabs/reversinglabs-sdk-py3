@@ -22,8 +22,6 @@ HASH_LENGTH_MAP = {
     128: SHA512
 }
 
-AVAILABLE_PLATFORMS = ("windows7", "windows10")
-
 DEFAULT_USER_AGENT = "ReversingLabs integrations default user agent"
 ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "sampletype", "filecount", "size")
 
