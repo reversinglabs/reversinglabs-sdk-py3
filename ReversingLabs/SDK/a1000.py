@@ -12,9 +12,12 @@ from urllib import parse
 from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
-    MD5, SHA1, SHA256, SHA512, AVAILABLE_PLATFORMS, \
+    MD5, SHA1, SHA256, SHA512, \
     RequestTimeoutError, WrongInputError, \
     validate_hashes
+
+
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11")
 
 
 class A1000(object):
@@ -86,7 +89,8 @@ class A1000(object):
                              " classification, indicators, tags, attack, story"
 
     def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, fields_v2=__FIELDS_V2,
-                 wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
+                 ticore_fields=__TITANIUM_CORE_FIELDS, wait_time_seconds=2, retries=10, verify=True, proxies=None,
+                 user_agent=DEFAULT_USER_AGENT):
 
         self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
@@ -111,6 +115,7 @@ class A1000(object):
         }
         self._fields = fields
         self._fields_v2 = fields_v2
+        self._ticore_fields = ticore_fields
 
         if not isinstance(wait_time_seconds, int):
             raise WrongInputError("wait_time_seconds must be an integer.")
@@ -181,7 +186,7 @@ class A1000(object):
             :type custom_filename: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -231,7 +236,7 @@ class A1000(object):
             :type custom_filename: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -275,7 +280,7 @@ class A1000(object):
             :type crawler: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -369,7 +374,7 @@ class A1000(object):
             :type crawler: string
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
@@ -563,11 +568,9 @@ class A1000(object):
                                   "Using both or none of the parameters in sot allowed.")
 
         if file_path:
-            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment,
-                                                           cloud_analysis)
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, tags, comment, cloud_analysis)
         else:
-            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags,
-                                                           comment, cloud_analysis)
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags, comment, cloud_analysis)
 
         response_detail = upload_response.json().get("detail")
         sha1 = response_detail.get("sha1")
@@ -611,7 +614,7 @@ class A1000(object):
             :type cloud_analysis: bool
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :return: response
             :rtype: requests.Response
@@ -1193,7 +1196,7 @@ class A1000(object):
 
         return response
 
-    def create_pdf_report(self, sample_hash: object) -> object:
+    def create_pdf_report(self, sample_hash):
         """Accepts a single hash string and initiates the creation of a PDF analysis report for the requested sample.
         The response includes links to the pdf creation status endpoint and pdf download ednpoint for the requested
         sample.
@@ -1247,8 +1250,8 @@ class A1000(object):
         if fields and not isinstance(fields, str):
             raise WrongInputError("fields parameter must be a string.")
 
-        if not fields:
-            fields = self._titanium_core_fields
+        if fields is None:
+            fields = self._ticore_fields
 
         endpoint = self.__TITANIUM_CORE_REPORT_ENDPOINT_V2.format(
             hash_value=sample_hash,
@@ -1264,7 +1267,7 @@ class A1000(object):
         return response
 
     def __utilize_dynamic_analysis_endpoint(self, sample_hash, report_format, endpoint):
-        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analylsis endpoint for
+        """Accepts endpoint, a single hash string and a report format and utilizes dynamic analysis endpoint for
         initiation, status checking and downloading of PDF or HTML reports
         for samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
             :param sample_hash: hash string
@@ -1298,9 +1301,9 @@ class A1000(object):
         return response
 
     def create_dynamic_analysis_report(self, sample_hash, report_format):
-        """Accepts a single hash string and and a report format and initiates the creation of PDF or HTML reports for
+        """Accepts a single hash string and a report format and initiates the creation of PDF or HTML reports for
         samples that have gone through dynamic analysis in the ReversingLabs Cloud Sandbox.
-        The response includes links to the report creation status endpoint and report download ednpoint for the
+        The response includes links to the report creation status endpoint and report download endpoint for the
         requested sample.
             :param sample_hash: hash string
             :type sample_hash: str
@@ -2245,7 +2248,7 @@ class A1000(object):
             :type crawler: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7 or windows10)
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
@@ -2297,8 +2300,9 @@ class A1000(object):
         if archive_password and not isinstance(archive_password, str):
             raise WrongInputError("archive_password parameter must be string.")
 
-        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in ("windows7", "windows10"):
-            raise WrongInputError("rl_cloud_sandbox_platform parameter must be either 'windows7' or 'windows10'.")
+        if rl_cloud_sandbox_platform and rl_cloud_sandbox_platform not in AVAILABLE_PLATFORMS:
+            raise WrongInputError("rl_cloud_sandbox_platform parameter must be one od the following: "
+                                  "{platforms}".format(platforms=AVAILABLE_PLATFORMS))
 
         if comment and not isinstance(comment, str):
             raise WrongInputError("comment parameter must be string.")

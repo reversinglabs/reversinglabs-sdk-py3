@@ -10,9 +10,10 @@ import hashlib
 import json
 import os
 import requests
+from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
-    AVAILABLE_PLATFORMS, RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
+    RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
     WrongInputError, validate_hashes
 
 
@@ -20,6 +21,7 @@ XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos11")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -249,6 +251,128 @@ class FileReputation(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class FileReputationUserOverride(TiCloudAPI):
+    """TCA-0102 - File Reputation User Override"""
+
+    __OVERRIDE_REQUEST_ENDPOINT = "/api/databrowser/malware_presence/user_override/{post_format}"
+    __LIST_OVERRIDES_ENDPOINT = "/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileReputationUserOverride, self).__init__(host, username, password, verify, proxies,
+                                                         user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def override_classification(self, override_samples=None, remove_override=None):
+        """Accepts two parameters:
+            1. A list of samples whose classification needs to be overriden
+            2. A list of samples whose classification override needs to me removed
+        Both parameters are lists of Python dictionaries.
+        For specific examples and a more detailed explanation, read the API documentation.
+            :param override_samples: samples whose classification needs to be overriden
+            :type override_samples: list[dict]
+            :param remove_override: samples whose classification override needs to me removed
+            :type remove_override: list[dict]
+            :return: response
+            :rtype: requests.Response
+        """
+        if override_samples is None:
+            override_samples = []
+
+        if remove_override is None:
+            remove_override = []
+
+        endpoint = self.__OVERRIDE_REQUEST_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"override_samples": override_samples},
+                            "remove_override": remove_override}}
+
+        response = self._post_request(
+            url=url,
+            post_json=post_json
+        )
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_active_overrides(self, hash_type, start_hash=None):
+        """Accepts a hash type designation and returns the hashes of all currently active
+        classification overrides for the current organization.
+        If used, the start_hash parameter marks the start of a certain page of results
+            :param hash_type: type of hashes that will be returned
+            :type hash_type: str
+            :param start_hash: hash string that marks the start of a certain page of results
+            :type start_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if hash_type not in (MD5, SHA1, SHA256):
+            raise WrongInputError("hash_type needs to be one of the following: {hash_types}".format(
+                hash_types=(MD5, SHA1, SHA256)))
+
+        base = self.__LIST_OVERRIDES_ENDPOINT.format(hash_type=hash_type)
+        endpoint = "{base}?format=json".format(base=base)
+
+        if start_hash is not None:
+            validate_hashes(
+                hash_input=[start_hash],
+                allowed_hash_types=(hash_type,)
+            )
+
+            endpoint = "{endpoint}&start_hash={start_hash}".format(
+                endpoint=endpoint,
+                start_hash=start_hash
+            )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_active_overrides_aggregated(self, hash_type, max_results=50000):
+        """Accepts a hash type designation and returns the hashes of all currently active
+        classification overrides for the current organization.
+        This method does the paging action automatically and a maximum number of results returned
+        in the list can be defined with the max_results parameter.
+            :param hash_type: type of hashes that will be returned
+            :type hash_type: str
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_hash = None
+
+        while True:
+            response = self.list_active_overrides(
+                hash_type=hash_type,
+                start_hash=next_hash
+            )
+
+            response_json = response.json()
+
+            hash_list = response_json.get("rl").get("user_override").get("hash_values", [])
+            results.extend(hash_list)
+
+            next_hash = response_json.get("rl").get("user_override").get("next_hash", None)
+
+            if len(results) >= max_results or not next_hash:
+                break
+
+        return results[:max_results]
 
 
 class AVScanners(TiCloudAPI):
@@ -627,7 +751,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
 
         return response
 
-    def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None, max_results=5000):
+    def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None,
+                                      results_per_page=1000, max_results=5000):
         """ This method accepts a hash string and returns a list of results aggregated throughout the pages.
         A maximum number of desired results can be defined with the 'max_results' parameter.
             :param hash_input: sha1 hash string
@@ -636,6 +761,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             :type extended_results: bool
             :param classification: show only results of certain classification
             :type classification: str
+            :param results_per_page: number of results returned per page
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -653,7 +780,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
                 extended_results=extended_results,
                 classification=classification,
                 page_sha1=next_page_sha1,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -663,7 +790,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("group_by_rha1").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
@@ -900,7 +1027,7 @@ class URIIndex(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("uri_index").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
@@ -972,7 +1099,8 @@ class AdvancedSearch(TiCloudAPI):
 
         return response
 
-    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=5000):
+    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=50000,
+                          records_per_page=10000):
         """Sends the query string to the Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
@@ -990,6 +1118,8 @@ class AdvancedSearch(TiCloudAPI):
             :type sorting_order: str
             :param max_results: maximum results to be returned in the list; default value is 5000
             :type max_results: int
+            :param records_per_page: number of records returned per page
+            :type records_per_page: int
             :return: list of results
             :rtype: list
         """
@@ -1006,7 +1136,7 @@ class AdvancedSearch(TiCloudAPI):
                 sorting_criteria=sorting_criteria,
                 sorting_order=sorting_order,
                 page_number=next_page,
-                records_per_page=10000
+                records_per_page=records_per_page
             )
 
             response_json = response.json()
@@ -1014,7 +1144,7 @@ class AdvancedSearch(TiCloudAPI):
             entries = response_json.get("rl").get("web_search_api").get("entries", [])
             results.extend(entries)
 
-            if len(results) > max_results:
+            if len(results) >= max_results:
                 results = results[:max_results]
                 return results
 
@@ -1150,7 +1280,8 @@ class ExpressionSearch(TiCloudAPI):
             results.extend(entries)
 
             next_page = response_json.get("rl").get("web_sample_search_download").get("next_page", None)
-            if len(results) > max_results:
+
+            if len(results) >= max_results:
                 break
 
         return results[:max_results]
@@ -1239,7 +1370,6 @@ class URLThreatIntelligence(TiCloudAPI):
 
     def get_url_report(self, url_input):
         """Accepts a URL string and returns a URL analysis report.
-        Request body format and response format can be defined.
             :param url_input: URL string
             :type url_input: str
             :return: response
@@ -1304,7 +1434,7 @@ class URLThreatIntelligence(TiCloudAPI):
             post_json["rl"]["query"]["page"] = page_string
 
         if classification:
-            classification = str(classification).upper()
+            classification = classification.upper()
             if classification not in CLASSIFICATIONS:
                 raise WrongInputError("Only {classifications} is allowed "
                                       "as the classification input.".format(classifications=CLASSIFICATIONS))
@@ -1326,7 +1456,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, url_input, extended=True, classification=None, last_analysis=False,
-                                        analysis_id=None, max_results=5000):
+                                        analysis_id=None, results_per_page=1000, max_results=5000):
         """Accepts a URL string and returns a list of downloaded files aggregated through multiple pages of results.
         A maximum number of desired results in the list can be defined with the 'max_results' parameter.
         Optional parameters include file number limit,requesting an extended report, requesting only files of specific
@@ -1341,6 +1471,8 @@ class URLThreatIntelligence(TiCloudAPI):
             :type last_analysis: bool
             :param analysis_id: return only files from this analysis
             :type analysis_id: str
+            :param results_per_page: number of results to be returned in one page; maximum value is 1000
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1360,7 +1492,7 @@ class URLThreatIntelligence(TiCloudAPI):
                 last_analysis=last_analysis,
                 analysis_id=analysis_id,
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1370,7 +1502,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1417,9 +1549,11 @@ class URLThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def get_latest_url_analysis_feed_aggregated(self, max_results=5000):
+    def get_latest_url_analysis_feed_aggregated(self, results_per_page=1000, max_results=5000):
         """Returns the latest URL analyses reports aggregated as list.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
+            :param results_per_page: number of results per response; maximum value is 1000
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1434,7 +1568,7 @@ class URLThreatIntelligence(TiCloudAPI):
         while True:
             response = self.get_latest_url_analysis_feed(
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1444,7 +1578,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1509,7 +1643,8 @@ class URLThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def get_url_analysis_feed_from_date_aggregated(self, time_format, start_time, max_results=5000):
+    def get_url_analysis_feed_from_date_aggregated(self, time_format, start_time, results_per_page=1000,
+                                                   max_results=5000):
         """Accepts time format and a start time and returns URL analyses reports
         from that defined time onward aggregated as a list.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
@@ -1517,6 +1652,8 @@ class URLThreatIntelligence(TiCloudAPI):
             :type time_format: str
             :param start_time: time from which to retrieve results onwards
             :type start_time: str
+            :param results_per_page: number of results per response
+            :type results_per_page: int
             :param max_results: maximum results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -1533,7 +1670,7 @@ class URLThreatIntelligence(TiCloudAPI):
                 time_format=time_format,
                 start_time=start_time,
                 page_string=next_page,
-                results_per_page=1000
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -1543,7 +1680,7 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page:
+            if len(results) >= max_results or not next_page:
                 break
 
         return results[:max_results]
@@ -1575,6 +1712,629 @@ class AnalyzeURL(TiCloudAPI):
         url = self._url.format(endpoint=self.__SUBMIT_URL_ENDPOINT)
 
         post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+
+class DomainThreatIntelligence(TiCloudAPI):
+    """TCA-0405 - Domain Threat Intelligence"""
+
+    __DOMAIN_REPORT_ENDPOINT = "/api/networking/domain/report/v1/query/{format}"
+    __DOWNLOADED_FILES_ENDPOINT = "/api/networking/domain/downloaded_files/v1/query/{format}"
+    __URLS_DOMAIN_ENDPOINT = "/api/networking/domain/urls/v1/query/{format}"
+    __RESOLUTIONS_ENDPOINT = "/api/networking/domain/resolutions/v1/query/{format}"
+    __RELATED_DOMAINS_ENDPOINT = "/api/networking/domain/related_domains/v1/query/{format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DomainThreatIntelligence, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                       allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_domain_report(self, domain):
+        """Accepts a domain string and returns threat intelligence data for the submitted domain.
+            :param domain: domain string
+            :type domain: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json"}}}
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files(self, domain, extended=True, classification=None, page_string=None, results_per_page=1000):
+        """Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
+            :param domain: domain string
+            :type domain: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        if extended not in (True, False):
+            raise WrongInputError("extended parameter must be boolean.")
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json", "limit": results_per_page,
+                                      "extended": extended}}}
+
+        if classification:
+            classification = classification.upper()
+
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only {classifications} is allowed "
+                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+
+            post_json["rl"]["query"]["classification"] = classification
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = self.__DOWNLOADED_FILES_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files_aggregated(self, domain, extended=True, classification=None, results_per_page=1000,
+                                        max_results=50000):
+        """Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.get_downloaded_files(
+                domain=domain,
+                extended=extended,
+                classification=classification,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            downloaded_files = response_json.get("rl").get("downloaded_files", [])
+            results.extend(downloaded_files)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def urls_from_domain(self, domain, page_string=None, results_per_page=1000):
+        """Accepts a domain string and returns a list of URLs associated with the requested domain.
+            :param domain: domain string
+            :type domain: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__domain_endpoints(
+            domain=domain,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__URLS_DOMAIN_ENDPOINT
+        )
+
+        return response
+
+    def urls_from_domain_aggregated(self, domain, results_per_page=1000, max_results=5000):
+        """Accepts a domain string and returns a list of URLs associated with the requested domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.urls_from_domain(
+                domain=domain,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            urls = response_json.get("rl").get("urls", [])
+            results.extend(urls)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def domain_to_ip_resolutions(self, domain, page_string=None, results_per_page=1000):
+        """Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain.
+            :param domain: domain string
+            :type domain: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__domain_endpoints(
+            domain=domain,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__RESOLUTIONS_ENDPOINT
+        )
+
+        return response
+
+    def domain_to_ip_resolutions_aggregated(self, domain, results_per_page=1000, max_results=5000):
+        """Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.domain_to_ip_resolutions(
+                domain=domain,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            resolutions = response_json.get("rl").get("resolutions", [])
+            results.extend(resolutions)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def related_domains(self, domain, page_string=None, results_per_page=1000):
+        """Accepts a domain string and returns a list of domains that have
+        the same top parent domain as the requested domain.
+            :param domain: domain string
+            :type domain: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__domain_endpoints(
+            domain=domain,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__RELATED_DOMAINS_ENDPOINT
+        )
+
+        return response
+
+    def related_domains_aggregated(self, domain, results_per_page=1000, max_results=5000):
+        """Accepts a domain string and returns a list of domains that have
+        the same top parent domain as the requested domain.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param domain: domain string
+            :type domain: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.related_domains(
+                domain=domain,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            related_domains = response_json.get("rl").get("related_domains", [])
+            results.extend(related_domains)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def __domain_endpoints(self, domain, results_per_page, page_string, specific_endpoint):
+        """Private method for domain-related endpoints.
+            :param domain: domain string
+            :type domain: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(domain, str):
+            raise WrongInputError("domain parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        post_json = {"rl": {"query": {"domain": domain, "response_format": "json", "limit": results_per_page}}}
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = specific_endpoint.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+
+class IPThreatIntelligence(TiCloudAPI):
+    """TCA-0406 - IP Threat Intelligence"""
+
+    __IP_REPORT_ENDPOINT = "/api/networking/ip/report/v1/query/{format}"
+    __DOWNLOADED_FILES_ENDPOINT = "/api/networking/ip/downloaded_files/v1/query/{format}"
+    __URLS_IP_ENDPOINT = "/api/networking/ip/urls/v1/query/{format}"
+    __RESOLUTIONS_ENDPOINT = "/api/networking/ip/resolutions/v1/query/{format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(IPThreatIntelligence, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                   allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_ip_report(self, ip_address):
+        """Accepts an IP address as a string and returns threat intelligence
+        data for the submitted IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        endpoint = self.__IP_REPORT_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json"}}}
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files(self, ip_address, extended=True, classification=None, page_string=None,
+                             results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of files
+        downloaded from the submitted IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        if extended not in (True, False):
+            raise WrongInputError("extended parameter must be boolean.")
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json", "limit": results_per_page,
+                                      "extended": extended}}}
+
+        if classification:
+            classification = classification.upper()
+
+            if classification not in CLASSIFICATIONS:
+                raise WrongInputError("Only {classifications} is allowed "
+                                      "as the classification input.".format(classifications=CLASSIFICATIONS))
+
+            post_json["rl"]["query"]["classification"] = classification
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = self.__DOWNLOADED_FILES_ENDPOINT.format(format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+        self._raise_on_error(response)
+
+        return response
+
+    def get_downloaded_files_aggregated(self, ip_address, extended=True, classification=None, results_per_page=1000,
+                                        max_results=50000):
+        """Accepts an IP address as a string and returns a list of files
+        downloaded from the submitted IP address.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param extended: return extended results
+            :type extended: bool
+            :param classification: return only results with this classification
+            :type classification: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.get_downloaded_files(
+                ip_address=ip_address,
+                extended=extended,
+                classification=classification,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            downloaded_files = response_json.get("rl").get("downloaded_files", [])
+            results.extend(downloaded_files)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def urls_from_ip(self, ip_address, page_string=None, results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_endpoints(
+            ip_address=ip_address,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__URLS_IP_ENDPOINT
+        )
+
+        return response
+
+    def urls_from_ip_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+        """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.urls_from_ip(
+                ip_address=ip_address,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            urls = response_json.get("rl").get("urls", [])
+            results.extend(urls)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def ip_to_domain_resolutions(self, ip_address, page_string=None, results_per_page=1000):
+        """Accepts an IP address as a string and returns a list of IP-to-domain
+        mappings for the specified IP address.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param page_string: string representing a page of results
+            :type page_string: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__ip_endpoints(
+            ip_address=ip_address,
+            results_per_page=results_per_page,
+            page_string=page_string,
+            specific_endpoint=self.__RESOLUTIONS_ENDPOINT
+        )
+
+        return response
+
+    def ip_to_domain_resolutions_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+        """Accepts an IP address as a string and returns a list of IP-to-domain
+        mappings for the specified IP address.
+        This method performs the paging automatically and returns a list of results. The maximum number of results
+        to be returned can be set.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param max_results: maximum results to be returned in the list
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = ""
+
+        while True:
+            response = self.ip_to_domain_resolutions(
+                ip_address=ip_address,
+                page_string=next_page,
+                results_per_page=results_per_page
+            )
+
+            response_json = response.json()
+
+            resolutions = response_json.get("rl").get("resolutions", [])
+            results.extend(resolutions)
+
+            next_page = response_json.get("rl").get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def __ip_endpoints(self, ip_address, results_per_page, page_string, specific_endpoint):
+        """Private method for IP-related endpoints.
+            :param ip_address: IP address
+            :type ip_address: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(ip_address, str):
+            raise WrongInputError("ip_address parameter must be string.")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page parameter must be integer.")
+
+        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json", "limit": results_per_page}}}
+
+        if page_string:
+            if not isinstance(page_string, str):
+                raise WrongInputError("page_string parameter must be string.")
+            post_json["rl"]["query"]["page"] = page_string
+
+        endpoint = specific_endpoint.format(format="json")
+        url = self._url.format(endpoint=endpoint)
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)
@@ -1811,7 +2571,7 @@ class ReanalyzeFile(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def ranalyze_samples(self, sample_hashes):
+    def reanalyze_samples(self, sample_hashes):
         """Accepts a single hash string or a list of hash strings
         belonging to samples in the cloud you want to reanalyze.
         The samples need to be already present in the cloud in order to be reanalyzed.
@@ -1853,6 +2613,23 @@ class ReanalyzeFile(TiCloudAPI):
 
         return response
 
+    def ranalyze_samples(self, sample_hashes):
+        """THIS METHOD IS DEPRECATED.
+        Use reanalyze_samples instead.
+
+        Accepts a single hash string or a list of hash strings
+        belonging to samples in the cloud you want to reanalyze.
+        The samples need to be already present in the cloud in order to be reanalyzed.
+        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
+            :param sample_hashes: hash string or a list of hash strings
+            :type sample_hashes: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
+
+        self.reanalyze_samples(sample_hashes=sample_hashes)
+
 
 class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
@@ -1867,12 +2644,14 @@ class DynamicAnalysis(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def detonate_sample(self, sample_sha1, platform):
+    def detonate_sample(self, sample_sha1, platform, internet_simulation=False):
         """Submits a sample available in the cloud for dynamic analysis and returns processing info.
             :param sample_sha1: SHA-1 hash of the sample
             :type sample_sha1: str
             :param platform: desired platform on which the sample will be detonated; see available platforms
             :type platform: str
+            :param internet_simulation: perform the dynamic analysis without connecting to the internet
+            :type internet_simulation: bool
             :return: response
             :rtype: requests.Response
         """
@@ -1885,9 +2664,15 @@ class DynamicAnalysis(TiCloudAPI):
             raise WrongInputError("platform parameter must be one "
                                   "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
 
+        if not isinstance(internet_simulation, bool):
+            raise WrongInputError("internet_simulation parameter must be boolean.")
+        internet_simulation = str(internet_simulation).lower()
+
         url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
 
-        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json"}}
+        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json",
+                            "optional_parameters": "internet_simulation={simulation}".format(
+                                simulation=internet_simulation)}}
 
         response = self._post_request(
             url=url,
@@ -2028,7 +2813,7 @@ class CertificateIndex(TiCloudAPI):
         return response
 
     def get_certificate_information_aggregated(self, certificate_thumbprint, extended_results=True, classification=None,
-                                               max_results=5000):
+                                               results_per_page=100, max_results=5000):
         """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
          matching the requested thumbprint.
          This method automatically handles paging and returns a list of results instead of a Response object.
@@ -2040,6 +2825,8 @@ class CertificateIndex(TiCloudAPI):
             :param classification: return only results with a specific classification; allowed values are 'MALICIOUS',
             'SUSPICIOUS', 'KNOWN' and 'UNKNOWN'
             :type classification: str or None
+            :param results_per_page: number of returned results per page; default and maximum is 100
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -2055,7 +2842,7 @@ class CertificateIndex(TiCloudAPI):
             response = self.get_certificate_information(
                 certificate_thumbprint=certificate_thumbprint,
                 extended_results=extended_results,
-                results_per_page=100,
+                results_per_page=results_per_page,
                 classification=classification,
                 next_page_hash=next_page_hash
             )
@@ -2067,7 +2854,7 @@ class CertificateIndex(TiCloudAPI):
 
             next_page_hash = response_json.get("rl").get("next_page", None)
 
-            if len(results) > max_results or not next_page_hash:
+            if len(results) >= max_results or not next_page_hash:
                 break
 
         return results[:max_results]
@@ -2186,13 +2973,15 @@ class CertificateThumbprintSearch(TiCloudAPI):
 
         return response
 
-    def search_common_names_aggregated(self, common_name, max_results=5000):
+    def search_common_names_aggregated(self, common_name, results_per_page=100, max_results=5000):
         """Accepts a certificate common name and returns common names matching the request, along with the list of
         thumbprints of all the certificates sharing that common name.
         The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
         This method automatically handles paging and returns a list of results instead of a Response object.
             :param common_name: certificate common name
             :type common_name: str
+            :param results_per_page: number of results per page
+            :type results_per_page: int
             :param max_results: maximum number of results to be returned in the list
             :type max_results: int
             :return: list of results
@@ -2209,7 +2998,7 @@ class CertificateThumbprintSearch(TiCloudAPI):
                 common_name=common_name,
                 next_page_common_name=next_page_common_name,
                 next_page_thumbprint=next_page_thumbprint,
-                results_per_page=100
+                results_per_page=results_per_page
             )
 
             response_json = response.json()
@@ -2220,7 +3009,7 @@ class CertificateThumbprintSearch(TiCloudAPI):
             next_page_common_name = response_json.get("rl").get("next_page_common_name", None)
             next_page_thumbprint = response_json.get("rl").get("next_page_thumbprint", None)
 
-            if len(results) > max_results or not any((next_page_common_name, next_page_thumbprint)):
+            if len(results) >= max_results or not any((next_page_common_name, next_page_thumbprint)):
                 break
 
         return results[:max_results]
@@ -2702,9 +3491,9 @@ class ImpHashSimilarity(TiCloudAPI):
             sha1_list = response_json.get("rl").get("imphash_index").get("sha1_list", [])
             results.extend(sha1_list)
 
-            next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1")
+            next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1", None)
 
-            if len(results) > max_results or not next_page_sha1:
+            if len(results) >= max_results or not next_page_sha1:
                 break
 
         return results[:max_results]
