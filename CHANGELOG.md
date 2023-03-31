@@ -78,9 +78,12 @@ v2.1.0 (2023-03-31)
 - **ticloud** module:
   - Added the `FileReputationUserOverride`, `DomainThreatIntelligence` and `IPThreatIntelligence` classes.
   - Included an adjustable `results_per_page` parameter into several methods that perform paging automatically.
-  - The `detonate_sample` method from the `DynamicAnalysis` class now also accepts `"macos11"` as the `platform` parameter.
+  - The `detonate_sample` method of the `DynamicAnalysis` class now also accepts `"macos11"` as the `platform` parameter.
 - **a1000** module:
   - All sample submission methods now also accept `"macos_11"` as the `rl_cloud_sandbox_platform` parameter.
+- **tiscale** module:
+  - Added the `list_processing_tasks`, `get_processing_task_info`, `delete_processing_task`, `delete_multiple_tasks` and `get_yara_id` methods.
+  - Added support for the `custom_token`, `user_data` and `custom_data` parameters in existing sample upload methods.
 
 #### Bugfixes
 - **a1000** module:
