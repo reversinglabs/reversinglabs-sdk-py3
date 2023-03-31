@@ -79,6 +79,7 @@ v2.1.0 (2023-03-31)
   - Added the `FileReputationUserOverride`, `DomainThreatIntelligence` and `IPThreatIntelligence` classes.
   - Included an adjustable `results_per_page` parameter into several methods that perform paging automatically.
   - The `detonate_sample` method of the `DynamicAnalysis` class now also accepts `"macos11"` as the `platform` parameter.
+  - The `detonate_sample` method of the `DynamicAnalysis` class now accepts the `internet_simulation` parameter.
 - **a1000** module:
   - All sample submission methods now also accept `"macos_11"` as the `rl_cloud_sandbox_platform` parameter.
 - **tiscale** module:
