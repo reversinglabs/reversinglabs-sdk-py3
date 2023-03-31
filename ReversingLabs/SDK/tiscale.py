@@ -436,6 +436,21 @@ class TitaniumScale(object):
 
         return response
 
+    def get_yara_id(self):
+        """Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance."""
+        url = self._url.format(endpoint=self.__YARA_ID_ENDPOINT)
+
+        response = requests.get(
+            url=url,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        self.__raise_on_error(response)
+
+        return response
+
     @staticmethod
     def __raise_on_error(response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
