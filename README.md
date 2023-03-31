@@ -22,7 +22,8 @@ def __init__(self, host, username=None, password=None, token=None, fields=__FIEL
 `username` - A1000 username  
 `password` - A1000 password  
 `token` - A1000 user token for the REST API  
-`fields` - optional fields that will be returned in the analysis report  
+`fields_v2` - optional fields that will be returned in the analysis report  
+`ticore_fields` - optional fields that will be returned in the report from the TitaniumScale endpoint  
 `wait_time_seconds` - wait time between each report fetching retry  
 `retries` - number of report fetching retries  
 `verify` - verify SSL certificate  
@@ -503,6 +504,65 @@ class YARARetroHunting(TiCloudAPI)
 - `yara_retro_matches_feed`
     - Returns a recordset of YARA ruleset matches in the specified time range
 
+#### Class:
+```python
+class FileReputationUserOverride(TiCloudAPI)
+````
+#### Methods:
+- `override_classification`
+    - Accepts two parameters
+      - A list of samples whose classification needs to be overriden
+      - A list of samples whose classification override needs to me removed
+- `list_active_overrides`
+    - Accepts a hash type designation and returns the hashes of all currently active classification overrides for the current organization.
+- `list_active_overrides_aggregated`
+    - Accepts a hash type designation and returns the hashes of all currently active classification overrides for the current organization. This method does the paging action automatically and a maximum number of results returned in the list can be defined with the max_results parameter.
+
+#### Class:
+```python
+class DomainThreatIntelligence(TiCloudAPI)
+````
+#### Methods:
+- `get_domain_report`
+    - Accepts a domain string and returns threat intelligence data for the submitted domain.
+- `get_downloaded_files`
+    - Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
+- `get_downloaded_files_aggregated`
+  - Accepts a domain string and retrieves a list of files downloaded from the submitted domain. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+- `urls_from_domain`
+  - Accepts a domain string and returns a list of URLs associated with the requested domain.
+- `urls_from_domain_aggregated`
+  - Accepts a domain string and returns a list of URLs associated with the requested domain. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+- `domain_to_ip_resolutions`
+  - Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain.
+- `domain_to_ip_resolutions_aggregated`
+  - Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+- `related_domains`
+  - Accepts a domain string and returns a list of domains that have the same top parent domain as the requested domain.
+- `related_domains_aggregated`
+  - Accepts a domain string and returns a list of domains that have the same top parent domain as the requested domain. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+
+#### Class:
+```python
+class IPThreatIntelligence(TiCloudAPI)
+````
+#### Methods:
+- `get_ip_report`
+    - Accepts an IP address as a string and returns threat intelligence data for the submitted IP address.
+- `get_downloaded_files`
+    - Accepts an IP address as a string and returns a list of files downloaded from the submitted IP address.
+- `get_downloaded_files_aggregated`
+  - Accepts an IP address as a string and returns a list of files downloaded from the submitted IP address. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+- `urls_from_ip`
+  - Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
+- `urls_from_ip_aggregated`
+  - Accepts an IP address as a string and returns a list of URLs associated with the requested IP. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+- `ip_to_domain_resolutions`
+  - Accepts an IP address as a string and returns a list of IP-to-domain mappings for the specified IP address.
+- `ip_to_domain_resolutions_aggregated`
+  - Accepts an IP address as a string and returns a list of IP-to-domain mappings for the specified IP address. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
+
+
 ***
 
 ## Module: tiscale
@@ -533,6 +593,17 @@ def __init__(self, host, token, wait_time_seconds=2, retries=10, verify=True, pr
     - Accepts a file path string or an opened file in 'rb' mode for file upload and returns a file analysis summary or a full analysis report
     - This method combines uploading a sample and obtaining the analysis results
     - The result obtaining action of this method utilizes the set number of retries and wait time in seconds to time out if the analysis results are not ready
+- `list_processing_tasks`
+  - Lists processing tasks generated by file submission requests.
+- `get_processing_task_info`
+  - Retrieves information about a completed file processing task
+- `delete_processing_task`
+  - Deletes a processing task record from the system.
+- `delete_multiple_tasks`
+  - Deletes multiple task records from the system based on the time when they were submitted.
+- `get_yara_id`
+  - Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance.
+
 
 ***
 
