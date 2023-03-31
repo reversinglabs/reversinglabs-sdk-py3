@@ -5,6 +5,7 @@ TitaniumScale
 A Python module for the ReversingLabs TitaniumScale appliance REST API.
 """
 
+import json
 import requests
 import time
 
@@ -26,10 +27,6 @@ class TitaniumScale(object):
         if token:
             self._headers["Authorization"] = "Token {token}".format(token=token)
 
-        self._headers = {
-            "User-Agent": user_agent,
-            "Authorization": "Token {token}".format(token=token)
-        }
         self._verify = verify
 
         if not isinstance(wait_time_seconds, int):
@@ -79,11 +76,19 @@ class TitaniumScale(object):
 
         return
 
-    def upload_sample_from_path(self, file_path):
+    def upload_sample_from_path(self, file_path, custom_token=None, user_data=None, custom_data=None):
         """Accepts a file path string for file upload and returns a response.
             :param file_path: path to file
             :type file_path: str
-            :returns: :class:`Response <Response>` object
+            :param custom_token: custom token for filtering processing tasks
+            :type custom_token: str
+            :param user_data: user-defined data in the form of a JSON string; this data is
+            NOT included in file analysis reports
+            :type user_data: str
+            :param custom_data: user-defined data in the form of a JSON string; this data is
+            included in file analysis reports
+            :type custom_data: str
+            :return: response
             :rtype: requests.Response
         """
         if not isinstance(file_path, str):
@@ -94,23 +99,41 @@ class TitaniumScale(object):
         except IOError as error:
             raise WrongInputError("Error while opening file in 'rb' mode - {error}".format(error=str(error)))
 
-        response = self.__upload_files(file_handle=file_handle)
+        response = self.__upload_files(
+            file_handle=file_handle,
+            custom_token=custom_token,
+            user_data=user_data,
+            custom_data=custom_data
+        )
 
         self.__raise_on_error(response)
 
         return response
 
-    def upload_sample_from_file(self, file_source):
+    def upload_sample_from_file(self, file_source, custom_token=None, user_data=None, custom_data=None):
         """Accepts an open file in 'rb' mode for file upload and returns a response.
             :param file_source: open file
             :type file_source: file or BinaryIO
-            :returns: :class:`Response <Response>` object
+            :param custom_token: custom token for filtering processing tasks
+            :type custom_token: str
+            :param user_data: user-defined data in the form of a JSON string; this data is
+            NOT included in file analysis reports
+            :type user_data: str
+            :param custom_data: user-defined data in the form of a JSON string; this data is
+            included in file analysis reports
+            :type custom_data: str
+            :return: response
             :rtype: requests.Response
         """
         if not hasattr(file_source, "read"):
             raise WrongInputError("file_source parameter must be a file open in 'rb' mode.")
 
-        response = self.__upload_files(file_handle=file_source)
+        response = self.__upload_files(
+            file_handle=file_source,
+            custom_token=custom_token,
+            user_data=user_data,
+            custom_data=custom_data
+        )
 
         self.__raise_on_error(response)
 
@@ -145,7 +168,8 @@ class TitaniumScale(object):
 
         return None
 
-    def upload_sample_and_get_results(self, file_path=None, file_source=None, full_report=False):
+    def upload_sample_and_get_results(self, file_path=None, file_source=None, full_report=False, custom_token=None,
+                                      user_data=None, custom_data=None):
         """Accepts either a file path string or an open file in 'rb' mode for file upload
          and returns an analysis report response.
         This method combines uploading a sample and obtaining the analysis results.
@@ -157,7 +181,15 @@ class TitaniumScale(object):
             :type file_source: file or BinaryIO
             :param full_report: return the full version of the report
             :type full_report: bool
-            :returns: :class:`Response <Response>` object
+            :param custom_token: custom token for filtering processing tasks
+            :type custom_token: str
+            :param user_data: user-defined data in the form of a JSON string; this data is
+            NOT included in file analysis reports
+            :type user_data: str
+            :param custom_data: user-defined data in the form of a JSON string; this data is
+            included in file analysis reports
+            :type custom_data: str
+            :return: response
             :rtype: requests.Response
         """
         if (file_path and file_source) or (not file_path and not file_source):
@@ -165,9 +197,19 @@ class TitaniumScale(object):
                                   "Using both or none of the parameters in sot allowed.")
 
         if file_path:
-            upload_response = self.upload_sample_from_path(file_path)
+            upload_response = self.upload_sample_from_path(
+                file_path=file_path,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
         else:
-            upload_response = self.upload_sample_from_file(file_source)
+            upload_response = self.upload_sample_from_file(
+                file_source=file_source,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
 
         task_url = upload_response.json().get("task_url")
         response = self.get_results(task_url, full_report)
@@ -202,22 +244,56 @@ class TitaniumScale(object):
 
         return response
 
-    def __upload_files(self, file_handle):
+    def __upload_files(self, file_handle, custom_token, user_data, custom_data):
         """A generic POST request method for all TitaniumScale methods.
             :param file_handle: files to send
+            :type file_handle: file or BinaryIO
+            :param custom_token: custom token for filtering processing tasks
+            :type custom_token: str
+            :param user_data: user-defined data in the form of a JSON string; this data is
+            NOT included in file analysis reports
+            :type user_data: str
+            :param custom_data: user-defined data in the form of a JSON string; this data is
+            included in file analysis reports
+            :type custom_data: str
             :return: response
             :rtype: requests.Response
         """
-        url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
+        if custom_token is not None:
+            if not isinstance(custom_token, str):
+                raise WrongInputError("custom_token parameter must be string.")
+
+            self._headers["X-TiScale-Token"] = "Token {custom_token}".format(custom_token=custom_token)
+
+        form_data = {}
+
+        if user_data is not None:
+            try:
+                json.loads(user_data)
+                form_data["user_data"] = user_data
+
+            except (TypeError, json.decoder.JSONDecodeError):
+                raise WrongInputError("user_data parameter must be a valid JSON string.")
+
+        if custom_data is not None:
+            try:
+                json.loads(custom_data)
+                form_data["custom_data"] = custom_data
+
+            except (TypeError, json.decoder.JSONDecodeError):
+                raise WrongInputError("custom_data parameter must be a valid JSON string.")
 
         files = {"file": file_handle}
+
+        url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
 
         response = requests.post(
             url=url,
             files=files,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            data=form_data
         )
 
         return response
@@ -225,8 +301,8 @@ class TitaniumScale(object):
     @staticmethod
     def __raise_on_error(response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
-            :param response: response object
-            :type response: requests.Response
+            :return: response
+            :rtype: requests.Response
         """
         exception = RESPONSE_CODE_ERROR_MAP.get(response.status_code, None)
         if not exception:
