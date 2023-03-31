@@ -386,6 +386,56 @@ class TitaniumScale(object):
 
         return response
 
+    def delete_processing_task(self, task_id):
+        """Deletes a processing task record from the system.
+            :param task_id: numerical ID of the file processing task
+            :type task_id: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(task_id, int):
+            raise WrongInputError("task_id parameter must be integer.")
+
+        endpoint = self.__SINGLE_TASK_ENDPOINT.format(task_id=task_id)
+        url = self._url.format(endpoint=endpoint)
+
+        response = requests.delete(
+            url=url,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_multiple_tasks(self, age):
+        """Deletes multiple task records from the system based on the time when they were submitted.
+            :param age: age of tasks you want to delete in seconds
+            :type age: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(age, int):
+            raise WrongInputError("age parameter must be integer.")
+
+        query_params = {"age": age}
+
+        url = self._url.format(endpoint=self.__MULTIPLE_TASKS_ENDPOINT)
+
+        response = requests.delete(
+            url=url,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers,
+            params=query_params
+        )
+
+        self.__raise_on_error(response)
+
+        return response
+
     @staticmethod
     def __raise_on_error(response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
