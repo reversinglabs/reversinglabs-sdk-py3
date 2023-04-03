@@ -86,7 +86,7 @@ class TiCloudAPI(object):
 
         return host
 
-    def _get_request(self, url):
+    def _get_request(self, url, params=None):
         """A generic GET request method for all ticloud module classes.
             :param url: request URL
             :type url: str
@@ -98,7 +98,8 @@ class TiCloudAPI(object):
             auth=self._credentials,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            params=params
         )
 
         return response
@@ -652,6 +653,65 @@ class FileAnalysis(TiCloudAPI):
                            " Can not return file type.")
 
         return file_type
+
+
+class FileAnalysisNonMalicious(TiCloudAPI):
+    """TCA-0105 - File Analysis - Non-Malicious"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/databrowser/rldata/goodware/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/databrowser/rldata/goodware/bulk_query/{post_format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileAnalysisNonMalicious, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                       allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_analysis_results(self, hash_input):
+        """Accepts a hash string or a list of hash strings and returns knowledge
+        about the given samples if they are classified as goodware.
+            :param hash_input: hash string or list of hash strings
+            :type hash_input: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        is_bulk = isinstance(hash_input, list)
+
+        validate_hashes(
+            hash_input=hash_input if is_bulk else [hash_input],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes=hash_input if is_bulk else [hash_input])
+
+        if is_bulk:
+            post_json = {"rl": {"query": {"hash_type": hash_type, "hashes": hash_input}}}
+
+            endpoint = self.__BULK_QUERY_ENDPOINT.format(post_format="json")
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._post_request(url=url, post_json=post_json)
+
+        else:
+            query_params = {"format": "json"}
+
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(hash_type=hash_type, hash_value=hash_input)
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+
+
+
+
+
+
 
 
 class RHA1FunctionalSimilarity(TiCloudAPI):
