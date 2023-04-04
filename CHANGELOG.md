@@ -98,7 +98,8 @@ v2.1.1 (2023-04-04)
 #### Improvements
 
 - **ticloud** module:
-  - Added the `FileAnalysisNonMalicious` and classes.
+  - Added the `FileAnalysisNonMalicious` and `DataChangeSubscription` classes.
+  - The `FileUpload` class methods now also use `subscribe`, `archive_type` and `archive_passoword` parameters.
 
 ---
 
