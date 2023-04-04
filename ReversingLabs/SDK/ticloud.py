@@ -711,14 +711,6 @@ class FileAnalysisNonMalicious(TiCloudAPI):
         return response
 
 
-
-
-
-
-
-
-
-
 class RHA1FunctionalSimilarity(TiCloudAPI):
     """TCA-0301 - RHA Functional Similarity (Group by RHA1)"""
 
@@ -2760,6 +2752,76 @@ class ReanalyzeFile(TiCloudAPI):
         warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
 
         self.reanalyze_samples(sample_hashes=sample_hashes)
+
+
+class DataChangeSubscription(TiCloudAPI):
+    """TCA-0206 - Alert on Reputation and Metadata Changes"""
+
+    __SUBSCRIBE_ENDPOINT = "/api/subscription/data_change/v1/bulk_query/subscribe/{post_format}"
+    __UNSUBSCRIBE_ENDPOINT = "/api/subscription/data_change/v1/bulk_query/unsubscribe/{post_format}"
+    __PULL_ENDPOINT = "/api/feed/data_change/v3/pull"
+    __START_ENDPOINT = "/api/feed/data_change/v3/start/{time_format}/{time_value}"
+    __CONTINUOUS_FEED_ENDPOINT = "/api/feed/data_change/v3/query/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DataChangeSubscription, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                     allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def subscribe(self, hashes):
+        """Subscribes to a list of samples (hashes) for which the changed data (if there are any)
+        will be delivered in the Data Change Feed.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__subscription_action(hashes=hashes, specific_endpoint=self.__SUBSCRIBE_ENDPOINT)
+
+        return response
+
+    def unsubscribe(self, hashes):
+        """Unsubscribes from a list of samples that the user was previously subscribed to.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__subscription_action(hashes=hashes, specific_endpoint=self.__UNSUBSCRIBE_ENDPOINT)
+
+        return response
+
+    def __subscription_action(self, hashes, specific_endpoint):
+        """Internal method for subscribing and unsubscribing from data changes in samples.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(hashes, list):
+            raise WrongInputError("hashes parameter must be a list of strings.")
+
+        validate_hashes(
+            hash_input=hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes=hashes)
+
+        post_json = {"rl": {"query": {"hash_type": hash_type, "hashes": hashes}}}
+
+        endpoint = specific_endpoint.format(post_format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class DynamicAnalysis(TiCloudAPI):
