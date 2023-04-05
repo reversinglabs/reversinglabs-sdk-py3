@@ -86,10 +86,12 @@ class TiCloudAPI(object):
 
         return host
 
-    def _get_request(self, url):
+    def _get_request(self, url, params=None):
         """A generic GET request method for all ticloud module classes.
             :param url: request URL
             :type url: str
+            :param params: query parameters
+            :type params: dict
             :return: response
             :rtype: requests.Response
         """
@@ -98,18 +100,21 @@ class TiCloudAPI(object):
             auth=self._credentials,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            params=params
         )
 
         return response
 
-    def _post_request(self, url, post_json=None, data=None):
+    def _post_request(self, url, post_json=None, data=None, params=None):
         """A generic POST request method for all ticloud module classes.
             :param url: request URL
             :type url: str
             :param post_json: JSON body
             :type post_json: dict
             :param data: data to send
+            :param params: query parameters
+            :type params: dict
             :return: response
             :rtype: requests.Response
         """
@@ -120,7 +125,8 @@ class TiCloudAPI(object):
             data=data,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            params=params
         )
 
         return response
@@ -652,6 +658,57 @@ class FileAnalysis(TiCloudAPI):
                            " Can not return file type.")
 
         return file_type
+
+
+class FileAnalysisNonMalicious(TiCloudAPI):
+    """TCA-0105 - File Analysis - Non-Malicious"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/databrowser/rldata/goodware/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/databrowser/rldata/goodware/bulk_query/{post_format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileAnalysisNonMalicious, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                       allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_analysis_results(self, hash_input):
+        """Accepts a hash string or a list of hash strings and returns knowledge
+        about the given samples if they are classified as goodware.
+            :param hash_input: hash string or list of hash strings
+            :type hash_input: str or list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        is_bulk = isinstance(hash_input, list)
+
+        validate_hashes(
+            hash_input=hash_input if is_bulk else [hash_input],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes=hash_input if is_bulk else [hash_input])
+
+        if is_bulk:
+            post_json = {"rl": {"query": {"hash_type": hash_type, "hashes": hash_input}}}
+
+            endpoint = self.__BULK_QUERY_ENDPOINT.format(post_format="json")
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._post_request(url=url, post_json=post_json)
+
+        else:
+            query_params = {"format": "json"}
+
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(hash_type=hash_type, hash_value=hash_input)
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class RHA1FunctionalSimilarity(TiCloudAPI):
@@ -2354,7 +2411,8 @@ class FileUpload(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def upload_sample_from_path(self, file_path, sample_name=None, sample_domain=None):
+    def upload_sample_from_path(self, file_path, sample_name=None, sample_domain=None, subscribe=None,
+                                archive_type=None, archive_password=None):
         """Accepts a file path string and uploads the desired file to the File Upload API.
             :param file_path: file path string
             :type file_path: str
@@ -2362,6 +2420,14 @@ class FileUpload(TiCloudAPI):
             :type sample_name: str
             :param sample_domain: optional domain string of the sample to be displayed in the cloud
             :type sample_domain: str
+            :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
+            data change feed subscription list
+            :type subscribe: str
+            :param archive_type: used to define the compression algorithm if sending an archive file;
+            supported values: 'zip'
+            :type archive_type: str
+            :param archive_password: the password for extracting the content of the archive
+            :type archive_password: str
             :return: response
             :rtype: requests.Response
         """
@@ -2382,12 +2448,16 @@ class FileUpload(TiCloudAPI):
         response = self.upload_sample_from_file(
             file_handle=file_handle,
             sample_name=sample_name,
-            sample_domain=sample_domain
+            sample_domain=sample_domain,
+            subscribe=subscribe,
+            archive_type=archive_type,
+            archive_password=archive_password
         )
 
         return response
 
-    def upload_sample_from_file(self, file_handle, sample_name=None, sample_domain=None):
+    def upload_sample_from_file(self, file_handle, sample_name=None, sample_domain=None, subscribe=None,
+                                archive_type=None, archive_password=None):
         """Accepts an open file handle and uploads the desired file to the File Upload API.
             :param file_handle: open file
             :type file_handle: file or BinaryIO
@@ -2395,6 +2465,14 @@ class FileUpload(TiCloudAPI):
             :type sample_name: str
             :param sample_domain: optional domain string of the sample to be displayed in the cloud
             :type sample_domain: str
+            :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
+            data change feed subscription list
+            :type subscribe: str
+            :param archive_type: used to define the compression algorithm if sending an archive file;
+            supported values: 'zip'
+            :type archive_type: str
+            :param archive_password: the password for extracting the content of the archive
+            :type archive_password: str
             :return: response
             :rtype: requests.Response
         """
@@ -2415,7 +2493,7 @@ class FileUpload(TiCloudAPI):
 
         file_sha1 = calculate_hash(
             data_input=file_handle,
-            hashing_algorithm="sha1"
+            hashing_algorithm=SHA1
         )
 
         file_handle.seek(0)
@@ -2436,30 +2514,75 @@ class FileUpload(TiCloudAPI):
         response = self.__upload_meta(
             url=url,
             sample_name=sample_name,
-            sample_domain=sample_domain
+            sample_domain=sample_domain,
+            subscribe=subscribe,
+            archive_type=archive_type,
+            archive_password=archive_password
         )
 
         return response
 
-    def __upload_meta(self, url, sample_name, sample_domain):
+    def __upload_meta(self, url, sample_name, sample_domain, subscribe, archive_type, archive_password):
         """Private method for setting up and uploading metadata of a sample uploaded to the File Upload API.
             :param url: URL used for sample upload
             :type url: str
             :param sample_name: optional name of the sample to be displayed in the cloud
             :type sample_name: str
-            :param sample_domain: optional domain string of the sample to be displayed in the cloud
+            :param sample_domain: web domain where the sample was found and downloaded from
             :type sample_domain: str
+            :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
+            data change feed subscription list
+            :type subscribe: str
+            :param archive_type: used to define the compression algorithm if sending an archive file;
+            supported values: 'zip'
+            :type archive_type: str
+            :param archive_password: the password for extracting the content of the archive
+            :type archive_password: str
             :return: response
             :rtype: requests.Response
         """
+        base_xml = "<properties><property><name>file_name</name><value>{sample_name}</value></property>" \
+                   "</properties><domain>{domain}</domain>".format(domain=sample_domain, sample_name=sample_name)
+
+        if archive_type:
+            if not isinstance(archive_type, str):
+                raise WrongInputError("archive_type parameter must be string.")
+
+            base_xml = "{base}<archive><archive_type>{archive_type}</archive_type>".format(
+                base=base_xml,
+                archive_type=archive_type
+            )
+
+            if archive_password:
+                if not isinstance(archive_password, str):
+                    raise WrongInputError("archive_password parameter must be string.")
+
+                base_xml = "{base}<archive_password>{archive_password}</archive_password>".format(
+                    base=base_xml,
+                    archive_password=archive_password
+                )
+
+            base_xml = "{base}</archive>".format(base=base_xml)
+
+        elif archive_password and not archive_type:
+            raise WrongInputError("archive_password can not be used without archive_type.")
+
+        meta_xml = "<rl>{base}</rl>".format(base=base_xml)
+
         meta_url = "{url}/meta".format(url=url)
 
-        meta_xml = "<rl><properties><property><name>file_name</name><value>{sample_name}</value></property>" \
-                   "</properties><domain>{domain}</domain></rl>".format(domain=sample_domain, sample_name=sample_name)
+        query_params = None
+
+        if subscribe:
+            if not isinstance(subscribe, str):
+                raise WrongInputError("subscribe parameter must be string.")
+
+            query_params = {"subscribe": subscribe}
 
         response = self._post_request(
             url=meta_url,
-            data=meta_xml
+            data=meta_xml,
+            params=query_params
         )
 
         self._raise_on_error(response)
@@ -2629,6 +2752,194 @@ class ReanalyzeFile(TiCloudAPI):
         warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
 
         self.reanalyze_samples(sample_hashes=sample_hashes)
+
+
+class DataChangeSubscription(TiCloudAPI):
+    """TCA-0206 - Alert on Reputation and Metadata Changes"""
+
+    __SUBSCRIBE_ENDPOINT = "/api/subscription/data_change/v1/bulk_query/subscribe/{post_format}"
+    __UNSUBSCRIBE_ENDPOINT = "/api/subscription/data_change/v1/bulk_query/unsubscribe/{post_format}"
+    __PULL_ENDPOINT = "/api/feed/data_change/v3/pull"
+    __START_ENDPOINT = "/api/feed/data_change/v3/start/{time_format}/{time_value}"
+    __CONTINUOUS_FEED_ENDPOINT = "/api/feed/data_change/v3/query/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(DataChangeSubscription, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                     allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def subscribe(self, hashes):
+        """Subscribes to a list of samples (hashes) for which the changed data (if there are any)
+        will be delivered in the Data Change Feed.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__subscription_action(hashes=hashes, specific_endpoint=self.__SUBSCRIBE_ENDPOINT)
+
+        return response
+
+    def unsubscribe(self, hashes):
+        """Unsubscribes from a list of samples that the user was previously subscribed to.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__subscription_action(hashes=hashes, specific_endpoint=self.__UNSUBSCRIBE_ENDPOINT)
+
+        return response
+
+    def __subscription_action(self, hashes, specific_endpoint):
+        """Internal method for subscribing and unsubscribing from data changes in samples.
+            :param hashes: list of hash strings
+            :type hashes: list[str]
+            :param specific_endpoint: requested endpoint string
+            :type specific_endpoint: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(hashes, list):
+            raise WrongInputError("hashes parameter must be a list of strings.")
+
+        validate_hashes(
+            hash_input=hashes,
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        hash_type = resolve_hash_type(sample_hashes=hashes)
+
+        post_json = {"rl": {"query": {"hash_type": hash_type, "hashes": hashes}}}
+
+        endpoint = specific_endpoint.format(post_format="json")
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def set_start_time(self, time_format, time_value):
+        """Sets the starting point for the DataChangeSubscription.pull_from_feed method.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        self.__validate_time(time_format=time_format, time_value=time_value)
+
+        endpoint = self.__START_ENDPOINT.format(time_format=time_format, time_value=time_value)
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_from_feed(self, events=None, limit=None):
+        """Returns a recordset with samples to which the user is subscribed.
+        The starting point for this action is set using the DataChangeSubscription.set_start_time method.
+        If the starting point is not set, this method will return records starting with the current timestamp.
+        Every subsequent request will continue from the timestamp where the previous request ended.
+            :param events: list of sections that will be included in the response; leaving it as None
+            will return all available sections
+            :type events: list[str]
+            :param limit: number of records to return in response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        query_params = {"format": "json"}
+
+        if events:
+            if not isinstance(events, list):
+                raise WrongInputError("events parameter must be a list of strings.")
+
+            events = ",".join(events)
+            query_params["events"] = events
+
+        if limit:
+            if not isinstance(limit, int):
+                raise WrongInputError("limit parameter must be an integer.")
+
+            query_params["limit"] = limit
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def continuous_data_change_feed(self, time_format, time_value, events=None):
+        """Returns a recordset with samples to which the user is subscribed from
+        the timestamp stated in the request onwards.
+        To fetch the next recordset, use the last_timestamp value from the response
+        and submit it in a new request as the time_value parameter.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param events: list of sections that will be included in the response; leaving it as None
+            will return all available sections
+            :type events: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        self.__validate_time(time_format=time_format, time_value=time_value)
+
+        query_params = {"format": "json"}
+
+        if events:
+            if not isinstance(events, list):
+                raise WrongInputError("events parameter must be a list of strings.")
+
+            events = ",".join(events)
+            query_params["events"] = events
+
+        endpoint = self.__CONTINUOUS_FEED_ENDPOINT.format(time_format=time_format, time_value=time_value)
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    @staticmethod
+    def __validate_time(time_format, time_value):
+        """Internal method for validating the time format and time values
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        else:
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
 
 
 class DynamicAnalysis(TiCloudAPI):

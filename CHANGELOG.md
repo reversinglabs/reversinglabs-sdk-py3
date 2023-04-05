@@ -90,6 +90,17 @@ v2.1.0 (2023-03-31)
 - **a1000** module:
   - Leaving the `fields` parameter in the `get_titanium_core_report_v2` method as None now results in requesting all the available fields instead of throwing an exception.
 
+
+
+v2.1.1 (2023-04-05)
+-------------------
+
+#### Improvements
+
+- **ticloud** module:
+  - Added the `FileAnalysisNonMalicious` and `DataChangeSubscription` classes.
+  - The `FileUpload` class methods now also use `subscribe`, `archive_type` and `archive_passoword` parameters.
+
 ---
 
 ### Scheduled removals
