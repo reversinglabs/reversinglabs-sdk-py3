@@ -14,7 +14,7 @@ A Python module representing the ReversingLabs A1000 malware analysis platform.
 #### Class:
 ```python
 class A1000(object)
-def __init__(self, host, username=None, password=None, token=None, fields=__FIELDS, wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
+def __init__(self, host, username, password, token, fields_v2, ticore_fields, wait_time_seconds, retries, verify, proxies, user_agent):
 ```
 
 #### Parameters:
@@ -193,7 +193,7 @@ A Python module representing the ReversingLabs TitaniumCloud API-s.
 
 Each class in this module represents one TitaniumCloud API and can be instantiated using the same set of parameters:
 ```python
-def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT, allow_none_return=False)
+def __init__(self, host, username, password, verify, proxies, user_agent, allow_none_return)
 ```
 #### Parameters:
 `host` - TitaniumCloud address  
@@ -594,11 +594,11 @@ A Python module representing the ReversingLabs TitaniumScale malware analysis ap
 #### Class:
 ```python
 class TitaniumScale(object)
-def __init__(self, host, token, wait_time_seconds=2, retries=10, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT)
+def __init__(self, host, token, wait_time_seconds, retries, verify, proxies, user_agent)
 ```
 #### Parameters:
 `host` - TitaniumScale address  
-`token` - A1000 user token for the REST API  
+`token` - TitaniumScale user token for the REST API  
 `wait_time_seconds` - wait time between each report fetching retry  
 `retries` - number of report fetching retries  
 `verify` - verify SSL certificate  
