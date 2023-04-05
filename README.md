@@ -562,6 +562,30 @@ class IPThreatIntelligence(TiCloudAPI)
 - `ip_to_domain_resolutions_aggregated`
   - Accepts an IP address as a string and returns a list of IP-to-domain mappings for the specified IP address. This method performs the paging automatically and returns a list of results. The maximum number of results to be returned can be set.
 
+#### Class:
+```python
+class FileAnalysisNonMalicious(TiCloudAPI)
+````
+#### Methods:
+- `get_analysis_results`
+    - Accepts a hash string or a list of hash strings and returns knowledge about the given samples if they are classified as goodware.
+
+#### Class:
+```python
+class DataChangeSubscription(TiCloudAPI)
+````
+#### Methods:
+- `subscribe`
+  - Subscribes to a list of samples (hashes) for which the changed data (if there are any) will be delivered in the Data Change Feed.
+- `unsubscribe`
+    - Unsubscribes from a list of samples that the user was previously subscribed to.
+- `set_start_time`
+  - Sets the starting point for the DataChangeSubscription.pull_from_feed method.
+- `pull_from_feed`
+  - Returns a recordset with samples to which the user is subscribed. The starting point for this action is set using the DataChangeSubscription.set_start_time method. If the starting point is not set, this method will return records starting with the current timestamp. Every subsequent request will continue from the timestamp where the previous request ended.
+- `continuous_data_change_feed`
+  - Returns a recordset with samples to which the user is subscribed from the timestamp stated in the request onwards. To fetch the next recordset, use the last_timestamp value from the response and submit it in a new request as the time_value parameter.
+
 
 ***
 
