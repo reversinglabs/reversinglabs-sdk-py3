@@ -2823,6 +2823,124 @@ class DataChangeSubscription(TiCloudAPI):
 
         return response
 
+    def set_start_time(self, time_format, time_value):
+        """Sets the starting point for the DataChangeSubscription.pull_from_feed method.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        self.__validate_time(time_format=time_format, time_value=time_value)
+
+        endpoint = self.__START_ENDPOINT.format(time_format=time_format, time_value=time_value)
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_from_feed(self, events=None, limit=None):
+        """Returns a recordset with samples to which the user is subscribed.
+        The starting point for this action is set using the DataChangeSubscription.set_start_time method.
+        If the starting point is not set, this method will return records starting with the current timestamp.
+        Every subsequent request will continue from the timestamp where the previous request ended.
+            :param events: list of sections that will be included in the response; leaving it as None
+            will return all available sections
+            :type events: list[str]
+            :param limit: number of records to return in response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        query_params = {"format": "json"}
+
+        if events:
+            if not isinstance(events, list):
+                raise WrongInputError("events parameter must be a list of strings.")
+
+            events = ",".join(events)
+            query_params["events"] = events
+
+        if limit:
+            if not isinstance(limit, int):
+                raise WrongInputError("limit parameter must be an integer.")
+
+            query_params["limit"] = limit
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def continuous_data_change_feed(self, time_format, time_value, events=None):
+        """Returns a recordset with samples to which the user is subscribed from
+        the timestamp stated in the request onwards.
+        To fetch the next recordset, use the last_timestamp value from the response
+        and submit it in a new request as the time_value parameter.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param events: list of sections that will be included in the response; leaving it as None
+            will return all available sections
+            :type events: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        self.__validate_time(time_format=time_format, time_value=time_value)
+
+        query_params = {"format": "json"}
+
+        if events:
+            if not isinstance(events, list):
+                raise WrongInputError("events parameter must be a list of strings.")
+
+            events = ",".join(events)
+            query_params["events"] = events
+
+        endpoint = self.__CONTINUOUS_FEED_ENDPOINT.format(time_format=time_format, time_value=time_value)
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    @staticmethod
+    def __validate_time(time_format, time_value):
+        """Internal method for validating the time format and time values
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the timestamp time_format is used, time_value parameter must be a Unix "
+                                      "timestamp string.")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
+                                      "YYYY-MM-DDThh:mm:ss format.")
+
+        else:
+            raise WrongInputError("time_format parameter mus be one of the following values: 'timestamp', 'utc'.")
+
 
 class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
