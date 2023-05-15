@@ -1680,7 +1680,7 @@ class A1000(object):
 
     def enable_or_disable_yara_ruleset(self, enabled, name, publish=None):
         """Enables/disables ruleset on the appliance. Administrators can manage any ruleset while regular A1000 users
-        can only menage their own rulesets.
+        can only manage their own rulesets.
             :param enabled: whether to enable (enabled=True) or disable (enabled=False) the specified ruleset
             :type enabled: bool
             :param name: name of the ruleset to enable/disable
