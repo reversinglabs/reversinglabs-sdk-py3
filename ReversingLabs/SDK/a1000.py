@@ -2182,7 +2182,7 @@ class A1000(object):
 
     def network_ip_to_domain_aggregated(self, ip_addr, page_size=500, max_results=5000):
         """Accepts an IP address string and returns a list of IP-to-domain mappings.
-        This method does the paging automatically and returns a specified maximum number of records.
+        This method performs the paging automatically and returns a specified maximum number of records.
             :param ip_addr: requested IP address
             :type ip_addr: str
             :param page_size: number of records per page
@@ -2249,7 +2249,7 @@ class A1000(object):
 
     def network_urls_from_ip_aggregated(self, ip_addr, page_size=500, max_results=5000):
         """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
-        This method does the paging automatically and returns a specified maximum number of records.
+        This method performs the paging automatically and returns a specified maximum number of records.
             :param ip_addr: requested IP address
             :type ip_addr: str
             :param page_size: number of records per page
@@ -2332,7 +2332,7 @@ class A1000(object):
                                          max_results=5000):
         """Accepts an IP address string and returns a list of hashes and
         classifications for files found on the requested IP address.
-        This method does the paging automatically and returns a specified maximum number of records.
+        This method performs the paging automatically and returns a specified maximum number of records.
             :param ip_addr: requested IP address
             :type ip_addr: str
             :param extended_results: return extended results
