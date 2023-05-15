@@ -146,7 +146,7 @@ If username and password are used instead, a token fetching request will be done
   - Deletes the specified YARA ruleset and its matches from the appliance
 - `enable_or_disable_yara_ruleset`
   - Enables/disables ruleset on the appliance
-  - Administrators can manage any ruleset while regular A1000 users can only menage their own rulesets
+  - Administrators can manage any ruleset while regular A1000 users can only manage their own rulesets
 - `get_yara_ruleset_synchronization_time`
   - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
 - `update_yara_ruleset_synchronization_time`
@@ -180,10 +180,19 @@ If username and password are used instead, a token fetching request will be done
   - Accepts an IP address string and returns a report about the requested IP address
 - `network_ip_to_domain`
   - Accepts an IP address string and returns a list of IP-to-domain mappings
+- `network_ip_to_domain_aggregated`
+  - Accepts an IP address string and returns a list of IP-to-domain mappings. 
+  - This method performs the paging automatically and returns a specified maximum number of records
 - `network_urls_from_ip`
   - Accepts an IP address string and returns a list of URLs hosted on the requested IP address
+- `network_urls_from_ip_aggregated`
+  - Accepts an IP address string and returns a list of URLs hosted on the requested IP address
+  - This method performs the paging automatically and returns a specified maximum number of records
 - `network_files_from_ip`
   - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
+- `network_files_from_ip_aggregated`
+  - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
+  - This method performs the paging automatically and returns a specified maximum number of records
 
 ***
 

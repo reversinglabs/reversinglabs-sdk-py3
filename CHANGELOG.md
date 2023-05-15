@@ -103,6 +103,20 @@ v2.1.1 (2023-04-05)
 
 ---
 
+
+
+v2.1.2 (2023-05-15)
+-------------------
+
+#### Improvements
+
+- **a1000** module:
+  - Added paging parameters to the Network Threat Intelligence methods: `network_ip_to_domain`, `network_urls_from_ip` and `network_files_from_ip`
+  - Added auto paging versions of the same methods: `network_ip_to_domain_aggregated`, `network_urls_from_ip_aggregated` and `network_files_from_ip_aggregated`
+
+---
+
+
 ### Scheduled removals
 - **June 2023.**:
   - `a1000.A1000.get_results`, `a1000.A1000.upload_sample_and_get_results`, `a1000.A1000.get_classification`, `a1000.A1000.reanalyze_samples`, `a1000.A1000.get_extracted_files`, `a1000.A1000.advanced_search`, `a1000.A1000.advanced_search_aggregated`
