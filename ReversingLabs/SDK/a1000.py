@@ -17,6 +17,7 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
     validate_hashes
 
 
+CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "GOODWARE", "UNKNOWN")
 AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11")
 
 
@@ -2149,50 +2150,230 @@ class A1000(object):
 
         return response
 
-    def network_ip_to_domain(self, ip_addr):
+    def network_ip_to_domain(self, ip_addr, page=None, page_size=500):
         """Accepts an IP address string and returns a list of IP-to-domain mappings.
             :param ip_addr: requested IP address
             :type ip_addr: str
+            :param page: page string
+            :type page: str or None
+            :param page_size: number of results per page
+            :type page_size: int
             :return: response
             :rtype: requests.Response
         """
+        if page and not isinstance(page, str):
+            raise WrongInputError("page parameter must be string.")
+
+        if page_size and not isinstance(page_size, int):
+            raise WrongInputError("page_size parameter must be integer.")
+
+        params = {
+            "page": page,
+            "page_size": page_size
+        }
+
         response = self.__ip_addr_endpoints(
             ip_addr=ip_addr,
-            specific_endpoint=self.__IP_TO_DOMAIN_ENDPOINT
+            specific_endpoint=self.__IP_TO_DOMAIN_ENDPOINT,
+            params=params
         )
 
         return response
 
-    def network_urls_from_ip(self, ip_addr):
+    def network_ip_to_domain_aggregated(self, ip_addr, page_size=500, max_results=5000):
+        """Accepts an IP address string and returns a list of IP-to-domain mappings.
+        This method does the paging automatically and returns a specified maximum number of records.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :param page_size: number of records per page
+            :type page_size: int
+            :param max_results: maximum number of returned records
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.network_ip_to_domain(
+                ip_addr=ip_addr,
+                page=next_page,
+                page_size=page_size
+            )
+
+            response_json = response.json()
+
+            resolutions = response_json.get("resolutions", [])
+            results.extend(resolutions)
+
+            next_page = response_json.get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def network_urls_from_ip(self, ip_addr, page=None, page_size=500):
         """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
             :param ip_addr: requested IP address
             :type ip_addr: str
+            :param page: page string
+            :type page: str or None
+            :param page_size: number of records per page
+            :type page_size: int
             :return: response
             :rtype: requests.Response
         """
+        if page and not isinstance(page, str):
+            raise WrongInputError("page parameter must be string.")
+
+        if page_size and not isinstance(page_size, int):
+            raise WrongInputError("page_size parameter must be integer.")
+
+        params = {
+            "page": page,
+            "page_size": page_size
+        }
+
         response = self.__ip_addr_endpoints(
             ip_addr=ip_addr,
-            specific_endpoint=self.__URLS_FROM_IP_ENDPOINT
+            specific_endpoint=self.__URLS_FROM_IP_ENDPOINT,
+            params=params
         )
 
         return response
 
-    def network_files_from_ip(self, ip_addr):
+    def network_urls_from_ip_aggregated(self, ip_addr, page_size=500, max_results=5000):
+        """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
+        This method does the paging automatically and returns a specified maximum number of records.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :param page_size: number of records per page
+            :type page_size: int
+            :param max_results: maximum number of returned records
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.network_urls_from_ip(
+                ip_addr=ip_addr,
+                page=next_page,
+                page_size=page_size
+            )
+
+            response_json = response.json()
+
+            urls = response_json.get("urls", [])
+            results.extend(urls)
+
+            next_page = response_json.get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def network_files_from_ip(self, ip_addr, extended_results=True, classification=None, page=None, page_size=500):
         """Accepts an IP address string and returns a list of hashes and
         classifications for files found on the requested IP address.
             :param ip_addr: requested IP address
             :type ip_addr: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param classification: return only records with this classification
+            :type classification: str
+            :param page: page string
+            :type page: str or None
+            :param page_size: number of records per page
+            :type page_size: int
             :return: response
             :rtype: requests.Response
         """
+        if page and not isinstance(page, str):
+            raise WrongInputError("page parameter must be string.")
+
+        if page_size and not isinstance(page_size, int):
+            raise WrongInputError("page_size parameter must be integer.")
+
+        if not isinstance(extended_results, bool):
+            raise WrongInputError("extended_results parameter must be boolean.")
+
+        if classification and classification not in CLASSIFICATIONS:
+            raise WrongInputError("Only {classifications} is allowed "
+                                  "as the classification input.".format(classifications=CLASSIFICATIONS))
+
+        params = {
+            "extended": extended_results,
+            "classification": classification,
+            "page": page,
+            "page_size": page_size
+        }
+
         response = self.__ip_addr_endpoints(
             ip_addr=ip_addr,
-            specific_endpoint=self.__FILES_FROM_IP_ENDPOINT
+            specific_endpoint=self.__FILES_FROM_IP_ENDPOINT,
+            params=params
         )
 
         return response
 
-    def __ip_addr_endpoints(self, ip_addr, specific_endpoint):
+    def network_files_from_ip_aggregated(self, ip_addr, extended_results=True, classification=None, page_size=500,
+                                         max_results=5000):
+        """Accepts an IP address string and returns a list of hashes and
+        classifications for files found on the requested IP address.
+        This method does the paging automatically and returns a specified maximum number of records.
+            :param ip_addr: requested IP address
+            :type ip_addr: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param classification: return only records with this classification
+            :type classification: str
+            :param page_size: number of records per page
+            :type page_size: int
+            :param max_results: maximum number of returned records
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.network_files_from_ip(
+                ip_addr=ip_addr,
+                extended_results=extended_results,
+                classification=classification,
+                page=next_page,
+                page_size=page_size
+            )
+
+            response_json = response.json()
+
+            downloaded_files = response_json.get("downloaded_files", [])
+            results.extend(downloaded_files)
+
+            next_page = response_json.get("next_page", None)
+
+            if len(results) >= max_results or not next_page:
+                break
+
+        return results[:max_results]
+
+    def __ip_addr_endpoints(self, ip_addr, specific_endpoint, params=None):
         """Private method for all IP related endpoints from the Network Threat Intelligence API.
             :param ip_addr: requested IP address
             :type ip_addr: str
@@ -2208,7 +2389,7 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__get_request(url=url)
+        response = self.__get_request(url=url, params=params)
 
         self.__raise_on_error(response)
 
@@ -2425,7 +2606,7 @@ class A1000(object):
 
         return False
 
-    def __get_request(self, url):
+    def __get_request(self, url, params=None):
         """A generic GET request method for all A1000 methods.
             :param url: request URL
             :type url: str
@@ -2436,7 +2617,8 @@ class A1000(object):
             url=url,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            params=params
         )
 
         return response
