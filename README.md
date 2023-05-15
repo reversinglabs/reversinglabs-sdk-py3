@@ -146,7 +146,7 @@ If username and password are used instead, a token fetching request will be done
   - Deletes the specified YARA ruleset and its matches from the appliance
 - `enable_or_disable_yara_ruleset`
   - Enables/disables ruleset on the appliance
-  - Administrators can manage any ruleset while regular A1000 users can only menage their own rulesets
+  - Administrators can manage any ruleset while regular A1000 users can only manage their own rulesets
 - `get_yara_ruleset_synchronization_time`
   - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
 - `update_yara_ruleset_synchronization_time`
