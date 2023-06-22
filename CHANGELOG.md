@@ -117,6 +117,18 @@ v2.1.2 (2023-05-15)
 ---
 
 
+
+v2.2.0 (2023-06-23)
+-------------------
+
+#### Improvements
+
+- **ticloud** module:
+  - Added the `NewMalwarePlatformFiltered` class.
+
+---
+
+
 ### Scheduled removals
 - **June 2023.**:
   - `a1000.A1000.get_results`, `a1000.A1000.upload_sample_and_get_results`, `a1000.A1000.get_classification`, `a1000.A1000.reanalyze_samples`, `a1000.A1000.get_extracted_files`, `a1000.A1000.advanced_search`, `a1000.A1000.advanced_search_aggregated`
