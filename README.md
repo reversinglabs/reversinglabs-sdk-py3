@@ -595,6 +595,18 @@ class DataChangeSubscription(TiCloudAPI)
 - `continuous_data_change_feed`
   - Returns a recordset with samples to which the user is subscribed from the timestamp stated in the request onwards. To fetch the next recordset, use the last_timestamp value from the response and submit it in a new request as the time_value parameter.
 
+#### Class:
+```python
+class NewMalwarePlatformFiltered(TiCloudAPI)
+````
+#### Methods:
+- `feed_query`
+    - Returns a list of malware samples optionally filtered by platform since the requested timestamp.
+- `start_query`
+    - Sets the starting timestamp for the pull_query.
+- `pull_query`
+    - Returns the list of malware samples optionally filtered by platform since a point in time set by the start_query.
+
 
 ***
 
