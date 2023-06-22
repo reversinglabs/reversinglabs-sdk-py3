@@ -4105,6 +4105,142 @@ class YARARetroHunting(TiCloudAPI):
         return response
 
 
+class NewMalwarePlatformFiltered(TiCloudAPI):
+    """TCF-0102-0106"""
+
+    __FEED_ENDPOINT = "/api/feed/malware/detection/platform/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/malware/detection/platform/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/malware/detection/platform/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewMalwarePlatformFiltered, self).__init__(host, username, password, verify, proxies,
+                                                         user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, platforms=None, sample_available=False, limit=1000):
+        """Returns a list of malware samples optionally filtered by platform since the requested
+        timestamp.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param platforms: filter the samples by their detected platform value; check the API documentation for
+            allowed values; the platforms should be passed as list of strings
+            :type platforms: list[str] or None
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        base = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            limit=limit
+        )
+
+        if platforms:
+            for platform in platforms:
+                query_params = query_params + "&platform={platform}".format(platform=platform)
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, platforms=None, sample_available=False, limit=1000):
+        """Returns the list of malware samples optionally filtered by platform
+        since a point in time set by the start_query.
+            :param platforms: filter the samples by their detected platform value; check the API documentation for
+            allowed values; the platforms should be passed as list of strings
+            :type platforms: list[str] or None
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            limit=limit
+        )
+
+        if platforms:
+            for platform in platforms:
+                query_params = query_params + "&platform={platform}".format(platform=platform)
+
+        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
