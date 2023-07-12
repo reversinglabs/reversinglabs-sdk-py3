@@ -4241,6 +4241,80 @@ class NewMalwarePlatformFiltered(TiCloudAPI):
         return response
 
 
+class CustomerUsage(TiCloudAPI):
+    """TCA-9999"""
+
+    __USAGE = "/api/customer_usage/v1/usage"
+    __USAGE_COMPANY = "/api/customer_usage/v1/usage/company"
+    __LIMITS = "/api/customer_usage/v1/limits"
+    __LIMITS_COMPANY = "/api/customer_usage/v1/limits/company"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CustomerUsage, self).__init__(host, username, password, verify, proxies,
+                                            user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def daily_usage(self, single_date=None, from_date=None, to_date=None,  whole_company=False):
+        """Returns information about daily service usage for the TitaniumCloud account that sent the
+        request. If the date is not specified in the request, the service returns usage for the current date. The
+        users can also specify a from-to time range (in days), to a maximum interval of 365 days.
+        If whole_company is set to True, the method will return
+        combined daily service usage for all users in the company.
+            :param single_date: setting a date string here provides results for only that single date;
+            accepted format is 'yyyy-MM-dd'; mutually exclusive with from_date and to_date
+            :type single_date: str
+            :param from_date: set a start date; accepted format is 'yyyy-MM-dd'; mutually exclusive with single_date
+            :type from_date: str
+            :param to_date: set an end date; accepted format is 'yyyy-MM-dd'; mutually exclusive with single_date
+            :type to_date: str
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/daily"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/daily"
+
+        if from_date or to_date:
+            if single_date:
+                raise WrongInputError("single_date can not be used with from_date and to_date.")
+
+            if not (from_date and to_date):
+                raise WrongInputError("from_date and to_date need to be used together.")
+
+        query_params = {
+            "date": single_date,
+            "from": from_date,
+            "to": to_date,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def monthly_usage(self, whole_company=False):
+        pass
+
+    def date_range_usage(self, whole_company=False):
+        pass
+
+    def active_yara_rulesets(self):
+        pass
+
+    def quota_limits(self, whole_company=False):
+        pass
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
