@@ -4587,6 +4587,36 @@ class NetworkReputationUserOverride(TiCloudAPI):
         return results[:max_results]
 
 
+class TAXIIRansomwareFeed(TiCloudAPI):
+    """TCTF-0001"""
+
+    __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
+    __API_ROOT_ENDPOINT = "/api/taxii/{api_root}/"
+    __COLLECTIONS_ENDPOINT = "/api/taxii/{api_root}/collections/{collection}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def discovery_info(self):
+        url = self._url.format(endpoint=self.__DISCOVERY_ENDPOINT)
+
+        self._headers["Accept"] = "application/taxii+json;version=2.1"
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+
+
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
