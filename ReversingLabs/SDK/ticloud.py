@@ -4423,6 +4423,47 @@ class CustomerUsage(TiCloudAPI):
         return response
 
 
+class NetworkReputation(TiCloudAPI):
+    """TCA-0407 - Network Reputation API"""
+
+    __REPUTATION_ENDPOINT = "/api/networking/reputation/v1/query/{post_format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NetworkReputation, self).__init__(host, username, password, verify, proxies,
+                                                user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_network_reputation(self, network_locations):
+        """Returns reputation information about queried URL-, domains and IP addresses.
+            :param network_locations: a list of one or more network locations to be queried; possible types of network
+            locations are URL-s, IP addresses and domains
+            :type network_locations: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(network_locations, list):
+            raise WrongInputError("network_locations parameter must be a list of strings.")
+
+        locations = []
+
+        for location in network_locations:
+            locations.append({"network_location": location})
+
+        post_json = {"rl": {"query": {"network_locations": locations, "response_format": "json"}}}
+
+        endpoint = self.__REPUTATION_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
