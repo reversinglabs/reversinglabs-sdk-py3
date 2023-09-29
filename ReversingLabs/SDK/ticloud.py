@@ -4242,7 +4242,7 @@ class NewMalwarePlatformFiltered(TiCloudAPI):
 
 
 class CustomerUsage(TiCloudAPI):
-    """TCA-9999"""
+    """TCA-9999 - Customer Usage"""
 
     __USAGE = "/api/customer_usage/v1/usage"
     __USAGE_COMPANY = "/api/customer_usage/v1/usage/company"
@@ -4302,17 +4302,125 @@ class CustomerUsage(TiCloudAPI):
 
         return response
 
-    def monthly_usage(self, whole_company=False):
-        pass
+    def monthly_usage(self, single_month=None, from_month=None, to_month=None, whole_company=False):
+        """Returns information about monthly service usage for the TitaniumCloud account that sent the
+        request. If the months are not specified in the request, the service returns usage for the current month.
+        The users can also specify a from-to month. If whole_company is set to True,
+        the method will return combined monthly service usage for all users in the company.
+            :param single_month: setting a month definition string here provides results for that month only;
+            accepted format is 'yyyy-MM'; mutually exclusive with from_month and to_month
+            :type single_month: str
+            :param from_month: set a start month; accepted format is 'yyyy-MM'; mutually exclusive with single_month
+            :type from_month: str
+            :param to_month: set an end month; accepted format is 'yyyy-MM'; mutually exclusive with single_month
+            :type to_month: str
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/monthly"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/monthly"
+
+        if from_month or to_month:
+            if single_month:
+                raise WrongInputError("single_month can not be used with from_month and to_month.")
+
+            if not (from_month and to_month):
+                raise WrongInputError("from_month and to_month need to be used together.")
+
+        query_params = {
+            "month": single_month,
+            "from": from_month,
+            "to": to_month,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
     def date_range_usage(self, whole_company=False):
-        pass
+        """This method returns total usage for all product licenses with a fixed quota over a single date range. Use
+        this method for products with quotas that do not reset on a daily or monthly basis. The endpoint
+        accepts no additional date specifying parameters, instead always returning total usage for the account
+        in question.
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/date_range"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/date_range"
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
     def active_yara_rulesets(self):
-        pass
+        """This method returns information about the number of active YARA rulesets for the TitaniumCloud
+        account that sent the request.
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = self.__USAGE + "/yara"
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
     def quota_limits(self, whole_company=False):
-        pass
+        """This method returns current quota limits for API-s accessible to the authenticated user. Products are
+        grouped into one object if they share the usage quota and access rights. This means that the same
+        users and products can appear multiple times in the response.
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__LIMITS
+
+        else:
+            endpoint = self.__LIMITS_COMPANY
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 def _update_hash_object(input_source, hash_object):
