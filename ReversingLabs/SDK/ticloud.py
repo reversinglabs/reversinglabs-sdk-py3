@@ -4464,6 +4464,129 @@ class NetworkReputation(TiCloudAPI):
         return response
 
 
+class NetworkReputationUserOverride(TiCloudAPI):
+    """TCA-0408 - Network Reputation User Override API"""
+
+    __OVERRIDE_ENDPOINT = "/api/networking/user_override/v1/query/{post_format}"
+    __LIST_OVERRIDES_ENDPOINT = "/api/networking/user_override/v1/query/list_overrides"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NetworkReputationUserOverride, self).__init__(host, username, password, verify, proxies,
+                                                            user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def reputation_override(self, override_list=None, remove_overrides_list=None):
+        """This method enables two actions in one request:
+        1. Send a list of network locations whose classification needs to be overriden
+        2. Send a list of network locations whose classification override needs to be removed
+            :param override_list: a list of network locations whose classification needs to be overriden;
+            format of one object:
+            {
+                'network_location': 'example_network_location',
+                'type': 'network_location_type',
+                'classification': 'new_classification',
+                'categories': ['list', 'of', 'arbitrary', 'categories']
+            }
+                'network_location', 'type' and 'classification' are required elements;
+                currently the only supported type is 'url'
+            :type override_list: list[dict]
+
+            :param remove_overrides_list: a list of network locations whose classification override needs to be removed;
+            format of one object:
+            {
+                'network_location': 'example_network_location',
+                'type': 'network_location_type'
+            }
+                'network_location' and 'type' are  required elements;
+                currently the only supported type is 'url'
+            :type remove_overrides_list: list[dict]
+
+            :return: response
+            :rtype: requests.Response
+        """
+        if not any((override_list, remove_overrides_list)):
+            raise WrongInputError("At least one of the parameters needs to be set.")
+
+        if override_list:
+            if not isinstance(override_list, list):
+                raise WrongInputError("override_list parameter must be a list of objects")
+
+        else:
+            override_list =[]
+
+        if remove_overrides_list:
+            if not isinstance(remove_overrides_list, list):
+                raise WrongInputError("remove_overrides_list parameter must be a list of objects")
+
+        else:
+            remove_overrides_list = []
+
+        post_json = {"rl": {"query": {"user_override":
+                                          {"override_network_locations": override_list,
+                                           "remove_overrides": remove_overrides_list}, "response_format": "json"}}}
+
+        endpoint = self.__OVERRIDE_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_overrides(self, next_page_sha1=None):
+        """Returns a list of overrides that the user has made.
+            :param next_page_sha1: optional SHA-1 string of the next page of results
+            :type next_page_sha1: str
+            :return: response
+            :rtype: requests.Response
+        """
+        query_params = {
+            "format": "json",
+            "next_network_location": next_page_sha1
+        }
+
+        url = self._url.format(endpoint=self.__LIST_OVERRIDES_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_overrides_aggregated(self, max_results=50000):
+        """Returns a list of overrides that the user has made.
+        This method automatically handles paging and returns a list of results instead of a Response object.
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+           :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_sha1 = ""
+
+        while True:
+            response = self.list_overrides(next_page_sha1=next_page_sha1)
+
+            response_json = response.json()
+
+            overrides_list = response_json.get("rl").get("user_override").get("network_locations", [])
+            results.extend(overrides_list)
+
+            next_page_sha1 = response_json.get("rl").get("user_override").get("next_network_location", None)
+
+            if len(results) >= max_results or not next_page_sha1:
+                break
+
+        return results[:max_results]
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
