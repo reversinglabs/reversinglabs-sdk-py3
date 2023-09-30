@@ -607,6 +607,61 @@ class NewMalwarePlatformFiltered(TiCloudAPI)
 - `pull_query`
     - Returns the list of malware samples optionally filtered by platform since a point in time set by the start_query.
 
+#### Class:
+```python
+class CustomerUsage(TiCloudAPI)
+````
+#### Methods:
+- `daily_usage`
+    - Returns information about daily service usage for the TitaniumCloud account that sent the
+        request.
+- `monthly_usage`
+    - Returns information about monthly service usage for the TitaniumCloud account that sent the
+        request.
+- `date_range_usage`
+    - This method returns total usage for all product licenses with a fixed quota over a single date range.
+- `active_yara_rulesets`
+    - This method returns information about the number of active YARA rulesets for the TitaniumCloud
+        account that sent the request.
+- `quota_limits`
+    - This method returns current quota limits for API-s accessible to the authenticated user.
+
+#### Class:
+```python
+class NetworkReputation(TiCloudAPI)
+````
+#### Methods:
+- `get_network_reputation`
+    - Returns reputation information about queried URL-, domains and IP addresses.
+
+#### Class:
+```python
+class NetworkReputationUserOverride(TiCloudAPI)
+````
+#### Methods:
+- `reputation_override`
+    - This method enables two actions in one request:
+        1. Send a list of network locations whose classification needs to be overriden.
+        2. Send a list of network locations whose classification override needs to be removed.
+- `list_overrides`
+    - Returns a list of overrides that the user has made.
+
+#### Class:
+```python
+class TAXIIRansomwareFeed(TiCloudAPI)
+````
+#### Methods:
+- `discovery_info`
+    - Returns the information from the TAXII Server's discovery endpoint. 
+    - The returned info shows the available api roots.
+- `api_root_info`
+    - Returns information about a specific api root.
+- `collections_info`
+    - Returns information about available collections in an api root.
+- `get_objects`
+    - Returns objects from a TAXII collection. 
+    - Results can be filtered using several parameters.
+
 
 ***
 
