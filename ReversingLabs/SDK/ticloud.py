@@ -21,7 +21,7 @@ XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
-AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos11")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -2946,7 +2946,9 @@ class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
 
     __DETONATE_SAMPLE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
+    __DETONATE_ARCHIVE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/archive/query/json"
     __GET_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/query/sha1"
+    __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/sha1"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -2955,12 +2957,15 @@ class DynamicAnalysis(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def detonate_sample(self, sample_sha1, platform, internet_simulation=False):
-        """Submits a sample available in the cloud for dynamic analysis and returns processing info.
-            :param sample_sha1: SHA-1 hash of the sample
+    def detonate_sample(self, sample_sha1, platform, is_archive=False, internet_simulation=False):
+        """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
+            :param sample_sha1: SHA-1 hash of the sample or archive
             :type sample_sha1: str
-            :param platform: desired platform on which the sample will be detonated; see available platforms
+            :param platform: desired platform on which the sample or archive will be detonated; see available platforms
             :type platform: str
+            :param is_archive: needs to be set to True if a file archive is being detonated;
+            currently supported archive types: .zip
+            :type is_archive: bool
             :param internet_simulation: perform the dynamic analysis without connecting to the internet
             :type internet_simulation: bool
             :return: response
@@ -2979,11 +2984,18 @@ class DynamicAnalysis(TiCloudAPI):
             raise WrongInputError("internet_simulation parameter must be boolean.")
         internet_simulation = str(internet_simulation).lower()
 
-        url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+        if not is_archive:
+            url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+
+        else:
+            url = self._url.format(endpoint=self.__DETONATE_ARCHIVE_ENDPOINT)
 
         post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json",
                             "optional_parameters": "internet_simulation={simulation}".format(
                                 simulation=internet_simulation)}}
+
+        print(url)
+        print(post_json)
 
         response = self._post_request(
             url=url,
@@ -2994,11 +3006,14 @@ class DynamicAnalysis(TiCloudAPI):
 
         return response
 
-    def get_dynamic_analysis_results(self, sample_hash, latest=False, analysis_id=None):
-        """Returns dynamic analysis results for a desired sample.
+    def get_dynamic_analysis_results(self, sample_hash, is_archive=False, latest=False, analysis_id=None):
+        """Returns dynamic analysis results for a desired sample or a file archive.
         The analysis of the selected sample must be finished for the results to be available.
-            :param sample_hash: SHA-1 hash of a desired sample
+            :param sample_hash: SHA-1 hash of a desired sample or archive
             :type sample_hash: str
+            :param is_archive: needs to be set to True if results for a file archive are being fetched;
+            currently supported archive types: .zip
+            :type is_archive: bool
             :param latest: return only the latest analysis results
             :type latest: bool
             :param analysis_id: return only the results of this analysis
@@ -3011,8 +3026,14 @@ class DynamicAnalysis(TiCloudAPI):
             allowed_hash_types=(SHA1,)
         )
 
+        if not is_archive:
+            endpoint_base = self.__GET_RESULTS_ENDPOINT
+
+        else:
+            endpoint_base = self.__GET_ARCHIVE_RESULTS_ENDPOINT
+
         endpoint = "{endpoint_base}/{sample_hash}".format(
-            endpoint_base=self.__GET_RESULTS_ENDPOINT,
+            endpoint_base=endpoint_base,
             sample_hash=sample_hash
         )
 
@@ -3025,14 +3046,15 @@ class DynamicAnalysis(TiCloudAPI):
 
             endpoint = "{endpoint}/latest".format(endpoint=endpoint)
 
-        if analysis_id:
-            if not isinstance(analysis_id, str):
-                raise WrongInputError("analysis_id parameter bust be string.")
+        if not is_archive:
+            if analysis_id:
+                if not isinstance(analysis_id, str):
+                    raise WrongInputError("analysis_id parameter bust be string.")
 
-            endpoint = "{endpoint}/{analysis_id}".format(
-                endpoint=endpoint,
-                analysis_id=analysis_id
-            )
+                endpoint = "{endpoint}/{analysis_id}".format(
+                    endpoint=endpoint,
+                    analysis_id=analysis_id
+                )
 
         endpoint = "{endpoint}?format=json".format(endpoint=endpoint)
 
