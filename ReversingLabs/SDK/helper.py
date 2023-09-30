@@ -22,7 +22,7 @@ HASH_LENGTH_MAP = {
     128: SHA512
 }
 
-DEFAULT_USER_AGENT = "ReversingLabs integrations default user agent"
+DEFAULT_USER_AGENT = "ReversingLabs SDK v2.3.0"
 ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "sampletype", "filecount", "size")
 
 

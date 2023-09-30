@@ -162,10 +162,10 @@ If username and password are used instead, a token fetching request will be done
 - `get_yara_cloud_retro_scan_status`
   - Gets the status of Cloud Retro for the specified YARA ruleset. The response indicates the
         current state of Cloud Retro       
-- `advanced_search_v2`
-  - Sends a query string to the A1000 Advanced Search API v2
-- `advanced_search_v2_aggregated`
-  - Sends a query string to the A1000 Advanced Search API v2
+- `advanced_search_v3`
+  - Sends a query string to the A1000 Advanced Search API v3
+- `advanced_search_v3_aggregated`
+  - Sends a query string to the A1000 Advanced Search API v3
   - Paging is done automatically and results from individual
         responses aggregated into one list and returned
 - `list_containers_for_hashes`
@@ -381,7 +381,7 @@ class DeleteFile(TiCloudAPI)
 class ReanalyzeFile(TiCloudAPI)
 ````
 #### Methods:
-- `ranalyze_samples`
+- `reanalyze_samples`
   - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
   - The samples need to be already present in the cloud in order to be reanalyzed
 
@@ -606,6 +606,61 @@ class NewMalwarePlatformFiltered(TiCloudAPI)
     - Sets the starting timestamp for the pull_query.
 - `pull_query`
     - Returns the list of malware samples optionally filtered by platform since a point in time set by the start_query.
+
+#### Class:
+```python
+class CustomerUsage(TiCloudAPI)
+````
+#### Methods:
+- `daily_usage`
+    - Returns information about daily service usage for the TitaniumCloud account that sent the
+        request.
+- `monthly_usage`
+    - Returns information about monthly service usage for the TitaniumCloud account that sent the
+        request.
+- `date_range_usage`
+    - This method returns total usage for all product licenses with a fixed quota over a single date range.
+- `active_yara_rulesets`
+    - This method returns information about the number of active YARA rulesets for the TitaniumCloud
+        account that sent the request.
+- `quota_limits`
+    - This method returns current quota limits for API-s accessible to the authenticated user.
+
+#### Class:
+```python
+class NetworkReputation(TiCloudAPI)
+````
+#### Methods:
+- `get_network_reputation`
+    - Returns reputation information about queried URL-, domains and IP addresses.
+
+#### Class:
+```python
+class NetworkReputationUserOverride(TiCloudAPI)
+````
+#### Methods:
+- `reputation_override`
+    - This method enables two actions in one request:
+        1. Send a list of network locations whose classification needs to be overriden.
+        2. Send a list of network locations whose classification override needs to be removed.
+- `list_overrides`
+    - Returns a list of overrides that the user has made.
+
+#### Class:
+```python
+class TAXIIRansomwareFeed(TiCloudAPI)
+````
+#### Methods:
+- `discovery_info`
+    - Returns the information from the TAXII Server's discovery endpoint. 
+    - The returned info shows the available api roots.
+- `api_root_info`
+    - Returns information about a specific api root.
+- `collections_info`
+    - Returns information about available collections in an api root.
+- `get_objects`
+    - Returns objects from a TAXII collection. 
+    - Results can be filtered using several parameters.
 
 
 ***

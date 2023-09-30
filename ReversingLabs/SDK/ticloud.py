@@ -21,7 +21,7 @@ XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
-AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos11")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -2736,23 +2736,6 @@ class ReanalyzeFile(TiCloudAPI):
 
         return response
 
-    def ranalyze_samples(self, sample_hashes):
-        """THIS METHOD IS DEPRECATED.
-        Use reanalyze_samples instead.
-
-        Accepts a single hash string or a list of hash strings
-        belonging to samples in the cloud you want to reanalyze.
-        The samples need to be already present in the cloud in order to be reanalyzed.
-        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
-            :param sample_hashes: hash string or a list of hash strings
-            :type sample_hashes: str or list[str]
-            :return: response
-            :rtype: requests.Response
-        """
-        warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
-
-        self.reanalyze_samples(sample_hashes=sample_hashes)
-
 
 class DataChangeSubscription(TiCloudAPI):
     """TCA-0206 - Alert on Reputation and Metadata Changes"""
@@ -2946,7 +2929,9 @@ class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
 
     __DETONATE_SAMPLE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
+    __DETONATE_ARCHIVE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/archive/query/json"
     __GET_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/query/sha1"
+    __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/sha1"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -2955,12 +2940,15 @@ class DynamicAnalysis(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def detonate_sample(self, sample_sha1, platform, internet_simulation=False):
-        """Submits a sample available in the cloud for dynamic analysis and returns processing info.
-            :param sample_sha1: SHA-1 hash of the sample
+    def detonate_sample(self, sample_sha1, platform, is_archive=False, internet_simulation=False):
+        """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
+            :param sample_sha1: SHA-1 hash of the sample or archive
             :type sample_sha1: str
-            :param platform: desired platform on which the sample will be detonated; see available platforms
+            :param platform: desired platform on which the sample or archive will be detonated; see available platforms
             :type platform: str
+            :param is_archive: needs to be set to True if a file archive is being detonated;
+            currently supported archive types: .zip
+            :type is_archive: bool
             :param internet_simulation: perform the dynamic analysis without connecting to the internet
             :type internet_simulation: bool
             :return: response
@@ -2979,11 +2967,18 @@ class DynamicAnalysis(TiCloudAPI):
             raise WrongInputError("internet_simulation parameter must be boolean.")
         internet_simulation = str(internet_simulation).lower()
 
-        url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+        if not is_archive:
+            url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+
+        else:
+            url = self._url.format(endpoint=self.__DETONATE_ARCHIVE_ENDPOINT)
 
         post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json",
                             "optional_parameters": "internet_simulation={simulation}".format(
                                 simulation=internet_simulation)}}
+
+        print(url)
+        print(post_json)
 
         response = self._post_request(
             url=url,
@@ -2994,11 +2989,14 @@ class DynamicAnalysis(TiCloudAPI):
 
         return response
 
-    def get_dynamic_analysis_results(self, sample_hash, latest=False, analysis_id=None):
-        """Returns dynamic analysis results for a desired sample.
+    def get_dynamic_analysis_results(self, sample_hash, is_archive=False, latest=False, analysis_id=None):
+        """Returns dynamic analysis results for a desired sample or a file archive.
         The analysis of the selected sample must be finished for the results to be available.
-            :param sample_hash: SHA-1 hash of a desired sample
+            :param sample_hash: SHA-1 hash of a desired sample or archive
             :type sample_hash: str
+            :param is_archive: needs to be set to True if results for a file archive are being fetched;
+            currently supported archive types: .zip
+            :type is_archive: bool
             :param latest: return only the latest analysis results
             :type latest: bool
             :param analysis_id: return only the results of this analysis
@@ -3011,8 +3009,14 @@ class DynamicAnalysis(TiCloudAPI):
             allowed_hash_types=(SHA1,)
         )
 
+        if not is_archive:
+            endpoint_base = self.__GET_RESULTS_ENDPOINT
+
+        else:
+            endpoint_base = self.__GET_ARCHIVE_RESULTS_ENDPOINT
+
         endpoint = "{endpoint_base}/{sample_hash}".format(
-            endpoint_base=self.__GET_RESULTS_ENDPOINT,
+            endpoint_base=endpoint_base,
             sample_hash=sample_hash
         )
 
@@ -3025,14 +3029,15 @@ class DynamicAnalysis(TiCloudAPI):
 
             endpoint = "{endpoint}/latest".format(endpoint=endpoint)
 
-        if analysis_id:
-            if not isinstance(analysis_id, str):
-                raise WrongInputError("analysis_id parameter bust be string.")
+        if not is_archive:
+            if analysis_id:
+                if not isinstance(analysis_id, str):
+                    raise WrongInputError("analysis_id parameter bust be string.")
 
-            endpoint = "{endpoint}/{analysis_id}".format(
-                endpoint=endpoint,
-                analysis_id=analysis_id
-            )
+                endpoint = "{endpoint}/{analysis_id}".format(
+                    endpoint=endpoint,
+                    analysis_id=analysis_id
+                )
 
         endpoint = "{endpoint}?format=json".format(endpoint=endpoint)
 
@@ -4235,6 +4240,478 @@ class NewMalwarePlatformFiltered(TiCloudAPI):
         url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class CustomerUsage(TiCloudAPI):
+    """TCA-9999 - Customer Usage"""
+
+    __USAGE = "/api/customer_usage/v1/usage"
+    __USAGE_COMPANY = "/api/customer_usage/v1/usage/company"
+    __LIMITS = "/api/customer_usage/v1/limits"
+    __LIMITS_COMPANY = "/api/customer_usage/v1/limits/company"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CustomerUsage, self).__init__(host, username, password, verify, proxies,
+                                            user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def daily_usage(self, single_date=None, from_date=None, to_date=None,  whole_company=False):
+        """Returns information about daily service usage for the TitaniumCloud account that sent the
+        request. If the date is not specified in the request, the service returns usage for the current date. The
+        users can also specify a from-to time range (in days), to a maximum interval of 365 days.
+        If whole_company is set to True, the method will return
+        combined daily service usage for all users in the company.
+            :param single_date: setting a date string here provides results for only that single date;
+            accepted format is 'yyyy-MM-dd'; mutually exclusive with from_date and to_date
+            :type single_date: str
+            :param from_date: set a start date; accepted format is 'yyyy-MM-dd'; mutually exclusive with single_date
+            :type from_date: str
+            :param to_date: set an end date; accepted format is 'yyyy-MM-dd'; mutually exclusive with single_date
+            :type to_date: str
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/daily"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/daily"
+
+        if from_date or to_date:
+            if single_date:
+                raise WrongInputError("single_date can not be used with from_date and to_date.")
+
+            if not (from_date and to_date):
+                raise WrongInputError("from_date and to_date need to be used together.")
+
+        query_params = {
+            "date": single_date,
+            "from": from_date,
+            "to": to_date,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def monthly_usage(self, single_month=None, from_month=None, to_month=None, whole_company=False):
+        """Returns information about monthly service usage for the TitaniumCloud account that sent the
+        request. If the months are not specified in the request, the service returns usage for the current month.
+        The users can also specify a from-to month. If whole_company is set to True,
+        the method will return combined monthly service usage for all users in the company.
+            :param single_month: setting a month definition string here provides results for that month only;
+            accepted format is 'yyyy-MM'; mutually exclusive with from_month and to_month
+            :type single_month: str
+            :param from_month: set a start month; accepted format is 'yyyy-MM'; mutually exclusive with single_month
+            :type from_month: str
+            :param to_month: set an end month; accepted format is 'yyyy-MM'; mutually exclusive with single_month
+            :type to_month: str
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/monthly"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/monthly"
+
+        if from_month or to_month:
+            if single_month:
+                raise WrongInputError("single_month can not be used with from_month and to_month.")
+
+            if not (from_month and to_month):
+                raise WrongInputError("from_month and to_month need to be used together.")
+
+        query_params = {
+            "month": single_month,
+            "from": from_month,
+            "to": to_month,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def date_range_usage(self, whole_company=False):
+        """This method returns total usage for all product licenses with a fixed quota over a single date range. Use
+        this method for products with quotas that do not reset on a daily or monthly basis. The endpoint
+        accepts no additional date specifying parameters, instead always returning total usage for the account
+        in question.
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__USAGE + "/date_range"
+
+        else:
+            endpoint = self.__USAGE_COMPANY + "/date_range"
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def active_yara_rulesets(self):
+        """This method returns information about the number of active YARA rulesets for the TitaniumCloud
+        account that sent the request.
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = self.__USAGE + "/yara"
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def quota_limits(self, whole_company=False):
+        """This method returns current quota limits for API-s accessible to the authenticated user. Products are
+        grouped into one object if they share the usage quota and access rights. This means that the same
+        users and products can appear multiple times in the response.
+            :param whole_company: return combined service usage for the whole company
+            :type whole_company: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not whole_company:
+            endpoint = self.__LIMITS
+
+        else:
+            endpoint = self.__LIMITS_COMPANY
+
+        query_params = {
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NetworkReputation(TiCloudAPI):
+    """TCA-0407 - Network Reputation API"""
+
+    __REPUTATION_ENDPOINT = "/api/networking/reputation/v1/query/{post_format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NetworkReputation, self).__init__(host, username, password, verify, proxies,
+                                                user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_network_reputation(self, network_locations):
+        """Returns reputation information about queried URL-, domains and IP addresses.
+            :param network_locations: a list of one or more network locations to be queried; possible types of network
+            locations are URL-s, IP addresses and domains
+            :type network_locations: list[str]
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(network_locations, list):
+            raise WrongInputError("network_locations parameter must be a list of strings.")
+
+        locations = []
+
+        for location in network_locations:
+            locations.append({"network_location": location})
+
+        post_json = {"rl": {"query": {"network_locations": locations, "response_format": "json"}}}
+
+        endpoint = self.__REPUTATION_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NetworkReputationUserOverride(TiCloudAPI):
+    """TCA-0408 - Network Reputation User Override API"""
+
+    __OVERRIDE_ENDPOINT = "/api/networking/user_override/v1/query/{post_format}"
+    __LIST_OVERRIDES_ENDPOINT = "/api/networking/user_override/v1/query/list_overrides"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NetworkReputationUserOverride, self).__init__(host, username, password, verify, proxies,
+                                                            user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def reputation_override(self, override_list=None, remove_overrides_list=None):
+        """This method enables two actions in one request:
+        1. Send a list of network locations whose classification needs to be overriden
+        2. Send a list of network locations whose classification override needs to be removed
+            :param override_list: a list of network locations whose classification needs to be overriden;
+            format of one object:
+            {
+                'network_location': 'example_network_location',
+                'type': 'network_location_type',
+                'classification': 'new_classification',
+                'categories': ['list', 'of', 'arbitrary', 'categories']
+            }
+                'network_location', 'type' and 'classification' are required elements;
+                currently the only supported type is 'url'
+            :type override_list: list[dict]
+
+            :param remove_overrides_list: a list of network locations whose classification override needs to be removed;
+            format of one object:
+            {
+                'network_location': 'example_network_location',
+                'type': 'network_location_type'
+            }
+                'network_location' and 'type' are  required elements;
+                currently the only supported type is 'url'
+            :type remove_overrides_list: list[dict]
+
+            :return: response
+            :rtype: requests.Response
+        """
+        if not any((override_list, remove_overrides_list)):
+            raise WrongInputError("At least one of the parameters needs to be set.")
+
+        if override_list:
+            if not isinstance(override_list, list):
+                raise WrongInputError("override_list parameter must be a list of objects")
+
+        else:
+            override_list =[]
+
+        if remove_overrides_list:
+            if not isinstance(remove_overrides_list, list):
+                raise WrongInputError("remove_overrides_list parameter must be a list of objects")
+
+        else:
+            remove_overrides_list = []
+
+        post_json = {"rl": {"query": {"user_override":
+                                          {"override_network_locations": override_list,
+                                           "remove_overrides": remove_overrides_list}, "response_format": "json"}}}
+
+        endpoint = self.__OVERRIDE_ENDPOINT.format(post_format="json")
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._post_request(url=url, post_json=post_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_overrides(self, next_page_sha1=None):
+        """Returns a list of overrides that the user has made.
+            :param next_page_sha1: optional SHA-1 string of the next page of results
+            :type next_page_sha1: str
+            :return: response
+            :rtype: requests.Response
+        """
+        query_params = {
+            "format": "json",
+            "next_network_location": next_page_sha1
+        }
+
+        url = self._url.format(endpoint=self.__LIST_OVERRIDES_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_overrides_aggregated(self, max_results=50000):
+        """Returns a list of overrides that the user has made.
+        This method automatically handles paging and returns a list of results instead of a Response object.
+            :param max_results: maximum number of results to be returned in the list
+            :type max_results: int
+            :return: list of results
+           :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page_sha1 = ""
+
+        while True:
+            response = self.list_overrides(next_page_sha1=next_page_sha1)
+
+            response_json = response.json()
+
+            overrides_list = response_json.get("rl").get("user_override").get("network_locations", [])
+            results.extend(overrides_list)
+
+            next_page_sha1 = response_json.get("rl").get("user_override").get("next_network_location", None)
+
+            if len(results) >= max_results or not next_page_sha1:
+                break
+
+        return results[:max_results]
+
+
+class TAXIIRansomwareFeed(TiCloudAPI):
+    """TCTF-0001"""
+
+    __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
+    __API_ROOT_ENDPOINT = "/api/taxii/{api_root}/"
+    __COLLECTIONS_ENDPOINT = "/api/taxii/{api_root}/collections/"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["Accept"] = "application/taxii+json;version=2.1"
+
+    def discovery_info(self):
+        """Returns the information from the TAXII Server's discovery endpoint.
+        The returned info shows the available api roots.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__DISCOVERY_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def __info_endpoints(self, specific_endpoint, api_root):
+        """A private method for information TAXII endpoints.
+            :param specific_endpoint: specific information endpoint
+            :type specific_endpoint: str
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(specific_endpoint, str):
+            raise WrongInputError("specific_endpoint parameter must be a string.")
+
+        if not isinstance(api_root, str):
+            raise WrongInputError("api_root parameter must be a string.")
+
+        endpoint = specific_endpoint.format(api_root=api_root)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def api_root_info(self, api_root):
+        """Returns information about a specific api root.
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__info_endpoints(
+            specific_endpoint=self.__API_ROOT_ENDPOINT,
+            api_root=api_root
+        )
+
+        return response
+
+    def collections_info(self, api_root):
+        """Returns information about available collections in an api root.
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__info_endpoints(
+            specific_endpoint=self.__COLLECTIONS_ENDPOINT,
+            api_root=api_root
+        )
+
+        return response
+
+    def get_objects(self, api_root, collection_id, result_limit=500, added_after=None, match_id=None):
+        """Returns objects from a TAXII collection.
+        Results can be filtered using several parameters.
+            :param api_root: api root name
+            :type api_root: str
+            :param collection_id: collection ID
+            :type collection_id: str
+            :param result_limit: number of returned objects
+            :type result_limit: int
+            :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
+            :type added_after: str
+            :param match_id: return a specific object matching this ID
+            :type match_id: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(result_limit, int):
+            raise WrongInputError("result_limit parameter must be an integer.")
+
+        if added_after:
+            if not isinstance(added_after, str):
+                raise WrongInputError("added_after parameter must be a string.")
+
+        if match_id:
+            if not isinstance(match_id, str):
+                raise WrongInputError("match_id parameter must be a string.")
+
+        query_params = {
+            "limit": result_limit,
+            "added_after": added_after,
+            "match[id]": match_id
+        }
+
+        endpoint = self.__COLLECTIONS_ENDPOINT.format(api_root=api_root) + collection_id + "/objects/"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
