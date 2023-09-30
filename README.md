@@ -162,10 +162,10 @@ If username and password are used instead, a token fetching request will be done
 - `get_yara_cloud_retro_scan_status`
   - Gets the status of Cloud Retro for the specified YARA ruleset. The response indicates the
         current state of Cloud Retro       
-- `advanced_search_v2`
-  - Sends a query string to the A1000 Advanced Search API v2
-- `advanced_search_v2_aggregated`
-  - Sends a query string to the A1000 Advanced Search API v2
+- `advanced_search_v3`
+  - Sends a query string to the A1000 Advanced Search API v3
+- `advanced_search_v3_aggregated`
+  - Sends a query string to the A1000 Advanced Search API v3
   - Paging is done automatically and results from individual
         responses aggregated into one list and returned
 - `list_containers_for_hashes`
@@ -381,7 +381,7 @@ class DeleteFile(TiCloudAPI)
 class ReanalyzeFile(TiCloudAPI)
 ````
 #### Methods:
-- `ranalyze_samples`
+- `reanalyze_samples`
   - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
   - The samples need to be already present in the cloud in order to be reanalyzed
 
