@@ -129,8 +129,34 @@ v2.2.0 (2023-06-23)
 ---
 
 
+
+v2.3.0 (2023-09-29)
+-------------------
+
+#### Improvements
+
+- **ticloud** module:
+  - Added the `CustomerUsage`, `NetworkReputation`, `NetworkReputationUserOverride` and `TAXIIRansomwareFeed` classes.
+  - The `DynamicAnalysis` class methods now also support `windows11` and `linux` as a platform.
+  - The `DynamicAnalysis` class methods now also support detonating .zip file archives and fetching the analysis results for the same.
+- **a1000** module:
+  - Added the `advanced_search_v3` and `advanced_search_v3_aggregated` methods.
+
+#### Deprecations
+
+- **a1000** module:
+  - Deprecated the `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
+
+#### Removals
+
+- **ticloud** module:
+  - Removed the `ReanalyzeFile.ranalyze_samples` method.
+- **a1000** module:
+  - Removed the `get_results`, `upload_sample_and_get_results`, `get_classification`, `reanalyze_samples`, `get_extracted_files`, `advanced_search` and `advanced_search_aggregated` methods.
+
+---
+
+
 ### Scheduled removals
-- **June 2023.**:
-  - `a1000.A1000.get_results`, `a1000.A1000.upload_sample_and_get_results`, `a1000.A1000.get_classification`, `a1000.A1000.reanalyze_samples`, `a1000.A1000.get_extracted_files`, `a1000.A1000.advanced_search`, `a1000.A1000.advanced_search_aggregated`
-- **September 2023.**:
-  - `ticloud.ReanalyzeFile.ranalyze_samples`
+- **March 2024.**:
+  - `a1000.A1000.advanced_search_v2`
