@@ -2736,23 +2736,6 @@ class ReanalyzeFile(TiCloudAPI):
 
         return response
 
-    def ranalyze_samples(self, sample_hashes):
-        """THIS METHOD IS DEPRECATED.
-        Use reanalyze_samples instead.
-
-        Accepts a single hash string or a list of hash strings
-        belonging to samples in the cloud you want to reanalyze.
-        The samples need to be already present in the cloud in order to be reanalyzed.
-        In case a list with multiple sample hashes is being used, all hashes must be of the same type.
-            :param sample_hashes: hash string or a list of hash strings
-            :type sample_hashes: str or list[str]
-            :return: response
-            :rtype: requests.Response
-        """
-        warn("This method is deprecated. Use reanalyze_samples instead.", DeprecationWarning)
-
-        self.reanalyze_samples(sample_hashes=sample_hashes)
-
 
 class DataChangeSubscription(TiCloudAPI):
     """TCA-0206 - Alert on Reputation and Metadata Changes"""
