@@ -60,8 +60,8 @@ class A1000(object):
     __GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT = "/api/yara/ticloud/time/"
     __YARA_LOCAL_RETROSCAN_ENDPOINT = "/api/uploads/local-retro-hunt/"
     __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
-    __ADVANCED_SEARCH_ENDPOINT = "/api/samples/search/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
+    __ADVANCED_SEARCH_ENDPOINT_V3 = "/api/samples/v3/search/"
     __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
     __URL_REPORT_ENDPOINT = "/api/network-threat-intel/url/"
     __DOMAIN_REPORT_ENDPOINT = "/api/network-threat-intel/domain/{domain}/"
@@ -1562,7 +1562,9 @@ class A1000(object):
 
     def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
-        """Sends a query string to the A1000 Advanced Search API v2.
+        """THIS METHOD IS DEPRECATED. Use advanced_search_v3 instead.
+
+        Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         For directions on how to write advanced search queries, consult the A1000 documentation.
@@ -1586,6 +1588,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use advanced_search_v3 instead.", DeprecationWarning)
+
         if not isinstance(query_string, str):
             raise WrongInputError("The search query must be a string.")
 
@@ -1622,7 +1626,9 @@ class A1000(object):
 
     def advanced_search_v2_aggregated(self,  query_string, ticloud=False, max_results=5000, sorting_criteria=None,
                                       sorting_order="desc"):
-        """Sends a query string to the A1000 Advanced Search API v2.
+        """THIS METHOD IS DEPRECATED. Use advanced_search_v3_aggregated instead.
+
+        Sends a query string to the A1000 Advanced Search API v2.
         The query string must be composed of key-value pairs separated by space.
         A key is separated from its value by a colon symbol and no spaces.
         For directions on how to write advanced search queries, consult the A1000 documentation.
@@ -1645,7 +1651,9 @@ class A1000(object):
             :type sorting_order: str
             :return: list of results
             :rtype: list
-                """
+        """
+        warn("This method is deprecated. Use advanced_search_v3_aggregated instead.", DeprecationWarning)
+
         if not isinstance(max_results, int):
             raise WrongInputError("max_results parameter must be integer.")
 
@@ -1676,6 +1684,146 @@ class A1000(object):
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
 
         return results
+
+    def advanced_search_v3(self, query_string, ticloud=False, start_search_date=None, end_search_date=None,
+                           page_number=1, records_per_page=20, sorting_criteria=None, sorting_order="desc"):
+        """Sends a query string to the A1000 Advanced Search API v3.
+        The query string must be composed of key-value pairs separated by space.
+        A key is separated from its value by a colon symbol and no spaces.
+        For directions on how to write advanced search queries, consult the A1000 documentation.
+        If a page number is not provided, the first page of results will be returned.
+            Query string example:
+            'av-count:5 available:TRUE'
+
+            :param query_string: query string
+            :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
+            :param start_search_date: the starting date for the search; this parameter represents the later
+            date, as searches are performed backwards in time; required if the ticloud parameter is set to True
+            :type start_search_date: str
+            :param end_search_date: the ending date for the search; this parameter represents the earlier
+            date, as searches are performed backwards in time; required if the ticloud parameter is set to True
+            :type end_search_date: str
+            :param page_number: page number
+            :type page_number: int
+            :param records_per_page: number of records returned per page; maximum value is 100
+            :type records_per_page: int
+            :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
+            'threatname', 'sampletype', 'filecount', 'size'
+            :type sorting_criteria: str
+            :param sorting_order: sorting order; possible values are 'desc', 'asc'
+            :type sorting_order: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(query_string, str):
+            raise WrongInputError("The search query must be a string.")
+
+        if not isinstance(ticloud, bool):
+            raise WrongInputError("ticloud parameter must be boolean.")
+
+        if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 100:
+            raise WrongInputError("records_per_page parameter must be an integer with a value "
+                                  "between 1 and 100 (included).")
+
+        url = self._url.format(endpoint=self.__ADVANCED_SEARCH_ENDPOINT_V3)
+
+        post_json = {"query": query_string, "ticloud": ticloud, "page": page_number,
+                     "records_per_page": records_per_page}
+
+        if ticloud:
+            if not all((start_search_date, end_search_date)):
+                raise WrongInputError("if ticloud parameter is set to True, both start_search_date and "
+                                      "end_search_date must be defined.")
+
+            post_json["start_search_date"] = start_search_date
+            post_json["end_search_date"] = end_search_date
+
+        if sorting_criteria:
+            if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
+                raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
+                                      "Sorting order needs to be 'desc' or 'asc'.".format(
+                                        criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                                      ))
+            sorting_expression = "{criteria} {order}".format(
+                criteria=sorting_criteria,
+                order=sorting_order
+            )
+
+            post_json["sort"] = sorting_expression
+
+        response = self.__post_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def advanced_search_v3_aggregated(self, query_string, ticloud=False, start_search_date=None, end_search_date=None,
+                                      records_per_page=20, max_results=5000, sorting_criteria=None,
+                                      sorting_order="desc"):
+        """This method handles the paging automatically.
+        Sends a query string to the A1000 Advanced Search API v3.
+        The query string must be composed of key-value pairs separated by space.
+        A key is separated from its value by a colon symbol and no spaces.
+        For directions on how to write advanced search queries, consult the A1000 documentation.
+        If a page number is not provided, the first page of results will be returned.
+            Query string example:
+            'av-count:5 available:TRUE'
+
+            :param query_string: query string
+            :type query_string: str
+            :param ticloud: show only cloud results
+            :type ticloud: bool
+            :param start_search_date: the starting date for the search; this parameter represents the later
+            date, as searches are performed backwards in time; required if the ticloud parameter is set to True
+            :type start_search_date: str
+            :param end_search_date: the ending date for the search; this parameter represents the earlier
+            date, as searches are performed backwards in time; required if the ticloud parameter is set to True
+            :type end_search_date: str
+            :param records_per_page: number of records returned per page; maximum value is 100
+            :type records_per_page: int
+            :param max_results: maximum number of returned results
+            :type max_results: int
+            :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
+            'threatname', 'sampletype', 'filecount', 'size'
+            :type sorting_criteria: str
+            :param sorting_order: sorting order; possible values are 'desc', 'asc'
+            :type sorting_order: str
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = 1
+        more_pages = True
+
+        while more_pages:
+            response = self.advanced_search_v3(
+                query_string=query_string,
+                ticloud=ticloud,
+                page_number=next_page,
+                records_per_page=records_per_page,
+                sorting_criteria=sorting_criteria,
+                sorting_order=sorting_order,
+                start_search_date=start_search_date,
+                end_search_date=end_search_date
+            )
+
+            response_json = response.json()
+
+            entries = response_json.get("rl").get("web_search_api").get("entries", [])
+            results.extend(entries)
+
+            next_page = response_json.get("rl").get("web_search_api").get("next_page", None)
+            more_pages = response_json.get("rl").get("web_search_api").get("more_pages")
+
+            if len(results) >= max_results or not more_pages:
+                break
+
+        return results[:max_results]
 
     def list_containers_for_hashes(self, sample_hashes):
         """Gets a list of all top-level containers from which the requested sample has been extracted during analysis.
