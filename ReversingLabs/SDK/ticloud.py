@@ -3588,6 +3588,128 @@ class NewMalwareFilesFeed(ContinuousFeed):
         return response
 
 
+class FilesScannedForTheFirstTime(TiCloudAPI):
+    """TCF-0107"""
+
+    __FEED_ENDPOINT = "/api/feed/malware/first_scan/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/malware/first_scan/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/malware/first_scan/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FilesScannedForTheFirstTime, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self.url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
+        """Returns a list of hashes for samples collected from various sources and scanned
+        for the first time in TitaniumCloud system
+            :param time_format: possible values: 'timestamp' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDthh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download. Default is 'false'
+            :type sample_available: boolean
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be a string.")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        base = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            limit=limit,
+        )
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be a string.")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, sample_available=False, limit=1000):
+        """Returns the list of hashes for samples scanned for the first time,
+        starting with the timestamp defined with the start query
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be an integer.")
+
+        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            limit=limit
+        )
+
+        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class MWPChangeEventsFeed(ContinuousFeed):
     """TCF-0111"""
 
