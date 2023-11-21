@@ -4095,6 +4095,99 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
         return response
 
 
+class NewExploitOrCveSamplesFoundInWild():
+    """TCF-0203"""
+
+    __HOURLY_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/detection/exploit/hourly/v2/query/{time_format}/{time_value}"
+    __LATEST_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/detection/exploit/hourly/v2/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewExploitOrCveSamplesFoundInWild, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                                allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def hourly_exploit_list_query():
+        """Returns a list of new file hashes that contain CVE or Exploit identification and that
+        are detected within the requested one-hour period in the TitaniumCloud system
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param active_cve: when true (default) returns only exploits with active CVE identifiers
+            :type active_cve: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(active_cve, bool):
+            raise WrongInputError("active_cve parameter must be boolean")
+        
+        base = self.__HOURLY_NEW_EXPLOIT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = "?sample_available={sample_available}&active_cve={active_cve}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            active_cve=str(active_cve).lower()
+        )
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_hourly_exploit_list_query():
+        """Returns the results from latest hour for which we have data
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param active_cve: when true (default) returns only exploits with active CVE identifiers
+            :type active_cve: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(active_cve, bool):
+            raise WrongInputError("active_cve parameter must be boolean")
+
+        base = self.__LATEST_NEW_EXPLOIT_ENDPOINT
+
+        query_params = "?sample_available={sample_available}&active_cve={active_cve}&format=json".format(
+            sample_available=str(sample_available).lower(),
+            active_cve=str(active_cve).lower()
+        )
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class NewMalwareURIFeed(TiCloudAPI):
     """TCF-0301"""
 
