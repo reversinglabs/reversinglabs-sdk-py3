@@ -4052,17 +4052,17 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format.lower() not in ("date", "timestamp"):
+        if time_format not in ("date", "timestamp"):
             raise WrongInputError("time_format parameter must be one of the following values: 'date' or 'timestamp'.")
 
-        if time_format.lower() == "timestamp":
+        if time_format == "timestamp":
             try:
                 int(time_value)
 
             except ValueError:
                 raise WrongInputError("If the time_format is set on timestamp, 'time_value' must be a unix timestamp string")
 
-        elif time_format.lower() == "date":
+        elif time_format == "date":
             try:
                 datetime.datetime.strptime(time_value, "%Y-%m-%d")
 
