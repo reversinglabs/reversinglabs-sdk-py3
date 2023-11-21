@@ -4029,6 +4029,72 @@ class MWPChangeEventsFeed(ContinuousFeed):
         return response
 
 
+class ReportsOnCveExploitedInWild(TiCloudAPI):
+    """TCF-0202"""
+
+    __DAILY_CVE_REPORT_ENDPOINT = "/api/report/cve/daily/v1/query/{time_format}/{time_value}?format=json"
+    __LATEST_CVE_REPORT_ENDPOINT = "/api/report/cve/daily/v1/query/latest?format=json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ReportsOnCveExploitedInWild, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def pull_daily_cve_report(self, time_format, time_value):
+        """Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat
+        names, and threat counts associated with the CVE identifiers for the requested day
+            :param time_format: specifies the time format; must be 'timestamp' or 'date'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are unix timestamp string and 'YYYY-MM-DD'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format.lower() not in ("date", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'date' or 'timestamp'.")
+
+        if time_format.lower() == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("If the time_format is set on timestamp, 'time_value' must be a unix timestamp string")
+
+        elif time_format.lower() == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("If the date format is used, time_value must be provided as 'YYY-MM-DD'")
+
+        endpoint = self.__DAILY_CVE_REPORT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_latest_cve_report(self):
+        """Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat names,
+        and threat counts associated with CVE identifies for the latest day for which we have data
+        """
+        url = self._url.format(endpoint=self.__LATEST_CVE_REPORT_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class NewMalwareURIFeed(TiCloudAPI):
     """TCF-0301"""
 
