@@ -4558,6 +4558,70 @@ class NewWhitelistedFiles(TiCloudAPI):
         return response
 
 
+class ChangesWhitelistedFiles(TiCloudAPI):
+    """TCF-0502"""
+
+    __FEED_ENDPOINT = "/api/feed/whitelisted_change/v1/query/{time_format}/{time_value}"
+    __LATEST_ENDPOINT = "/api/feed/whitelisted_change/v1/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ChangesWhitelistedFiles, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value):
+        """Returns a list of the samples which changed their whitelist status since requested time
+            :param time_format: possible values: 'timestamp' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are UNIX timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint = "{base}?format=json".format(base=self.__FEED_ENDPOINT)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_query(self):
+        """Returns the 1000 latest samples which changed their whitelist status"""
+
+        endpoint = "{base}?format=json".format(base=self.__LATEST_ENDPOINT)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class ImpHashSimilarity(TiCloudAPI):
     """TCA-0302"""
 
