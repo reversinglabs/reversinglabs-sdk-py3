@@ -3617,11 +3617,22 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be a string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
@@ -3659,11 +3670,22 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be a string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         endpoint = self.__START_ENDPOINT.format(
             time_format=time_format,
@@ -3738,11 +3760,22 @@ class NewFilesFirstAndRescan(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
@@ -3780,11 +3813,22 @@ class NewFilesFirstAndRescan(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         endpoint = self.__START_ENDPOINT.format(
             time_format=time_format,
@@ -3860,11 +3904,22 @@ class FilesWithDetectionChanges(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
@@ -4052,15 +4107,12 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("date", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'date' or 'timestamp'.")
-
         if time_format == "timestamp":
             try:
                 int(time_value)
 
             except ValueError:
-                raise WrongInputError("If the time_format is set on timestamp, 'time_value' must be a unix timestamp string")
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
 
         elif time_format == "date":
             try:
@@ -4068,6 +4120,9 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
 
             except ValueError:
                 raise WrongInputError("If the date format is used, time_value must be provided as 'YYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'date'")
 
         endpoint = self.__DAILY_CVE_REPORT_ENDPOINT.format(
             time_format=time_format,
@@ -4123,11 +4178,22 @@ class NewExploitOrCveSamplesFoundInWild():
             :return: response
             :rtype: requests.Response
         """
-        if time_format not in ("utc", "timestamp"):
-            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+        if time_format == "timestamp":
+            try:
+                int(time_value)
 
-        if not isinstance(time_value, str):
-            raise WrongInputError("time_value parameter must be string.")
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
