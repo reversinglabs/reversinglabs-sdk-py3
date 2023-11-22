@@ -4150,7 +4150,7 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
         return response
 
 
-class NewExploitOrCveSamplesFoundInWild():
+class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
     """TCF-0203"""
 
     __HOURLY_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/detection/exploit/hourly/v2/query/{time_format}/{time_value}"
@@ -4158,12 +4158,12 @@ class NewExploitOrCveSamplesFoundInWild():
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
-        super(NewExploitOrCveSamplesFoundInWild, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+        super(NewExploitOrCveSamplesFoundInWildHourly, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
                                                                 allow_none_return=allow_none_return)
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def hourly_exploit_list_query():
+    def hourly_exploit_list_query(self, time_format, time_value, sample_available=False, active_cve=True):
         """Returns a list of new file hashes that contain CVE or Exploit identification and that
         are detected within the requested one-hour period in the TitaniumCloud system
             :param time_format: possible values: 'utc' or 'timestamp'
@@ -4221,7 +4221,7 @@ class NewExploitOrCveSamplesFoundInWild():
 
         return response
 
-    def latest_hourly_exploit_list_query():
+    def latest_hourly_exploit_list_query(self, sample_available=False, active_cve=True):
         """Returns the results from latest hour for which we have data
             :param sample_available: return only samples available for download
             :type sample_available: bool
@@ -4241,6 +4241,98 @@ class NewExploitOrCveSamplesFoundInWild():
         query_params = "?sample_available={sample_available}&active_cve={active_cve}&format=json".format(
             sample_available=str(sample_available).lower(),
             active_cve=str(active_cve).lower()
+        )
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
+    """TCF-0204"""
+
+    __DAILY_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/exploit/daily/v1/query/{time_format}/{time_value}"
+    __LATEST_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/exploit/daily/v1/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewExploitAndCveSamplesFoundInWildDaily, self).__init__(host, username, password, verify, proxies,
+                                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def daily_exploit_list_query(self, time_format, time_value, sample_available=False):
+        """Returns a list of new file hashes that contain CVE or Exploit identification and that
+        are detected within the requested one-hour period in the TitaniumCloud system
+            :param time_format: possible values: 'date' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are 'YYYY-MM-DD' and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%YYYY-MM-DD")
+
+            except ValueError:
+                raise WrongInputError("if date is used, time_value needs to be in format 'YYYY-MM-DD'")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'date' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        base = self.__DAILY_NEW_EXPLOIT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = "?sample_available={sample_available}&format=json".format(
+            sample_available=str(sample_available).lower()
+        )
+
+        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_daily_exploit_list_query(self, sample_available=False):
+        """Returns the results from latest hour for which we have data
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        base = self.__LATEST_NEW_EXPLOIT_ENDPOINT
+
+        query_params = "?sample_available={sample_available}&format=json".format(
+            sample_available=str(sample_available).lower()
         )
 
         endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
