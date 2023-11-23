@@ -3600,7 +3600,7 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
         super(FilesScannedForTheFirstTime, self).__init__(host, username, password, verify, proxies,
                                                           user_agent=user_agent, allow_none_return=allow_none_return)
 
-        self.url = "{host}{{endpoint}}".format(host=self._host)
+        self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
         """Returns a list of hashes for samples collected from various sources and scanned
@@ -3744,7 +3744,7 @@ class NewFilesFirstAndRescan(TiCloudAPI):
         super(NewFilesFirstAndRescan, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
                                                      allow_none_return=allow_none_return)
 
-        self.url = "{host}{{endpoint}}".format(host=self._host)
+        self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
         """Returns a continuous list of samples in the TitaniumCloud system which have been
