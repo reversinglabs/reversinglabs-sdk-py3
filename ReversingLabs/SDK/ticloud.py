@@ -4487,7 +4487,7 @@ class NewWhitelistedFiles(TiCloudAPI):
         return response
 
     def start_query(self, time_format, time_value):
-        """Sets the starting timestamp for the pull query.
+        """Sets the starting timestamp for the pull_query.
             :param time_format: possible values: 'utc' or 'timestamp'
             :type time_format: str
             :param time_value: results will be retrieved from the specified time up until the current moment;
