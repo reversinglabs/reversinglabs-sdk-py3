@@ -3702,7 +3702,7 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
 
     def pull_query(self, sample_available=False, limit=1000):
         """Returns the list of hashes for samples scanned for the first time,
-        starting with the timestamp defined with the start query
+        starting with the timestamp defined with the start_query
             :param sample_available: return only samples available for download
             :type sample_available: bool
             :param limit: number of records to return in the response
@@ -3891,7 +3891,7 @@ class FilesWithDetectionChanges(TiCloudAPI):
 
     def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
         """Returns a list of hashes for scanned samples (first time scan or detection changes),
-        starting with the timestamp defined with the start_query
+        starting with the timestamp provided in argument
             :param time_format: possible values: 'utc' or 'timestamp'
             :type time_format: str
             :param time_value: results will be retrieved from the specified time up until the current moment;
