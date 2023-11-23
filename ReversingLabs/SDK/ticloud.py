@@ -4598,7 +4598,12 @@ class ChangesWhitelistedFiles(TiCloudAPI):
         else:
             raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
-        endpoint = "{base}?format=json".format(base=self.__FEED_ENDPOINT)
+        endpoint_base = self.__FEED_ENDPOINT.format(
+            time_format = time_format,
+            time_value = time_value
+        )
+
+        endpoint = "{base}?format=json".format(base=endpoint_base)
 
         url = self._url.format(endpoint=endpoint)
 
