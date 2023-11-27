@@ -1214,7 +1214,10 @@ class AdvancedSearch(TiCloudAPI):
 class ExpressionSearch(TiCloudAPI):
     """TCA-0306 - Expression Search with Statistics (Sample Search)"""
 
-    __SINGLE_QUERY_ENDPOINT = "/api/sample/search/download/v1/query/date/{str_date}"
+    __EXPRESSION_QUERY_ENDPOINT = "/api/sample/search/download/v1/query/{time_format}/{time_value}"
+    __LATEST_EXPRESSION_ENDPOINT = "/api/sample/search/download/v1/query/latest"
+    __STATISTICS_QUERY_ENDPOINT = "/api/sample/search/download/v1/statistics/{time_format}/{time_value}"
+    __LATEST_STATISTICS_QUERY_ENDPOINT = "/api/sample/search/download/v1/statistics/latest"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -1223,7 +1226,7 @@ class ExpressionSearch(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def search(self, query, date=None, page_number=1):
+    def search(self, query, time_format, time_value, page_number=1):
         """Sends the query to the Expression Search API.
         The query must be a list of at least 2 strings. Each string is in the form of a key and a value with
         an equals sign between them and no spaces.
@@ -1243,13 +1246,39 @@ class ExpressionSearch(TiCloudAPI):
 
             :param query: search query
             :type query: list
-            :param date: return results from this date forward
-            :type date: str or any
+            :param time_format: possibles values 'utc' or 'timestamp', 'date'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified date
+            :type time_value: str
             :param page_number: page number
             :type page_number: int
             :return: response
             :rtype: requests.Response
         """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        elif time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("if the date format is used, time_value must be provided as 'YYYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp', 'utc', 'date'")
+
         if not isinstance(query, list):
             raise WrongInputError("query parameter must be a list of strings.")
 
@@ -1264,38 +1293,33 @@ class ExpressionSearch(TiCloudAPI):
         if not isinstance(page_number, int):
             raise WrongInputError("page_number parameter must be integer.")
 
-        if not date:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        if isinstance(date, str):
-            date = datetime.datetime.fromisoformat(date)
-
-        str_date = date.strftime("%Y-%m-%d")
-
-        endpoint_base = self.__SINGLE_QUERY_ENDPOINT.format(
-            str_date=str_date
+        base = self.__EXPRESSION_QUERY_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
         )
 
-        parameters = "?format=json&page={page}&{query_expression}".format(
-            page=page_number,
-            query_expression=query_expression
+        params = "?{query_expression}&format=json&page={page}".format(
+            query_expression=query_expression,
+            page=page_number
         )
 
         endpoint = "{base}{params}".format(
-            base=endpoint_base,
-            params=parameters
+            base=base,
+            params=params
         )
 
         url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url)
+
         self._raise_on_error(response)
 
         return response
 
-    def search_aggregated(self, query, date=None, max_results=5000):
-        """Sends the query to the Expression Search API.
-        The query must be a list of at least 2 strings. Each string is in the form of a key and a value with
-        an equals sign between them and no spaces.
+    def get_latest_expression(self, query):
+        """Service returns only new samples from the last 24 hours.
+        The query must be a list of at least 2 strings. Each string is in the form of a key and a value with 
+        an equals sign between then and no spaces.
         The value can have multiple options separated with a pipe symbol.
         This method returns a list of aggregated results with a maximum length defined in the 'max_results' parameter.
             Query examples:
@@ -1311,37 +1335,179 @@ class ExpressionSearch(TiCloudAPI):
 
             :param query: search query
             :type query: list
-            :param date: return results from this date forward
-            :type date: str or any
-            :param max_results: maximum results to be returned in the list; default value is 5000
-            :type max_results: int
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
 
-        results = []
-        next_page = 1
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
 
-        while next_page:
-            response = self.search(
-                query=query,
-                date=date,
-                page_number=next_page
-            )
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
 
-            response_json = response.json()
+        base = self.__LATEST_EXPRESSION_ENDPOINT
 
-            entries = response_json.get("rl").get("web_sample_search_download").get("entries", [])
-            results.extend(entries)
+        params = "?{query_expression}&format=json".format(
+            query_expression=query_expression
+        )
 
-            next_page = response_json.get("rl").get("web_sample_search_download").get("next_page", None)
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
 
-            if len(results) >= max_results:
-                break
+        url = self._url.format(endpoint=endpoint)
 
-        return results[:max_results]
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def statistics_search(self, query, time_format, time_value, page_number=1):
+        """Returns aggregated statistics about new samples in TitaniumCloud system
+        that match the requested criteria. Service returns samples on the requested
+        date. At least 2 search criteria must be provided in each request. Every 
+        request returns a maximum of 1000 results. If more than 1000 samples match
+        the requested criteria, the response includes a next_page field to indicate this.
+            Query examples:
+
+            ['status=MALICIOUS',
+            'sample_type=MicrosoftWord|MicrosoftExcel|MicrosoftPowerPoint']
+
+            or
+
+            ['threat_level>=3',
+            'status=malicious',
+            'malware_family=CVE-2017-11882']
+
+            :param query: search query
+            :type query: list
+            :param time_format: possible values 'timestamp', 'utc' or 'date'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified date
+            :type time_value: str
+            :param page_number: page number
+            :type page_number: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        elif time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("if the date format is used, time_value must be provided as 'YYYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp', 'utc', 'date'")
+
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
+
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
+
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
+
+        if not isinstance(page_number, int):
+            raise WrongInputError("page_number parameter must be integer.")
+
+        base = self.__STATISTICS_QUERY_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        params = "?{query_expression}&format=json&page={page}".format(
+            query_expression=query_expression,
+            page=page_number
+        )
+
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_latest_statistics(self, query):
+        """Returns aggregated statistics about new samples in TitaniumCloud system
+        that match the requested criteria. Service returns samples on the requested
+        date. At least 2 search criteria must be provided in each request. Every 
+        request returns a maximum of 1000 results. If more than 1000 samples match
+        the requested criteria, the response includes a next_page field to indicate this.
+            Query examples:
+
+            ['status=MALICIOUS',
+            'sample_type=MicrosoftWord|MicrosoftExcel|MicrosoftPowerPoint']
+
+            or
+
+            ['threat_level>=3',
+            'status=malicious',
+            'malware_family=CVE-2017-11882']
+
+            :param query: search query
+            :type query: list
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
+
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
+
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
+
+        base = self.__LATEST_STATISTICS_QUERY_ENDPOINT
+
+        params = "?{query_expression}&format=json".format(
+            query_expression=query_expression
+        )
+
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class FileDownload(TiCloudAPI):
@@ -4638,6 +4804,8 @@ class MalwareFamilyDetection(TiCloudAPI):
             url = self._url.format(endpoint=endpoint)
 
             response = self._get_request(url=url)
+
+        self._raise_on_error(response)
 
         return response
 
