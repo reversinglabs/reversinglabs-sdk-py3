@@ -4887,6 +4887,114 @@ class VerticalFeedsStatistics(TiCloudAPI):
         return response
 
 
+class VerticalFeedsSearch(TiCloudAPI):
+    """
+    TCA-0312 - APT Indicator Search
+    TCA-0313 - Financial Services Indicator Search
+    TCA-0314 - Retail Sector Indicator Search
+    TCA-0315 - Ransomware Search
+    TCA-0316 - CVE Search
+    TCA-0317 - Malware Configuration Statistics
+    TCA-0318 - Malware Configuration Search
+    """
+
+    __API_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/index/family_name/search/{family_name}/from/{time_format}/{time_value}"
+    __LATEST_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/index/family_name/search/{family_name}/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(VerticalFeedsSearch, self).__init__(host, username, password, verify, proxies,
+                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def latest_query(self, family_name, count=100):
+        """Provides information about new malware samples from ReversingLabs Targeted
+        and Industry-Specific File Indicator Feeds by searching for malware family
+        names. Samples are included in the response based on the time when they were
+        added to a particular feed.
+            param: family_name: Accepts a malware family name or a CVE identifier
+            type: family_name: str
+            param: count: Optional parameter that specifies the number of hashes to return in the response
+            type: count: int
+        """
+        if not isinstance(family_name, str):
+            raise WrongInputError("Provide a malware family name or a CVE identifier. Case-sensitive argument.")
+
+        query_params = {
+            "count": count,
+            "format": "json"
+        }
+
+        endpoint = self.__LATEST_FEED_ENDPOINT.format(
+            family_name = family_name
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def feed_query(self, family_name, time_format, time_value, count=100):
+        """Provides information about new malware samples from ReversingLabs Targeted
+        and Industry-Specific File Indicator Feeds by searching for malware family
+        names. Samples are included in the response based on the time when they were
+        added to a particular feed.
+            param: family_name: Accepts a malware family name or a CVE identifier
+            type: family_name: str
+            param: time_format: possible values: 'timestamp' or 'utc'
+            type: time_format: str
+            param: time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            type: time_value: string
+            param: count: Optional parameter that specifies the number of hashes to return in the response
+            type: count: int
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(count, int):
+            raise WrongInputError("count parameter must be integer")
+
+        if not isinstance(family_name, str):
+            raise WrongInputError("Provide a malware family name or a CVE identifier. Case-sensitive argument.")
+        
+        query_params = {
+            "count": count,
+            "format": "json"
+        }
+
+        endpoint = self.__API_FEED_ENDPOINT.format(
+            family_name = family_name,
+            time_format = time_format,
+            time_value = time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response 
+
+
 class TAXIIRansomwareFeed(TiCloudAPI):
     """TCTF-0001"""
 
