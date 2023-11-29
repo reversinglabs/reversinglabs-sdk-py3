@@ -3923,7 +3923,7 @@ class FilesWithDetectionChanges(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        base = self.__FEED_ENDPOINT.format(
+        endpoint = self.__FEED_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
@@ -4323,8 +4323,6 @@ class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
             "sample_available": str(sample_available).lower(),
             "format": "json"
         }
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
 
         url = self._url.format(endpoint=self.__LATEST_NEW_EXPLOIT_ENDPOINT)
 
