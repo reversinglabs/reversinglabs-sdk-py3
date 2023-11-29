@@ -22,6 +22,7 @@ JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
 AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
+VERTICAL_FEEDS_CATEGORIES = ("financial", "retail", "ransomware", "apt", "exploit", "configuration")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -4804,6 +4805,82 @@ class MalwareFamilyDetection(TiCloudAPI):
             url = self._url.format(endpoint=endpoint)
 
             response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+    
+
+class VerticalFeedsStatistics(TiCloudAPI):
+    """
+    TCA-0307 - APT Tool and Actor Statistics
+    TCA-0308 - Financial Services Malware Statistics
+    TCA-0309 - Retail Sector Malware Statistics
+    TCA-0310 - Ransomware Statistics 
+    TCA-0311 - CVE Statistics
+    TCA-0317 - Malware Configuration Statistics
+    """
+
+    __API_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/statistics/category/{category}/{filter}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(VerticalFeedsStatistics, self).__init__(host, username, password, verify, proxies,
+                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, category, filter, weeks=0, all_time=False):
+        """Provides information about new malware samples detected in TitaniumCloud,
+        filtered by category. The service can return a list of malware family names
+        newly added to each category, the number of unieque new samples added for each
+        malware family in a category, and a list of top 20 malware families per category
+            param: category: Corresponds to the verticals feed category the user is requesting to access.
+            Only one category can be requested in each query. Note that the response for the 'exploit'
+            category contains addional 'scanner_coverage' data not found in other categories.
+            Enum: 'financial', 'retail', 'ransomware', 'apt', 'exploit', 'configuration'
+            type: category: str
+            param: filter: applied to filter data to request. Enum: 'first_seen', 'counts', 'top_list'
+            type: filter: str
+            param: weeks: specifies the number of weeks for which the data will be returned in response
+            type: weeks: int
+            param: all_time: Instructs the service to return all available data for the requested category
+            type all_time: boolean
+        """
+        if category not in VERTICAL_FEEDS_CATEGORIES:
+            raise WrongInputError("Only the following categories are allowed: {category}".format(
+                category=VERTICAL_FEEDS_CATEGORIES))
+
+        if filter.lower() not in ("counts", "top_list", "first_seen"):
+            raise WrongInputError("Only the following filters are allowed: 'counts', 'top_list' and 'first_seen'")
+
+        if isinstance(weeks, int):
+
+            if weeks not in range(0, 30):
+                raise WrongInputError("The value for weeks can be a number between 0 and 30")
+
+            query_params = {
+                "weeks": weeks,
+                "format": "json"
+            }
+
+            raise WrongInputError("Weeks needs to be provided as integer")
+
+        if all_time:
+
+            query_params = {
+                "all_time": "true",
+                "format": "json"
+            }
+
+        endpoint = self.__API_FEED_ENDPOINT.format(
+            category = category,
+            filter = filter
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
