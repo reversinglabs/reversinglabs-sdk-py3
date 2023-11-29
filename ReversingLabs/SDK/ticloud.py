@@ -3640,21 +3640,20 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        base = self.__FEED_ENDPOINT.format(
+        endpoint = self.__FEED_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit,
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": sample_available,
+            "limit": limit,
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -3716,16 +3715,15 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be an integer.")
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
-        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
 
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -3783,21 +3781,20 @@ class NewFilesFirstAndRescan(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        base = self.__FEED_ENDPOINT.format(
+        endpoint = self.__FEED_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -3859,16 +3856,15 @@ class NewFilesFirstAndRescan(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
-        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
 
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -3932,16 +3928,15 @@ class FilesWithDetectionChanges(TiCloudAPI):
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -3992,16 +3987,15 @@ class FilesWithDetectionChanges(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
-        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
 
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4201,21 +4195,20 @@ class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
         if not isinstance(active_cve, bool):
             raise WrongInputError("active_cve parameter must be boolean")
         
-        base = self.__HOURLY_NEW_EXPLOIT_ENDPOINT.format(
+        endpoint = self.__HOURLY_NEW_EXPLOIT_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&active_cve={active_cve}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            active_cve=str(active_cve).lower()
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "active_cve": str(active_cve).lower(),
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4236,18 +4229,17 @@ class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
         if not isinstance(active_cve, bool):
             raise WrongInputError("active_cve parameter must be boolean")
 
-        base = self.__LATEST_NEW_EXPLOIT_ENDPOINT
+        endpoint = self.__LATEST_NEW_EXPLOIT_ENDPOINT
 
-        query_params = "?sample_available={sample_available}&active_cve={active_cve}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            active_cve=str(active_cve).lower()
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "active_cve": str(active_cve).lower(),
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4300,20 +4292,19 @@ class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
 
-        base = self.__DAILY_NEW_EXPLOIT_ENDPOINT.format(
+        endpoint = self.__DAILY_NEW_EXPLOIT_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&format=json".format(
-            sample_available=str(sample_available).lower()
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4329,17 +4320,16 @@ class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
         if not isinstance(sample_available, bool):
             raise WrongInputError("sample_available parameter must be boolean.")
 
-        base = self.__LATEST_NEW_EXPLOIT_ENDPOINT
-
-        query_params = "?sample_available={sample_available}&format=json".format(
-            sample_available=str(sample_available).lower()
-        )
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "format": "json"
+        }
 
         endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
 
-        url = self._url.format(endpoint=endpoint)
+        url = self._url.format(endpoint=self.__LATEST_NEW_EXPLOIT_ENDPOINT)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4466,21 +4456,20 @@ class NewWhitelistedFiles(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be int.")
 
-        base = self.__FEED_ENDPOINT.format(
+        endpoint = self.__FEED_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
-
-        endpoint = "{base}{query_params}".format(base=base, query_params=query_params)
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -4542,16 +4531,15 @@ class NewWhitelistedFiles(TiCloudAPI):
         if not isinstance(limit, int):
             raise WrongInputError("limit parameter must be integer.")
 
-        query_params = "?sample_available={sample_available}&limit={limit}&format=json".format(
-            sample_available=str(sample_available).lower(),
-            limit=limit
-        )
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
 
-        endpoint = "{base}{query_params}".format(base=self.__PULL_ENDPOINT, query_params=query_params)
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
 
-        url = self._url.format(endpoint=endpoint)
-
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
