@@ -1294,13 +1294,17 @@ class ExpressionSearch(TiCloudAPI):
         if not isinstance(page_number, int):
             raise WrongInputError("page_number parameter must be integer.")
 
-        endpoint = self.__EXPRESSION_QUERY_ENDPOINT.format(
+        base = self.__EXPRESSION_QUERY_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
+        endpoint = "{base}?{query_expression}".format(
+            base=base,
+            query_expression=query_expression
+        )
+
         query_params = {
-            "query_expression": query_expression,
             "page": page_number,
             "format": "json"
         } 
@@ -1348,18 +1352,18 @@ class ExpressionSearch(TiCloudAPI):
 
         base = self.__LATEST_EXPRESSION_ENDPOINT
 
-        params = "?{query_expression}&format=json".format(
+        endpoint = "{base}?{query_expression}".format(
+            base=base,
             query_expression=query_expression
         )
 
-        endpoint = "{base}{params}".format(
-            base=base,
-            params=params
-        )
+        query_params = {
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -1436,19 +1440,19 @@ class ExpressionSearch(TiCloudAPI):
             time_value=time_value
         )
 
-        params = "?{query_expression}&format=json&page={page}".format(
-            query_expression=query_expression,
-            page=page_number
+        endpoint = "{base}?{query_expression}".format(
+            base=base,
+            query_expression=query_expression
         )
 
-        endpoint = "{base}{params}".format(
-            base=base,
-            params=params
-        )
+        query_params = {
+            "page": page_number,
+            "format": "json"
+        } 
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
@@ -1489,18 +1493,18 @@ class ExpressionSearch(TiCloudAPI):
 
         base = self.__LATEST_STATISTICS_QUERY_ENDPOINT
 
-        params = "?{query_expression}&format=json".format(
+        endpoint = "{base}?{query_expression}".format(
+            base=base,
             query_expression=query_expression
         )
 
-        endpoint = "{base}{params}".format(
-            base=base,
-            params=params
-        )
+        query_params = {
+            "format": "json"
+        }
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 
