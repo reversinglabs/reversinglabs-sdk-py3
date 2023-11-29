@@ -22,6 +22,7 @@ JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
 AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
+VERTICAL_FEEDS_CATEGORIES = ("financial", "retail", "ransomware", "apt", "exploit", "configuration")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -1214,7 +1215,10 @@ class AdvancedSearch(TiCloudAPI):
 class ExpressionSearch(TiCloudAPI):
     """TCA-0306 - Expression Search with Statistics (Sample Search)"""
 
-    __SINGLE_QUERY_ENDPOINT = "/api/sample/search/download/v1/query/date/{str_date}"
+    __EXPRESSION_QUERY_ENDPOINT = "/api/sample/search/download/v1/query/{time_format}/{time_value}"
+    __LATEST_EXPRESSION_ENDPOINT = "/api/sample/search/download/v1/query/latest"
+    __STATISTICS_QUERY_ENDPOINT = "/api/sample/search/download/v1/statistics/{time_format}/{time_value}"
+    __LATEST_STATISTICS_QUERY_ENDPOINT = "/api/sample/search/download/v1/statistics/latest"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -1223,7 +1227,7 @@ class ExpressionSearch(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def search(self, query, date=None, page_number=1):
+    def search(self, query, time_format, time_value, page_number=1):
         """Sends the query to the Expression Search API.
         The query must be a list of at least 2 strings. Each string is in the form of a key and a value with
         an equals sign between them and no spaces.
@@ -1243,13 +1247,39 @@ class ExpressionSearch(TiCloudAPI):
 
             :param query: search query
             :type query: list
-            :param date: return results from this date forward
-            :type date: str or any
+            :param time_format: possibles values 'utc' or 'timestamp', 'date'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified date
+            :type time_value: str
             :param page_number: page number
             :type page_number: int
             :return: response
             :rtype: requests.Response
         """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        elif time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("if the date format is used, time_value must be provided as 'YYYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp', 'utc', 'date'")
+
         if not isinstance(query, list):
             raise WrongInputError("query parameter must be a list of strings.")
 
@@ -1264,38 +1294,33 @@ class ExpressionSearch(TiCloudAPI):
         if not isinstance(page_number, int):
             raise WrongInputError("page_number parameter must be integer.")
 
-        if not date:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        if isinstance(date, str):
-            date = datetime.datetime.fromisoformat(date)
-
-        str_date = date.strftime("%Y-%m-%d")
-
-        endpoint_base = self.__SINGLE_QUERY_ENDPOINT.format(
-            str_date=str_date
+        base = self.__EXPRESSION_QUERY_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
         )
 
-        parameters = "?format=json&page={page}&{query_expression}".format(
-            page=page_number,
-            query_expression=query_expression
+        params = "?{query_expression}&format=json&page={page}".format(
+            query_expression=query_expression,
+            page=page_number
         )
 
         endpoint = "{base}{params}".format(
-            base=endpoint_base,
-            params=parameters
+            base=base,
+            params=params
         )
 
         url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url)
+
         self._raise_on_error(response)
 
         return response
 
-    def search_aggregated(self, query, date=None, max_results=5000):
-        """Sends the query to the Expression Search API.
-        The query must be a list of at least 2 strings. Each string is in the form of a key and a value with
-        an equals sign between them and no spaces.
+    def get_latest_expression(self, query):
+        """Service returns only new samples from the last 24 hours.
+        The query must be a list of at least 2 strings. Each string is in the form of a key and a value with 
+        an equals sign between then and no spaces.
         The value can have multiple options separated with a pipe symbol.
         This method returns a list of aggregated results with a maximum length defined in the 'max_results' parameter.
             Query examples:
@@ -1311,37 +1336,179 @@ class ExpressionSearch(TiCloudAPI):
 
             :param query: search query
             :type query: list
-            :param date: return results from this date forward
-            :type date: str or any
-            :param max_results: maximum results to be returned in the list; default value is 5000
-            :type max_results: int
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
 
-        results = []
-        next_page = 1
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
 
-        while next_page:
-            response = self.search(
-                query=query,
-                date=date,
-                page_number=next_page
-            )
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
 
-            response_json = response.json()
+        base = self.__LATEST_EXPRESSION_ENDPOINT
 
-            entries = response_json.get("rl").get("web_sample_search_download").get("entries", [])
-            results.extend(entries)
+        params = "?{query_expression}&format=json".format(
+            query_expression=query_expression
+        )
 
-            next_page = response_json.get("rl").get("web_sample_search_download").get("next_page", None)
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
 
-            if len(results) >= max_results:
-                break
+        url = self._url.format(endpoint=endpoint)
 
-        return results[:max_results]
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def statistics_search(self, query, time_format, time_value, page_number=1):
+        """Returns aggregated statistics about new samples in TitaniumCloud system
+        that match the requested criteria. Service returns samples on the requested
+        date. At least 2 search criteria must be provided in each request. Every 
+        request returns a maximum of 1000 results. If more than 1000 samples match
+        the requested criteria, the response includes a next_page field to indicate this.
+            Query examples:
+
+            ['status=MALICIOUS',
+            'sample_type=MicrosoftWord|MicrosoftExcel|MicrosoftPowerPoint']
+
+            or
+
+            ['threat_level>=3',
+            'status=malicious',
+            'malware_family=CVE-2017-11882']
+
+            :param query: search query
+            :type query: list
+            :param time_format: possible values 'timestamp', 'utc' or 'date'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified date
+            :type time_value: str
+            :param page_number: page number
+            :type page_number: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        elif time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("if the date format is used, time_value must be provided as 'YYYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp', 'utc', 'date'")
+
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
+
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
+
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
+
+        if not isinstance(page_number, int):
+            raise WrongInputError("page_number parameter must be integer.")
+
+        base = self.__STATISTICS_QUERY_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        params = "?{query_expression}&format=json&page={page}".format(
+            query_expression=query_expression,
+            page=page_number
+        )
+
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_latest_statistics(self, query):
+        """Returns aggregated statistics about new samples in TitaniumCloud system
+        that match the requested criteria. Service returns samples on the requested
+        date. At least 2 search criteria must be provided in each request. Every 
+        request returns a maximum of 1000 results. If more than 1000 samples match
+        the requested criteria, the response includes a next_page field to indicate this.
+            Query examples:
+
+            ['status=MALICIOUS',
+            'sample_type=MicrosoftWord|MicrosoftExcel|MicrosoftPowerPoint']
+
+            or
+
+            ['threat_level>=3',
+            'status=malicious',
+            'malware_family=CVE-2017-11882']
+
+            :param query: search query
+            :type query: list
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(query, list):
+            raise WrongInputError("query parameter must be a list of strings.")
+
+        if len(query) < 2:
+            raise WrongInputError("query list must have at least 2 expressions.")
+
+        try:
+            query_expression = "&".join(query)
+        except TypeError:
+            raise WrongInputError("All expressions in the query list must be strings.")
+
+        base = self.__LATEST_STATISTICS_QUERY_ENDPOINT
+
+        params = "?{query_expression}&format=json".format(
+            query_expression=query_expression
+        )
+
+        endpoint = "{base}{params}".format(
+            base=base,
+            params=params
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class FileDownload(TiCloudAPI):
@@ -4590,6 +4757,242 @@ class NetworkReputationUserOverride(TiCloudAPI):
                 break
 
         return results[:max_results]
+
+
+class MalwareFamilyDetection(TiCloudAPI):
+    """TCA-0305 - Malware Family Detection"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/malware/family/detection/v1/query/{hash_type}/{hash_value}"
+    __BULK_QUERY_ENDPOINT = "/api/malware/family/detection/v1/bulk_query/{post_format}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(MalwareFamilyDetection, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                     allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_malware_family(self, hash_type, hash_value):
+        """Takes a file hash and returns all malware families to which sample belongs,
+        based on the detections from the latest AV scan
+            param: hash_type: specifies which hash type will be used in request. Supported values: md5, sha1, sha256
+            type: hash_type: str
+            param: hash_value: hash of the file for which the user is requesting data
+            type: hash_value: str or list[str]
+        """
+        is_bulk = isinstance(hash_value, list)
+
+        validate_hashes(
+            hash_input=hash_value if is_bulk else [hash_value],
+            allowed_hash_types=(MD5, SHA1, SHA256)
+        )
+
+        if is_bulk:
+            post_json = {"rl": {"query": {"hash_type": hash_type.lower(), "hashes": hash_value}}}
+               
+            endpoint = self.__BULK_QUERY_ENDPOINT.format(post_format="json")
+
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._post_request(url=url, post_json=post_json)
+
+        else:
+            endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
+                hash_type=hash_type.lower(),
+                hash_value=hash_value
+            )
+            
+            url = self._url.format(endpoint=endpoint)
+
+            response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+    
+
+class VerticalFeedsStatistics(TiCloudAPI):
+    """
+    TCA-0307 - APT Tool and Actor Statistics
+    TCA-0308 - Financial Services Malware Statistics
+    TCA-0309 - Retail Sector Malware Statistics
+    TCA-0310 - Ransomware Statistics 
+    TCA-0311 - CVE Statistics
+    TCA-0317 - Malware Configuration Statistics
+    """
+
+    __API_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/statistics/category/{category}/{filter}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(VerticalFeedsStatistics, self).__init__(host, username, password, verify, proxies,
+                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, category, filter, weeks=0, all_time=False):
+        """Provides information about new malware samples detected in TitaniumCloud,
+        filtered by category. The service can return a list of malware family names
+        newly added to each category, the number of unieque new samples added for each
+        malware family in a category, and a list of top 20 malware families per category
+            param: category: Corresponds to the verticals feed category the user is requesting to access.
+            Only one category can be requested in each query. Note that the response for the 'exploit'
+            category contains addional 'scanner_coverage' data not found in other categories.
+            Enum: 'financial', 'retail', 'ransomware', 'apt', 'exploit', 'configuration'
+            type: category: str
+            param: filter: applied to filter data to request. Enum: 'first_seen', 'counts', 'top_list'
+            type: filter: str
+            param: weeks: specifies the number of weeks for which the data will be returned in response
+            type: weeks: int
+            param: all_time: Instructs the service to return all available data for the requested category
+            type all_time: boolean
+        """
+        if category not in VERTICAL_FEEDS_CATEGORIES:
+            raise WrongInputError("Only the following categories are allowed: {category}".format(
+                category=VERTICAL_FEEDS_CATEGORIES))
+
+        if filter.lower() not in ("counts", "top_list", "first_seen"):
+            raise WrongInputError("Only the following filters are allowed: 'counts', 'top_list' and 'first_seen'")
+
+        if isinstance(weeks, int):
+
+            if weeks not in range(0, 30):
+                raise WrongInputError("The value for weeks can be a number between 0 and 30")
+
+            query_params = {
+                "weeks": weeks,
+                "format": "json"
+            }
+
+            raise WrongInputError("Weeks needs to be provided as integer")
+
+        if all_time:
+
+            query_params = {
+                "all_time": "true",
+                "format": "json"
+            }
+
+        endpoint = self.__API_FEED_ENDPOINT.format(
+            category = category,
+            filter = filter
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class VerticalFeedsSearch(TiCloudAPI):
+    """
+    TCA-0312 - APT Indicator Search
+    TCA-0313 - Financial Services Indicator Search
+    TCA-0314 - Retail Sector Indicator Search
+    TCA-0315 - Ransomware Search
+    TCA-0316 - CVE Search
+    TCA-0317 - Malware Configuration Statistics
+    TCA-0318 - Malware Configuration Search
+    """
+
+    __API_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/index/family_name/search/{family_name}/from/{time_format}/{time_value}"
+    __LATEST_FEED_ENDPOINT = "/api/feed/malware/detection/family/v2/index/family_name/search/{family_name}/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(VerticalFeedsSearch, self).__init__(host, username, password, verify, proxies,
+                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def latest_query(self, family_name, count=100):
+        """Provides information about new malware samples from ReversingLabs Targeted
+        and Industry-Specific File Indicator Feeds by searching for malware family
+        names. Samples are included in the response based on the time when they were
+        added to a particular feed.
+            param: family_name: Accepts a malware family name or a CVE identifier
+            type: family_name: str
+            param: count: Optional parameter that specifies the number of hashes to return in the response
+            type: count: int
+        """
+        if not isinstance(family_name, str):
+            raise WrongInputError("Provide a malware family name or a CVE identifier. Case-sensitive argument.")
+
+        query_params = {
+            "count": count,
+            "format": "json"
+        }
+
+        endpoint = self.__LATEST_FEED_ENDPOINT.format(
+            family_name = family_name
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def feed_query(self, family_name, time_format, time_value, count=100):
+        """Provides information about new malware samples from ReversingLabs Targeted
+        and Industry-Specific File Indicator Feeds by searching for malware family
+        names. Samples are included in the response based on the time when they were
+        added to a particular feed.
+            param: family_name: Accepts a malware family name or a CVE identifier
+            type: family_name: str
+            param: time_format: possible values: 'timestamp' or 'utc'
+            type: time_format: str
+            param: time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            type: time_value: string
+            param: count: Optional parameter that specifies the number of hashes to return in the response
+            type: count: int
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(count, int):
+            raise WrongInputError("count parameter must be integer")
+
+        if not isinstance(family_name, str):
+            raise WrongInputError("Provide a malware family name or a CVE identifier. Case-sensitive argument.")
+        
+        query_params = {
+            "count": count,
+            "format": "json"
+        }
+
+        endpoint = self.__API_FEED_ENDPOINT.format(
+            family_name = family_name,
+            time_format = time_format,
+            time_value = time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response 
 
 
 class TAXIIRansomwareFeed(TiCloudAPI):
