@@ -3588,7 +3588,7 @@ class NewMalwareFilesFeed(ContinuousFeed):
         return response
 
 
-class FilesScannedForTheFirstTime(TiCloudAPI):
+class NewFilesFirstScan(TiCloudAPI):
     """TCF-0107"""
 
     __FEED_ENDPOINT = "/api/feed/malware/first_scan/v1/query/{time_format}/{time_value}"
@@ -3597,7 +3597,7 @@ class FilesScannedForTheFirstTime(TiCloudAPI):
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
-        super(FilesScannedForTheFirstTime, self).__init__(host, username, password, verify, proxies,
+        super(NewFilesFirstScan, self).__init__(host, username, password, verify, proxies,
                                                           user_agent=user_agent, allow_none_return=allow_none_return)
 
         self._url = "{host}{{endpoint}}".format(host=self._host)

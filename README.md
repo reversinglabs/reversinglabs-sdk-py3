@@ -471,7 +471,7 @@ class NewMalwareURIFeed(TiCloudAPI)
 
 #### Class:
 ```python
-class FilesScannedForTheFirstTime(TiCloudAPI)
+class NewFilesFirstScan(TiCloudAPI)
 ```
 #### Methods:
 - `feed_query`
