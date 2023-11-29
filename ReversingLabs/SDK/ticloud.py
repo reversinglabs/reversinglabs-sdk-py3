@@ -1294,24 +1294,20 @@ class ExpressionSearch(TiCloudAPI):
         if not isinstance(page_number, int):
             raise WrongInputError("page_number parameter must be integer.")
 
-        base = self.__EXPRESSION_QUERY_ENDPOINT.format(
+        endpoint = self.__EXPRESSION_QUERY_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
         )
 
-        params = "?{query_expression}&format=json&page={page}".format(
-            query_expression=query_expression,
-            page=page_number
-        )
-
-        endpoint = "{base}{params}".format(
-            base=base,
-            params=params
-        )
+        query_params = {
+            "query_expression": query_expression,
+            "page": page_number,
+            "format": "json"
+        } 
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self._get_request(url=url)
+        response = self._get_request(url=url, params=query_params)
 
         self._raise_on_error(response)
 

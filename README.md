@@ -735,6 +735,46 @@ class NetworkReputation(TiCloudAPI)
 
 #### Class:
 ```python
+class MalwareFamilyDetection(TiCloudAPI)
+```
+#### Methods:
+- `get_malware_family`
+    - Returns all malware families to which sample belongs based on the detections from the latest AV scan
+
+#### Class:
+```python
+class ExpressionSearch(TiCloudAPI)
+```
+#### Methods:
+- `search`
+    - Returns a list of aggregated results from Titanium Cloud system that matches requested criteria
+- `get_latest_expression`
+    - Returns a list of  latest aggregated results from Titanuium Cloud system that matches requested criteria
+- `statistics_search`
+    - Returns aggregated statistics about new samples in Titainum Cloud system that matches requested criteria
+- `get_latest_statistics`
+    - Returns aggregated latest statistics about new samples in Titanium Cloud system that matches requested criteria
+
+#### Class:
+```python
+class VerticalFeedsStatistics(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Returns information about new malware samples detected in TitaniumCloud, filtered by category
+
+#### Class:
+```python
+class VerticalFeedsSearch(TiCloudAPI)
+```
+#### Methods:
+- `latest_query`
+    - Returns latest information about new malware samples from ReversingLabs Targeted and Industry-Specific File Indicator Feeds by searching for malware family names.
+- `feed_query`
+    - Retruns information about new malware samples from ReversingLabs Targeted and Industry-Specific File Indicator Feeds by searching for malware family names based on time when they are added to a particular feed
+
+#### Class:
+```python
 class NetworkReputationUserOverride(TiCloudAPI)
 ````
 #### Methods:

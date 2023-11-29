@@ -163,7 +163,7 @@ v2.4.0 (2023-12-05)
 #### Improvements
 
 - **ticloud** module:
-  - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, and `ChangesWhitelistedFiles` classes.
+  - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, `ChangesWhitelistedFiles`, `MalwareFamilyDetection`, `ExpressionSearch`, `VerticalFeedStatistics` and `VerticalFeedSearch` classes.
 
 ---
 
