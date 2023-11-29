@@ -3588,6 +3588,420 @@ class NewMalwareFilesFeed(ContinuousFeed):
         return response
 
 
+class NewFilesFirstScan(TiCloudAPI):
+    """TCF-0107"""
+
+    __FEED_ENDPOINT = "/api/feed/malware/first_scan/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/malware/first_scan/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/malware/first_scan/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewFilesFirstScan, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
+        """Returns a list of hashes for samples collected from various sources and scanned
+        for the first time in TitaniumCloud system
+            :param time_format: possible values: 'timestamp' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download. Default is 'false'
+            :type sample_available: boolean
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        endpoint = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": sample_available,
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, sample_available=False, limit=1000):
+        """Returns the list of hashes for samples scanned for the first time,
+        starting with the timestamp defined with the start_query
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be an integer.")
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewFilesFirstAndRescan(TiCloudAPI):
+    """TCF-0108"""
+
+    __FEED_ENDPOINT = "/api/feed/malware/scan/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/malware/scan/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/malware/scan/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewFilesFirstAndRescan, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                     allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
+        """Returns a continuous list of samples in the TitaniumCloud system which have been
+        scanned for the first time or rescanned
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until current moment;
+            accepted formats are unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        endpoint = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, sample_available=False, limit=1000):
+        """Returns the list of hashes for scanned samples (first time or rescanned),
+        starting with the timestamp defined with the start_query
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class FilesWithDetectionChanges(TiCloudAPI):
+    """TCF-0109"""
+
+    __FEED_ENDPOINT = "/api/feed/malware/scan/change/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/malware/scan/change/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/malware/scan/change/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FilesWithDetectionChanges, self).__init__(host, username, password, verify, proxies,
+                                                        user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
+        """Returns a list of hashes for scanned samples (first time scan or detection changes),
+        starting with the timestamp provided in argument
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        endpoint = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query
+            param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format not in ("utc", "timestamp"):
+            raise WrongInputError("time_format parameter must be one of the following values: 'utc', 'timestamp'")
+
+        if not isinstance(time_value, str):
+            raise WrongInputError("time_value parameter must be string.")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, sample_available=False, limit=1000):
+        """Returns a list of hashes for scanned samples (first time or detection change),
+        starting with the timestamp defined with the start_query
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
 class MWPChangeEventsFeed(ContinuousFeed):
     """TCF-0111"""
 
@@ -3663,6 +4077,261 @@ class MWPChangeEventsFeed(ContinuousFeed):
 
         return response
 
+class CvesExploitedInTheWild(TiCloudAPI):
+    """TCF-0202"""
+
+    __DAILY_CVE_REPORT_ENDPOINT = "/api/report/cve/daily/v1/query/{time_format}/{time_value}?format=json"
+    __LATEST_CVE_REPORT_ENDPOINT = "/api/report/cve/daily/v1/query/latest?format=json"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(CvesExploitedInTheWild, self).__init__(host, username, password, verify, proxies,
+                                                          user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def pull_daily_cve_report(self, time_format, time_value):
+        """Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat
+        names, and threat counts associated with the CVE identifiers for the requested day
+            :param time_format: specifies the time format; must be 'timestamp' or 'date'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are unix timestamp string and 'YYYY-MM-DD'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+
+            except ValueError:
+                raise WrongInputError("If the date format is used, time_value must be provided as 'YYY-MM-DD'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'date'")
+
+        endpoint = self.__DAILY_CVE_REPORT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_latest_cve_report(self):
+        """Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat names,
+        and threat counts associated with CVE identifies for the latest day for which we have data
+        """
+        url = self._url.format(endpoint=self.__LATEST_CVE_REPORT_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
+    """TCF-0203"""
+
+    __HOURLY_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/detection/exploit/hourly/v2/query/{time_format}/{time_value}"
+    __LATEST_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/detection/exploit/hourly/v2/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewExploitOrCveSamplesFoundInWildHourly, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                                allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def hourly_exploit_list_query(self, time_format, time_value, sample_available=False, active_cve=True):
+        """Returns a list of new file hashes that contain CVE or Exploit identification and that
+        are detected within the requested one-hour period in the TitaniumCloud system
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param active_cve: when true (default) returns only exploits with active CVE identifiers
+            :type active_cve: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(active_cve, bool):
+            raise WrongInputError("active_cve parameter must be boolean")
+        
+        endpoint = self.__HOURLY_NEW_EXPLOIT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "active_cve": str(active_cve).lower(),
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_hourly_exploit_list_query(self, sample_available=False, active_cve=True):
+        """Returns the results from latest hour for which we have data
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param active_cve: when true (default) returns only exploits with active CVE identifiers
+            :type active_cve: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(active_cve, bool):
+            raise WrongInputError("active_cve parameter must be boolean")
+
+        endpoint = self.__LATEST_NEW_EXPLOIT_ENDPOINT
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "active_cve": str(active_cve).lower(),
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
+    """TCF-0204"""
+
+    __DAILY_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/exploit/daily/v1/query/{time_format}/{time_value}"
+    __LATEST_NEW_EXPLOIT_ENDPOINT = "/api/feed/malware/exploit/daily/v1/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewExploitAndCveSamplesFoundInWildDaily, self).__init__(host, username, password, verify, proxies,
+                                                                      user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def daily_exploit_list_query(self, time_format, time_value, sample_available=False):
+        """Returns a list of new file hashes that contain CVE or Exploit identification and that
+        are detected per day period in the TitaniumCloud system
+            :param time_format: possible values: 'date' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are 'YYYY-MM-DD' and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "date":
+            try:
+                datetime.datetime.strptime(time_value, "%YYYY-MM-DD")
+
+            except ValueError:
+                raise WrongInputError("if date is used, time_value needs to be in format 'YYYY-MM-DD'")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'date' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        endpoint = self.__DAILY_NEW_EXPLOIT_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_daily_exploit_list_query(self, sample_available=False):
+        """Returns the results from latest day for which we have data
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__LATEST_NEW_EXPLOIT_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
 
 class NewMalwareURIFeed(TiCloudAPI):
     """TCF-0301"""
@@ -3725,6 +4394,216 @@ class NewMalwareURIFeed(TiCloudAPI):
         """Returns a maximum of 1000 latest records with Ps, domains, URLs,
         emails, and sample hashes extracted from malware samples."""
         url = self._url.format(endpoint=self.__PULL_LATEST_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class NewWhitelistedFiles(TiCloudAPI):
+    """TCF-0501"""
+
+    __FEED_ENDPOINT = "/api/feed/whitelisted/v1/query/{time_format}/{time_value}"
+    __START_ENDPOINT = "/api/feed/whitelisted/v1/query/start/{time_format}/{time_value}"
+    __PULL_ENDPOINT = "/api/feed/whitelisted/v1/query/pull"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(NewWhitelistedFiles, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value, sample_available=False, limit=1000):
+        """Returns a list of newly whitelisted samples since the requested time
+            :param time_format: possible values: 'timestamp' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are UNIX timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: the number of records to return in response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be int.")
+
+        endpoint = self.__FEED_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def start_query(self, time_format, time_value):
+        """Sets the starting timestamp for the pull_query.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint = self.__START_ENDPOINT.format(
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_query(self, sample_available=False, limit=1000):
+        """Returns the list of newly whitelisted samples, with the 
+        timestamp defined with the start_query
+            :param sample_available: return only samples available for download
+            :type sample_available: bool
+            :param limit: number of records to return in the response
+            :type limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(sample_available, bool):
+            raise WrongInputError("sample_available parameter must be boolean.")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("limit parameter must be integer.")
+
+        query_params = {
+            "sample_available": str(sample_available).lower(),
+            "limit": limit,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__PULL_ENDPOINT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class ChangesWhitelistedFiles(TiCloudAPI):
+    """TCF-0502"""
+
+    __FEED_ENDPOINT = "/api/feed/whitelisted_change/v1/query/{time_format}/{time_value}"
+    __LATEST_ENDPOINT = "/api/feed/whitelisted_change/v1/query/latest"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(ChangesWhitelistedFiles, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def feed_query(self, time_format, time_value):
+        """Returns a list of the samples which changed their whitelist status since requested time
+            :param time_format: possible values: 'timestamp' or 'utc'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are UNIX timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint_base = self.__FEED_ENDPOINT.format(
+            time_format = time_format,
+            time_value = time_value
+        )
+
+        endpoint = "{base}?format=json".format(base=endpoint_base)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def latest_query(self):
+        """Returns the 1000 latest samples which changed their whitelist status"""
+
+        endpoint = "{base}?format=json".format(base=self.__LATEST_ENDPOINT)
+
+        url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url)
 

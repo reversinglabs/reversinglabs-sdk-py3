@@ -471,6 +471,105 @@ class NewMalwareURIFeed(TiCloudAPI)
 
 #### Class:
 ```python
+class NewFilesFirstScan(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
+    - Returns a list of hashes for samples collected from various sources and scanned for the frist time in TitaniumCloud system
+- `start_query`
+    - Accepts a time format definition and a time value
+    - Sets the starting timestamp for the pull_query
+- `pull_query`
+    - Returns the list of hashes for samples scanned for the first time starting with the timestamp defined with start_query
+
+#### Class:
+```python
+class NewFilesFirstAndRescan(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
+    - Returns a continuous list of samples in the TitaniumCloud system which have been scanned for the frist time or rescanned
+- `start_query`
+    - Accepts a time format definition and a time value
+    - Sets the starting timestamp for the pull_query
+- `pull_query`
+    - Returns the list of hashes for scanned samples starting with the timestamp defined with the start_query
+
+#### Class:
+```python
+class FilesWithDetectionChanges(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
+    - Returns a list of hashes for scanned samples (first time scan or detection changes), starting with the provided timestamp
+- `start_query`
+    - Accepts a time format definition and a time value
+    - Sets the starting timestamp for the pull_query
+- `pull_query`
+    - Returns the list of hashes for scanned samples starting with the timestamp defined with the start_query
+
+#### Class:
+```python
+class CvesExploitedInTheWild(TiCloudAPI)
+```
+#### Methods:
+- `pull_daily_cve_report`
+    - Accepts a time format definition and a time value.
+    - Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat names, and threat counts associated with the CVE identifiers for the requested day
+- `pull_latest_cve_report`
+    - Returns a document containing the list of malware hashes (SHA1, SHA256, MD5), threat names, and threat counts associated with the CVE identifiers for the latest day for which we have data
+
+#### Class:
+```python
+class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI)
+```
+#### Methods:
+- `hourly_exploit_list_query`
+    - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
+    - Returns a list of new file hashes that contain CVE or exploit identification and that are detected within the requested one-hour period in the TitaniumCloud system
+- `latest_hourly_exploit_list_query`
+    - Returns the results from latest hour for which we have data
+
+#### Class:
+```python
+class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI)
+```
+#### Methods:
+- `daily_exploit_list_query`
+    - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
+    - Returns a list of ne file hashes that contain CVE or exploit identification and that are detected per day period in th TitaniumCloud system
+- `latest_daily_exploit_list_query`
+    - Returns the results from latest day for which we have data
+
+#### Class:
+```python
+class NewWhitelistedFiles(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Accepts a time definition and a time value. Optional arguments are available sample and result limit
+    - Returns a list of newly whitelisted samples since the requested time
+- `start_query`
+    - Sets the starting timestamp for the pull_query
+- `pull_query`
+    - Returns the list of newly whitelisted samples, with the timestamp defined with the start_query
+
+#### Class:
+```python
+class ChangesWhitelistedFiles(TiCloudAPI)
+```
+#### Methods:
+- `feed_query`
+    - Accepts a time definition and a time value
+    - Returns a list of the samples which changed their whitelist status since requested time
+- `latest_query`
+    - Returns the 1000 latest samples which changed their whitelist status
+
+#### Class:
+```python
 class ImpHashSimilarity(TiCloudAPI)
 ````
 #### Methods:
