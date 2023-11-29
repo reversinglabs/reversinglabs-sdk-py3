@@ -4077,8 +4077,7 @@ class MWPChangeEventsFeed(ContinuousFeed):
 
         return response
 
-
-class ReportsOnCveExploitedInWild(TiCloudAPI):
+class CvesExploitedInTheWild(TiCloudAPI):
     """TCF-0202"""
 
     __DAILY_CVE_REPORT_ENDPOINT = "/api/report/cve/daily/v1/query/{time_format}/{time_value}?format=json"
@@ -4086,7 +4085,7 @@ class ReportsOnCveExploitedInWild(TiCloudAPI):
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
-        super(ReportsOnCveExploitedInWild, self).__init__(host, username, password, verify, proxies,
+        super(CvesExploitedInTheWild, self).__init__(host, username, password, verify, proxies,
                                                           user_agent=user_agent, allow_none_return=allow_none_return)
 
         self._url = "{host}{{endpoint}}".format(host=self._host)

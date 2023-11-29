@@ -513,7 +513,7 @@ class FilesWithDetectionChanges(TiCloudAPI)
 
 #### Class:
 ```python
-class ReportsOnCveExploitedInWild(TiCloudAPI)
+class CvesExploitedInTheWild(TiCloudAPI)
 ```
 #### Methods:
 - `pull_daily_cve_report`
