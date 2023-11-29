@@ -157,6 +157,17 @@ v2.3.0 (2023-09-29)
 ---
 
 
+v2.4.0 (2023-12-05)
+-------------------
+
+#### Improvements
+
+- **ticloud** module:
+  - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, and `ChangesWhitelistedFiles` classes.
+
+---
+
+
 ### Scheduled removals
 - **March 2024.**:
   - `a1000.A1000.advanced_search_v2`
