@@ -759,6 +759,19 @@ class ExpressionSearch(TiCloudAPI)
 ```python
 class VerticalFeedsStatistics(TiCloudAPI)
 ```
+
+Vertical Feed Statistics API provides information about new malware samples detection in the ReversingLabs TitaniumCloud system, filtered by category (industry). Categories and API codes correspond to the ReversingLabs Targeted and Industry-Specific File Indicator Feeds (e.g., Financial, Retail, Exploits...).
+
+| Codes     | Feed Name                                     |
+| --------- |:---------------------------------------------:|
+| TCA-0307  | APT (Advanced Persistent Threats) Statistics  |
+| TCA-0308  | Financial Services Malware Statistics         |
+| TCA-0309  | Retail Sector Malware Statistics              |
+| TCA-0310  | Ransomware Statistics                         |
+| TCA-0311  | CVE Exploits Statistics                       |
+| TCA-0317  | Malware configuration Statistics              |  
+
+
 #### Methods:
 - `feed_query`
     - Returns information about new malware samples detected in TitaniumCloud, filtered by category
