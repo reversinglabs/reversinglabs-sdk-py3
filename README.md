@@ -735,6 +735,72 @@ class NetworkReputation(TiCloudAPI)
 
 #### Class:
 ```python
+class MalwareFamilyDetection(TiCloudAPI)
+```
+#### Methods:
+- `get_malware_family`
+    - Returns all malware families to which sample belongs based on the detections from the latest AV scan
+
+#### Class:
+```python
+class ExpressionSearch(TiCloudAPI)
+```
+#### Methods:
+- `search`
+    - Returns a list of aggregated results from Titanium Cloud system that matches requested criteria
+- `get_latest_expression`
+    - Returns a list of  latest aggregated results from Titanuium Cloud system that matches requested criteria
+- `statistics_search`
+    - Returns aggregated statistics about new samples in Titainum Cloud system that matches requested criteria
+- `get_latest_statistics`
+    - Returns aggregated latest statistics about new samples in Titanium Cloud system that matches requested criteria
+
+#### Class:
+```python
+class VerticalFeedsStatistics(TiCloudAPI)
+```
+
+Vertical Feed Statistics API provides information about new malware samples detection in the ReversingLabs TitaniumCloud system, filtered by category (industry). Categories and API codes correspond to the ReversingLabs Targeted and Industry-Specific File Indicator Feeds (e.g., Financial, Retail, Exploits...).
+
+| Codes     | Feed Name                                     |
+| --------- |:---------------------------------------------:|
+| TCA-0307  | APT (Advanced Persistent Threats) Statistics  |
+| TCA-0308  | Financial Services Malware Statistics         |
+| TCA-0309  | Retail Sector Malware Statistics              |
+| TCA-0310  | Ransomware Statistics                         |
+| TCA-0311  | CVE Exploits Statistics                       |
+| TCA-0317  | Malware configuration Statistics              |  
+
+
+#### Methods:
+- `feed_query`
+    - Returns information about new malware samples detected in TitaniumCloud, filtered by category
+
+#### Class:
+```python
+class VerticalFeedsSearch(TiCloudAPI)
+```
+
+Service can be used to retrieve information about new malware samples from ReversingLabs Targeted and Industry-Specific File Indicator Feeds by searching for malware family names. The feeds are specialized collections of malware families that are known to have significant impact within specific industries (Retail, Financial), as well as of malware families that share a common trait (exploits, ransomware). ReversingLabs carefully selects malware families for each feed based on public and internal research.
+
+| Codes     | Feed name                                     | Malware Family Names                                  |
+| --------- |:-------------------------------------:|:-------------------------------------------------------------:|
+| TCA-0312  | APT (Advanced Persistent Threats)     | CosmicDuke, CozyBear, Stuxnet, Hellsing                       |
+| TCA-0313  | Financial Services Malware            | Alice, Dorkbot, Ramnit, Ripper                                |
+| TCA-0314  | Retail Sector Malware                 | AbaddonPOS, ChewBacca, Katrina, Poseidon                      |
+| TCA-0315  | Ransomware                            | BitCrypt, Nanolocker, NotPetya, WannaCry                      |
+| TCA-0316  | CVE Exploits                          | CVE-2008-4844, CVE-2014-0495, CVE-2017-0147, CVE-2017-8291    |
+| TCA-0318  | Malware Configuration                 | DarkComet, PoisonIvy, XtremeRAT, CyberGate                    |  
+
+
+#### Methods:
+- `latest_query`
+    - Returns latest information about new malware samples from ReversingLabs Targeted and Industry-Specific File Indicator Feeds by searching for malware family names.
+- `feed_query`
+    - Retruns information about new malware samples from ReversingLabs Targeted and Industry-Specific File Indicator Feeds by searching for malware family names based on time when they are added to a particular feed
+
+#### Class:
+```python
 class NetworkReputationUserOverride(TiCloudAPI)
 ````
 #### Methods:
