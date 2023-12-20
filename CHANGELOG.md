@@ -164,7 +164,10 @@ v2.4.0 (2023-12-28)
 
 - **ticloud** module:
   - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, `ChangesWhitelistedFiles`, `MalwareFamilyDetection`, `ExpressionSearch`, `VerticalFeedStatistics` and `VerticalFeedSearch` classes.
-
+  - The following changes were made to the `DynamicAnalysis` class:
+    - Added `windows11` and `linux` to available Dynamic Analysis platforms.
+    - Added the `detonate_url` method.
+    - The `get_dynamic_analysis_results` method now supports `url` analysis results.
 ---
 
 
