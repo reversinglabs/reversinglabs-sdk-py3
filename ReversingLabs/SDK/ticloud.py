@@ -5,12 +5,12 @@ TitaniumCloud
 A Python module for the ReversingLabs TitaniumCloud REST API-s.
 """
 
+import base64
 import datetime
 import hashlib
 import json
 import os
 import requests
-from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
@@ -3095,10 +3095,11 @@ class DataChangeSubscription(TiCloudAPI):
 class DynamicAnalysis(TiCloudAPI):
     """TCA-0207 and TCA-0106"""
 
-    __DETONATE_SAMPLE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
+    __DETONATE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
     __DETONATE_ARCHIVE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/archive/query/json"
-    __GET_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/query/sha1"
+    __GET_FILE_RESULTS = "/api/dynamic/analysis/report/v1/query/sha1"
     __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/sha1"
+    __GET_URL_RESULTS = "/api/dynamic/analysis/report/v1/query/url/base64"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -3106,6 +3107,25 @@ class DynamicAnalysis(TiCloudAPI):
                                               allow_none_return=allow_none_return)
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def detonate_url(self, url_string, platform):
+        """Submits a URL for dynamic analysis and returns processing info.
+            :param url_string: URL string
+            :type url_string: str
+            :param platform: desired platform on which the sample or archive will be detonated; see available platforms
+            :type platform: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(url_string, str):
+            raise WrongInputError("url_string parameter must be a string")
+
+        response = self.__detonate(
+            url_string=url_string,
+            platform=platform,
+        )
+        
+        return response
 
     def detonate_sample(self, sample_sha1, platform, is_archive=False, internet_simulation=False):
         """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
@@ -3126,26 +3146,56 @@ class DynamicAnalysis(TiCloudAPI):
             allowed_hash_types=(SHA1,)
         )
 
+        response = self.__detonate(
+            sample_sha1=sample_sha1,
+            platform=platform,
+            is_archive=is_archive,
+            internet_simulation=internet_simulation
+        )
+        
+        return response
+
+    def __detonate(self, platform, sample_sha1=None, url_string=None, is_archive=False, internet_simulation=False):
+        """Submits a sample, a file archive available in the cloud or a URL for 
+        dynamic analysis and returns processing info.
+        This is a private method for all dynamic analysis submission methods.
+            :param sample_sha1: SHA-1 hash of the sample or archive
+            :type sample_sha1: str
+            :param url_string: URL string
+            :type url_string: str
+            :param platform: desired platform on which the sample or archive will be detonated; see available platforms
+            :type platform: str
+            :param is_archive: needs to be set to True if a file archive is being detonated;
+            currently supported archive types: .zip
+            :type is_archive: bool
+            :param internet_simulation: perform the dynamic analysis without connecting to the internet
+            :type internet_simulation: bool
+            :return: response
+            :rtype: requests.Response
+        """
         if platform not in AVAILABLE_PLATFORMS:
             raise WrongInputError("platform parameter must be one "
                                   "of the following values: {platforms}".format(platforms=AVAILABLE_PLATFORMS))
 
+        post_json = {"rl": {"platform": platform, "response_format": "json"}}
+
         if not isinstance(internet_simulation, bool):
             raise WrongInputError("internet_simulation parameter must be boolean.")
-        internet_simulation = str(internet_simulation).lower()
+
+        if internet_simulation:
+            post_json["rl"]["optional_parameters"] = "internet_simulation=true"
+
+        if sample_sha1:
+            post_json["rl"]["sha1"] = sample_sha1
+
+        elif url_string:
+            post_json["rl"]["url"] = url_string
 
         if not is_archive:
-            url = self._url.format(endpoint=self.__DETONATE_SAMPLE_ENDPOINT)
+            url = self._url.format(endpoint=self.__DETONATE_ENDPOINT)
 
         else:
             url = self._url.format(endpoint=self.__DETONATE_ARCHIVE_ENDPOINT)
-
-        post_json = {"rl": {"sha1": sample_sha1, "platform": platform, "response_format": "json",
-                            "optional_parameters": "internet_simulation={simulation}".format(
-                                simulation=internet_simulation)}}
-
-        print(url)
-        print(post_json)
 
         response = self._post_request(
             url=url,
@@ -3156,13 +3206,16 @@ class DynamicAnalysis(TiCloudAPI):
 
         return response
 
-    def get_dynamic_analysis_results(self, sample_hash, is_archive=False, latest=False, analysis_id=None):
-        """Returns dynamic analysis results for a desired sample or a file archive.
-        The analysis of the selected sample must be finished for the results to be available.
-            :param sample_hash: SHA-1 hash of a desired sample or archive
+    def get_dynamic_analysis_results(self, sample_hash=None, url=None, is_archive=False, latest=False,
+                                     analysis_id=None):
+        """Returns dynamic analysis results for a desired file, URL or a file archive.
+        The analysis of the selected artifact must be finished for the results to be available.
+            :param sample_hash: SHA-1 hash of a desired sample or archive. mutually exclusive with url
             :type sample_hash: str
+            :param url: URL string. mutually exclusive with sample_hash
+            :type url: str
             :param is_archive: needs to be set to True if results for a file archive are being fetched;
-            currently supported archive types: .zip
+            currently supported archive types: .zip; used only with sample_hash
             :type is_archive: bool
             :param latest: return only the latest analysis results
             :type latest: bool
@@ -3171,20 +3224,32 @@ class DynamicAnalysis(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_hash],
-            allowed_hash_types=(SHA1,)
-        )
+        if sample_hash:
+            validate_hashes(
+                hash_input=[sample_hash],
+                allowed_hash_types=(SHA1,)
+            )
+            indicator = sample_hash
 
-        if not is_archive:
-            endpoint_base = self.__GET_RESULTS_ENDPOINT
+            if not is_archive:
+                endpoint_base = self.__GET_FILE_RESULTS
+
+            else:
+                endpoint_base = self.__GET_ARCHIVE_RESULTS_ENDPOINT
+
+        elif url:
+            if not isinstance(url, str):
+                raise WrongInputError("url parameter must be a string")
+
+            indicator = base64.urlsafe_b64encode(url.encode("utf-8")).strip(b"=").decode()
+            endpoint_base = self.__GET_URL_RESULTS
 
         else:
-            endpoint_base = self.__GET_ARCHIVE_RESULTS_ENDPOINT
+            raise WrongInputError("Either sample_hash or url need to be defined as parameters")
 
-        endpoint = "{endpoint_base}/{sample_hash}".format(
+        endpoint = "{endpoint_base}/{indicator}".format(
             endpoint_base=endpoint_base,
-            sample_hash=sample_hash
+            indicator=indicator
         )
 
         if latest:
