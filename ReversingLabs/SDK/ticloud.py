@@ -4309,6 +4309,7 @@ class MWPChangeEventsFeed(ContinuousFeed):
 
         return response
 
+
 class CvesExploitedInTheWild(TiCloudAPI):
     """TCF-0202"""
 
