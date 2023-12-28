@@ -13,8 +13,8 @@ The SDK consists of several modules, where each module represents either one Rev
 A Python module representing the ReversingLabs A1000 malware analysis platform.
 #### Class:
 ```python
-class A1000(object)
-def __init__(self, host, username, password, token, fields_v2, ticore_fields, wait_time_seconds, retries, verify, proxies, user_agent):
+class A1000(object):
+    def __init__(self, host, username, password, token, fields_v2, ticore_fields, wait_time_seconds, retries, verify, proxies, user_agent):
 ```
 
 #### Parameters:
@@ -218,6 +218,7 @@ def __init__(self, host, username, password, verify, proxies, user_agent, allow_
 ```python
 class FileReputation(TiCloudAPI)
 ```
+_TCA-0101_
 #### Methods:
 - `get_file_reputation`
     - Accepts a hash string or a list of hash strings and returns file reputation
@@ -228,6 +229,7 @@ class FileReputation(TiCloudAPI)
 ```python
 class AVScanners(TiCloudAPI)
 ```
+_TCA-0103_
 #### Methods:
 - `get_scan_results`
     - Accepts a hash string or a list of hash strings and returns AV scanner results
@@ -238,6 +240,7 @@ class AVScanners(TiCloudAPI)
 ```python
 class FileAnalysis(TiCloudAPI)
 ```
+_TCA-0104_
 #### Methods:
 - `get_analysis_results`
     - Accepts a hash string or a list of hash strings and returns extended file analysis
@@ -251,6 +254,7 @@ class FileAnalysis(TiCloudAPI)
 ```python
 class RHA1FunctionalSimilarity(TiCloudAPI)
 ```
+_TCA-0301_
 #### Methods:
 - `get_similar_hashes`
     - Accepts a hash string and returns a list of functionally similar hashes
@@ -264,6 +268,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI)
 ```python
 class RHA1Analytics(TiCloudAPI)
 ```
+_TCA-0321_
 #### Methods:
 - `get_rha1_analytics`
     - Accepts one or more hash strings and returns a count of functionally similar hashes grouped by classification
@@ -273,6 +278,7 @@ class RHA1Analytics(TiCloudAPI)
 ```python
 class URIStatistics(TiCloudAPI)
 ````
+_TCA-0402_
 #### Methods:
 - `get_uri_statistics`
     - Accepts a URI string and returns a count of files associated with that URI grouped by classification
@@ -282,6 +288,7 @@ class URIStatistics(TiCloudAPI)
 ```python
 class URIIndex(TiCloudAPI)
 ````
+_TCA-0401_
 #### Methods:
 - `get_uri_index`
     - Accepts a URI string and returns a list of files associated with this URI
@@ -295,6 +302,7 @@ class URIIndex(TiCloudAPI)
 ```python
 class AdvancedSearch(TiCloudAPI)
 ````
+_TCA-0320_
 #### Methods:
 - `search`
     - Accepts a search query string and performs advanced search on the API
@@ -308,6 +316,7 @@ class AdvancedSearch(TiCloudAPI)
 ```python
 class ExpressionSearch(TiCloudAPI)
 ````
+_TCA-0306_
 #### Methods:
 - `search`
     - Accepts a list containing the search query and performs expression search on the API
@@ -321,6 +330,7 @@ class ExpressionSearch(TiCloudAPI)
 ```python
 class FileDownload(TiCloudAPI)
 ````
+_TCA-0201_
 #### Methods:
 - `get_download_status`
     - Accepts a hash string and returns the sample's availability for download
@@ -331,6 +341,7 @@ class FileDownload(TiCloudAPI)
 ```python
 class URLThreatIntelligence(TiCloudAPI)
 ````
+_TCA-0403_
 #### Methods:
 - `get_url_report`
     - Accepts a URL string and returns detailed URL analysis info
@@ -353,6 +364,7 @@ class URLThreatIntelligence(TiCloudAPI)
 ```python
 class AnalyzeURL(TiCloudAPI)
 ````
+_TCA-0404_
 #### Methods:
 - `submit_url`
     - Sends a URL string for analysis and returns an analysis task ID
@@ -361,6 +373,7 @@ class AnalyzeURL(TiCloudAPI)
 ```python
 class FileUpload(TiCloudAPI)
 ````
+_TCA-0202 and TCA-0203_
 #### Methods:
 - `upload_sample_from_path`
     - Accepts a file path string and uploads the desired file to the File Upload API
@@ -371,6 +384,7 @@ class FileUpload(TiCloudAPI)
 ```python
 class DeleteFile(TiCloudAPI)
 ````
+_TCA-0204_
 #### Methods:
 - `delete_samples`
   - Accepts a single hash string or a list of hash strings belonging to samples you want to delete from the cloud
@@ -380,6 +394,7 @@ class DeleteFile(TiCloudAPI)
 ```python
 class ReanalyzeFile(TiCloudAPI)
 ````
+_TCA-0205_
 #### Methods:
 - `reanalyze_samples`
   - Accepts a single hash string or a list of hash strings belonging to samples in the cloud you want to reanalyze
@@ -389,6 +404,7 @@ class ReanalyzeFile(TiCloudAPI)
 ```python
 class DynamicAnalysis(TiCloudAPI)
 ````
+_TCA-0207 and TCA-0106_
 #### Methods:
 - `detonate_sample`
     - Submits a sample available in the cloud for dynamic analysis and returns processing info
@@ -401,6 +417,7 @@ class DynamicAnalysis(TiCloudAPI)
 ```python
 class CertificateIndex(TiCloudAPI)
 ````
+_TCA-0501_
 #### Methods:
 - `get_certificate_information`
     - Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate matching the requested thumbprint
@@ -412,6 +429,7 @@ class CertificateIndex(TiCloudAPI)
 ```python
 class CertificateAnalytics(TiCloudAPI)
 ````
+_TCA-0502_
 #### Methods:
 - `get_certificate_analytics`
     - Accepts a certificate hash thumbprint (hash string) and returns certificate analytics results
@@ -420,6 +438,7 @@ class CertificateAnalytics(TiCloudAPI)
 ```python
 class CertificateThumbprintSearch(TiCloudAPI)
 ````
+_TCA-0503_
 #### Methods:
 - `search_common_names`
     - Accepts a certificate common name and returns common names matching the request, along with the list of thumbprints of all the certificates sharing that common name
@@ -431,6 +450,7 @@ class CertificateThumbprintSearch(TiCloudAPI)
 ```python
 class RansomwareIndicators(TiCloudAPI)
 ````
+_Ransomware Indicators Feed_
 #### Methods:
 - `get_indicators`
     - Accepts a list of indicator type strings and integers for historical hours, health check and returning only freemium indicators. Returns indicators of ransomware and related tools
@@ -439,6 +459,7 @@ class RansomwareIndicators(TiCloudAPI)
 ```python
 class NewMalwareFilesFeed(ContinuousFeed)
 ````
+_TCF-0101_
 #### Methods:
 - `pull_with_timestamp`
     - Accepts a time format definition and a time value. Returns malware detections from the requested time
@@ -451,6 +472,7 @@ class NewMalwareFilesFeed(ContinuousFeed)
 ```python
 class MWPChangeEventsFeed(ContinuousFeed)
 ````
+_TCF-0111_
 #### Methods:
 - `pull_with_timestamp`
     - Accepts a time format definition and a time value. Returns samples with a newly calculated or changed malware presence (MWP) classification and threat name from the requested time
@@ -463,6 +485,7 @@ class MWPChangeEventsFeed(ContinuousFeed)
 ```python
 class NewMalwareURIFeed(TiCloudAPI)
 ````
+_TCF-0301_
 #### Methods:
 - `pull_with_timestamp`
     - Accepts a time format definition and a time value. Returns records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
@@ -473,6 +496,7 @@ class NewMalwareURIFeed(TiCloudAPI)
 ```python
 class NewFilesFirstScan(TiCloudAPI)
 ```
+_TCF-0107_
 #### Methods:
 - `feed_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
@@ -487,6 +511,7 @@ class NewFilesFirstScan(TiCloudAPI)
 ```python
 class NewFilesFirstAndRescan(TiCloudAPI)
 ```
+_TCF-0108_
 #### Methods:
 - `feed_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
@@ -501,6 +526,7 @@ class NewFilesFirstAndRescan(TiCloudAPI)
 ```python
 class FilesWithDetectionChanges(TiCloudAPI)
 ```
+_TCF-0109_
 #### Methods:
 - `feed_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
@@ -515,6 +541,7 @@ class FilesWithDetectionChanges(TiCloudAPI)
 ```python
 class CvesExploitedInTheWild(TiCloudAPI)
 ```
+_TCF-0202_
 #### Methods:
 - `pull_daily_cve_report`
     - Accepts a time format definition and a time value.
@@ -526,6 +553,7 @@ class CvesExploitedInTheWild(TiCloudAPI)
 ```python
 class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI)
 ```
+_TCF-0203_
 #### Methods:
 - `hourly_exploit_list_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
@@ -537,6 +565,7 @@ class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI)
 ```python
 class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI)
 ```
+_TCF-0204_
 #### Methods:
 - `daily_exploit_list_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
@@ -548,6 +577,7 @@ class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI)
 ```python
 class NewWhitelistedFiles(TiCloudAPI)
 ```
+_TCF-0501_
 #### Methods:
 - `feed_query`
     - Accepts a time definition and a time value. Optional arguments are available sample and result limit
@@ -561,6 +591,7 @@ class NewWhitelistedFiles(TiCloudAPI)
 ```python
 class ChangesWhitelistedFiles(TiCloudAPI)
 ```
+_TCF-0502_
 #### Methods:
 - `feed_query`
     - Accepts a time definition and a time value
@@ -572,6 +603,7 @@ class ChangesWhitelistedFiles(TiCloudAPI)
 ```python
 class ImpHashSimilarity(TiCloudAPI)
 ````
+_TCA-0302_
 #### Methods:
 - `get_imphash_index`
     - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
@@ -583,6 +615,7 @@ class ImpHashSimilarity(TiCloudAPI)
 ```python
 class YARAHunting(TiCloudAPI)
 ````
+_TCA-0303_
 #### Methods:
 - `create_ruleset`
     - Creates a new YARA ruleset
@@ -600,6 +633,7 @@ class YARAHunting(TiCloudAPI)
 ```python
 class YARARetroHunting(TiCloudAPI)
 ````
+_TCA-0319_
 #### Methods:
 - `enable_retro_hunt`
     - Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud prior to deployment of YARA retro
@@ -616,6 +650,7 @@ class YARARetroHunting(TiCloudAPI)
 ```python
 class FileReputationUserOverride(TiCloudAPI)
 ````
+_TCA-0102_
 #### Methods:
 - `override_classification`
     - Accepts two parameters
@@ -630,6 +665,7 @@ class FileReputationUserOverride(TiCloudAPI)
 ```python
 class DomainThreatIntelligence(TiCloudAPI)
 ````
+_TCA-0405_
 #### Methods:
 - `get_domain_report`
     - Accepts a domain string and returns threat intelligence data for the submitted domain.
@@ -654,6 +690,7 @@ class DomainThreatIntelligence(TiCloudAPI)
 ```python
 class IPThreatIntelligence(TiCloudAPI)
 ````
+_TCA-0406_
 #### Methods:
 - `get_ip_report`
     - Accepts an IP address as a string and returns threat intelligence data for the submitted IP address.
@@ -674,6 +711,7 @@ class IPThreatIntelligence(TiCloudAPI)
 ```python
 class FileAnalysisNonMalicious(TiCloudAPI)
 ````
+_TCA-0105_
 #### Methods:
 - `get_analysis_results`
     - Accepts a hash string or a list of hash strings and returns knowledge about the given samples if they are classified as goodware.
@@ -682,6 +720,7 @@ class FileAnalysisNonMalicious(TiCloudAPI)
 ```python
 class DataChangeSubscription(TiCloudAPI)
 ````
+_TCA-0206_
 #### Methods:
 - `subscribe`
   - Subscribes to a list of samples (hashes) for which the changed data (if there are any) will be delivered in the Data Change Feed.
@@ -698,6 +737,7 @@ class DataChangeSubscription(TiCloudAPI)
 ```python
 class NewMalwarePlatformFiltered(TiCloudAPI)
 ````
+_TCF-0102-0106_
 #### Methods:
 - `feed_query`
     - Returns a list of malware samples optionally filtered by platform since the requested timestamp.
@@ -710,6 +750,7 @@ class NewMalwarePlatformFiltered(TiCloudAPI)
 ```python
 class CustomerUsage(TiCloudAPI)
 ````
+_TCA-9999_
 #### Methods:
 - `daily_usage`
     - Returns information about daily service usage for the TitaniumCloud account that sent the
@@ -729,6 +770,7 @@ class CustomerUsage(TiCloudAPI)
 ```python
 class NetworkReputation(TiCloudAPI)
 ````
+_TCA-0407_
 #### Methods:
 - `get_network_reputation`
     - Returns reputation information about queried URL-, domains and IP addresses.
@@ -737,6 +779,7 @@ class NetworkReputation(TiCloudAPI)
 ```python
 class MalwareFamilyDetection(TiCloudAPI)
 ```
+_TCA-0305_
 #### Methods:
 - `get_malware_family`
     - Returns all malware families to which sample belongs based on the detections from the latest AV scan
@@ -745,6 +788,7 @@ class MalwareFamilyDetection(TiCloudAPI)
 ```python
 class ExpressionSearch(TiCloudAPI)
 ```
+_TCA-0306_
 #### Methods:
 - `search`
     - Returns a list of aggregated results from Titanium Cloud system that matches requested criteria
@@ -803,6 +847,7 @@ Service can be used to retrieve information about new malware samples from Rever
 ```python
 class NetworkReputationUserOverride(TiCloudAPI)
 ````
+_TCA-0408_
 #### Methods:
 - `reputation_override`
     - This method enables two actions in one request:
@@ -834,8 +879,8 @@ class TAXIIRansomwareFeed(TiCloudAPI)
 A Python module representing the ReversingLabs TitaniumScale malware analysis appliance.
 #### Class:
 ```python
-class TitaniumScale(object)
-def __init__(self, host, token, wait_time_seconds, retries, verify, proxies, user_agent)
+class TitaniumScale(object):
+    def __init__(self, host, token, wait_time_seconds, retries, verify, proxies, user_agent)
 ```
 #### Parameters:
 `host` - TitaniumScale address  
