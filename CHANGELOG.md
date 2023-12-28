@@ -168,6 +168,8 @@ v2.4.0 (2023-12-28)
     - Added `windows11` and `linux` to available Dynamic Analysis platforms.
     - Added the `detonate_url` method.
     - The `get_dynamic_analysis_results` method now supports `url` analysis results.
+
+- Added TitaniumCloud API codes to the README for better correspondence and orientation.
 ---
 
 
