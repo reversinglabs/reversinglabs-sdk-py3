@@ -409,6 +409,8 @@ _TCA-0207 and TCA-0106_
 - `detonate_sample`
     - Submits a sample available in the cloud for dynamic analysis and returns processing info
     - The sample needs to be available in TitaniumCloud beforehand
+- `detonate_url`
+    - Submits a URL for dynamic analysis and returns processing info
 - `get_dynamic_analysis_results`
     - Returns dynamic analysis results for a desired sample
     - The analysis of the selected sample must be finished for the results to be available
