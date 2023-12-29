@@ -18,7 +18,7 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
 
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "GOODWARE", "UNKNOWN")
-AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux")
 
 
 class A1000(object):
