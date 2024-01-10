@@ -179,7 +179,7 @@ class TiCloudAPI(object):
             return
         if exception == NotFoundError and self._allow_none_return:
             return None
-        raise exception
+        raise exception(response_object=response)
 
 
 class FileReputation(TiCloudAPI):

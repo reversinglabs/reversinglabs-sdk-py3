@@ -26,79 +26,108 @@ DEFAULT_USER_AGENT = "ReversingLabs SDK v2.3.0"
 ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "sampletype", "filecount", "size")
 
 
-class NotFoundError(Exception):
-    def __init__(self, message="Not found. No reference was found for this input"):
-        super(NotFoundError, self).__init__(message)
-
-
-class NoFileTypeError(Exception):
-    def __init__(self, message="There is no determinable file type"):
-        super(NoFileTypeError, self).__init__(message)
-
-
 class WrongInputError(Exception):
     def __init__(self, message="This input type is not allowed"):
         super(WrongInputError, self).__init__(message)
 
 
+class NotFoundError(Exception):
+    def __init__(self, response_object, message="Not found. No reference was found for this input"):
+        super(NotFoundError, self).__init__(message)
+
+        self.response_object = response_object
+
+
+class NoFileTypeError(Exception):
+    def __init__(self, response_object, message="There is no determinable file type"):
+        super(NoFileTypeError, self).__init__(message)
+
+        self.response_object = response_object
+
+
 class UnauthorizedError(Exception):
-    def __init__(self, message="The provided credentials are invalid"):
+    def __init__(self, response_object, message="The provided credentials are invalid"):
         super(UnauthorizedError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class ForbiddenError(Exception):
-    def __init__(self, message="The provided credentials do not have the required rights to access this resource"):
+    def __init__(self, response_object,
+                 message="The provided credentials do not have the required rights to access this resource"):
         super(ForbiddenError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class BadRequestError(Exception):
-    def __init__(self, message="Bad request created"):
+    def __init__(self, response_object, message="Bad request created"):
         super(BadRequestError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class RequestTimeoutError(Exception):
-    def __init__(self, message="Request timed out"):
+    def __init__(self, response_object, message="Request timed out"):
         super(RequestTimeoutError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class ConflictError(Exception):
-    def __init__(self, message="Can't complete the request due to a conflict"):
+    def __init__(self, response_object, message="Can't complete the request due to a conflict"):
         super(ConflictError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class RequestTooLargeError(Exception):
-    def __init__(self, message="The request is too large"):
+    def __init__(self, response_object, message="The request is too large"):
         super(RequestTooLargeError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class InternalServerError(Exception):
-    def __init__(self, message="Internal server error"):
+    def __init__(self, response_object, message="Internal server error"):
         super(InternalServerError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class BadGatewayError(Exception):
-    def __init__(self, message="The server received an invalid response from another server"):
+    def __init__(self, response_object, message="The server received an invalid response from another server"):
         super(BadGatewayError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class ServiceUnavailableError(Exception):
-    def __init__(self, message="Service unavailable"):
+    def __init__(self, response_object, message="Service unavailable"):
         super(ServiceUnavailableError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class NotAllowedError(Exception):
-    def __init__(self, message="This method is not allowed"):
+    def __init__(self, response_object, message="This method is not allowed"):
         super(NotAllowedError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class TooManyRequestsError(Exception):
-    def __init__(self, message="Too many requests. Your quota limit might be reached"):
+    def __init__(self, response_object, message="Too many requests. Your quota limit might be reached"):
         super(TooManyRequestsError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class NotAcceptableError(Exception):
-    def __init__(self, message="This content is not acceptable"):
+    def __init__(self, response_object, message="This content is not acceptable"):
         super(NotAcceptableError, self).__init__(message)
+
+        self.response_object = response_object
 
 
 class CloudDeepScanException(Exception):
