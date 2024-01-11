@@ -179,7 +179,7 @@ class TiCloudAPI(object):
             return
         if exception == NotFoundError and self._allow_none_return:
             return None
-        raise exception
+        raise exception(response_object=response)
 
 
 class FileReputation(TiCloudAPI):
@@ -3099,7 +3099,8 @@ class DynamicAnalysis(TiCloudAPI):
     __DETONATE_ARCHIVE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/archive/query/json"
     __GET_FILE_RESULTS = "/api/dynamic/analysis/report/v1/query/sha1"
     __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/sha1"
-    __GET_URL_RESULTS = "/api/dynamic/analysis/report/v1/query/url/base64"
+    __GET_URL_RESULTS_BASE64 = "/api/dynamic/analysis/report/v1/query/url/base64"
+    __GET_URL_RESULTS_SHA1 = "/api/dynamic/analysis/report/v1/query/url/sha1"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -3206,14 +3207,17 @@ class DynamicAnalysis(TiCloudAPI):
 
         return response
 
-    def get_dynamic_analysis_results(self, sample_hash=None, url=None, is_archive=False, latest=False,
+    def get_dynamic_analysis_results(self, sample_hash=None, url=None, url_sha1=None, is_archive=False, latest=False,
                                      analysis_id=None):
         """Returns dynamic analysis results for a desired file, URL or a file archive.
         The analysis of the selected artifact must be finished for the results to be available.
             :param sample_hash: SHA-1 hash of a desired sample or archive. mutually exclusive with url
             :type sample_hash: str
-            :param url: URL string. mutually exclusive with sample_hash
+            :param url: URL string; mutually exclusive with sample_hash
             :type url: str
+            :param url_sha1: the sha1 of the submitter URL; it can be found in the response of the
+            DynamicAnalysis.detonate_url method; mutually exclusive with sample_hash and url
+            :type url_sha1: str
             :param is_archive: needs to be set to True if results for a file archive are being fetched;
             currently supported archive types: .zip; used only with sample_hash
             :type is_archive: bool
@@ -3242,7 +3246,15 @@ class DynamicAnalysis(TiCloudAPI):
                 raise WrongInputError("url parameter must be a string")
 
             indicator = base64.urlsafe_b64encode(url.encode("utf-8")).strip(b"=").decode()
-            endpoint_base = self.__GET_URL_RESULTS
+            endpoint_base = self.__GET_URL_RESULTS_BASE64
+
+        elif url_sha1:
+            validate_hashes(
+                hash_input=[url_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+            indicator = url_sha1
+            endpoint_base = self.__GET_URL_RESULTS_SHA1
 
         else:
             raise WrongInputError("Either sample_hash or url need to be defined as parameters")
