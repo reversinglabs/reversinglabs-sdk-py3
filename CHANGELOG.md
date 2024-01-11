@@ -173,6 +173,18 @@ v2.4.0 (2023-12-29)
 ---
 
 
+v2.4.1 (2024-01-11)
+-------------------
+
+#### Improvements
+
+- **ticloud** module:
+  - The `get_dynamic_analysis_results` method of the `DynamicAnalysis` class now also supports using a URL-s SHA-1 hash for fetching the URL dynamic analysis results. 
+
+- Error handling: Custom error classes now also carry the original response object. Users can now reach the original status code, error message and all other response properties using the caught error's `response_object` property. 
+
+
+
 ### Scheduled removals
 - **March 2024.**:
   - `a1000.A1000.advanced_search_v2`
