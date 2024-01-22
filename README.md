@@ -793,13 +793,16 @@ class ExpressionSearch(TiCloudAPI)
 _TCA-0306_
 #### Methods:
 - `search`
-    - Returns a list of aggregated results from Titanium Cloud system that matches requested criteria
+    - Provides samples first seen on a particular date, filtered by search criteria.
+- `search_aggregated`
+    - Provides samples first seen on a particular date, filtered by search criteria.
+    - This method performs the paging automatically.
 - `get_latest_expression`
-    - Returns a list of  latest aggregated results from Titanuium Cloud system that matches requested criteria
+    - Provdes samples for yesterday’s date tha match the requested criteria.
 - `statistics_search`
-    - Returns aggregated statistics about new samples in Titainum Cloud system that matches requested criteria
+    - Returns statistics about new samples in ReversingLabs TitaniumCloud on the requested date that match the used search criteria.
 - `get_latest_statistics`
-    - Returns aggregated latest statistics about new samples in Titanium Cloud system that matches requested criteria
+    - Returns statistics about new samples in ReversingLabs TitaniumCloud from yesterday's date.
 
 #### Class:
 ```python
