@@ -311,20 +311,23 @@ _TCA-0320_
     - Accepts a search query string and performs advanced search on the API
     - Returns a list of results aggregated through multiple paginated requests
 
-
 #### Class:
 ```python
 class ExpressionSearch(TiCloudAPI)
-````
+```
 _TCA-0306_
 #### Methods:
 - `search`
-    - Accepts a list containing the search query and performs expression search on the API
-    - Returns only one defined page of results using one request
+    - Provides samples first seen on a particular date, filtered by search criteria.
 - `search_aggregated`
-    - Accepts a list containing the search query and performs expression search on the API
-    - Returns a list of results aggregated through multiple paginated requests
-    
+    - Provides samples first seen on a particular date, filtered by search criteria.
+    - This method performs the paging automatically.
+- `get_latest_expression`
+    - Provdes samples for yesterday’s date tha match the requested criteria.
+- `statistics_search`
+    - Returns statistics about new samples in ReversingLabs TitaniumCloud on the requested date that match the used search criteria.
+- `get_latest_statistics`
+    - Returns statistics about new samples in ReversingLabs TitaniumCloud from yesterday's date.
     
 #### Class:
 ```python
@@ -785,24 +788,6 @@ _TCA-0305_
 #### Methods:
 - `get_malware_family`
     - Returns all malware families to which sample belongs based on the detections from the latest AV scan
-
-#### Class:
-```python
-class ExpressionSearch(TiCloudAPI)
-```
-_TCA-0306_
-#### Methods:
-- `search`
-    - Provides samples first seen on a particular date, filtered by search criteria.
-- `search_aggregated`
-    - Provides samples first seen on a particular date, filtered by search criteria.
-    - This method performs the paging automatically.
-- `get_latest_expression`
-    - Provdes samples for yesterday’s date tha match the requested criteria.
-- `statistics_search`
-    - Returns statistics about new samples in ReversingLabs TitaniumCloud on the requested date that match the used search criteria.
-- `get_latest_statistics`
-    - Returns statistics about new samples in ReversingLabs TitaniumCloud from yesterday's date.
 
 #### Class:
 ```python
