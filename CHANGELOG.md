@@ -157,8 +157,10 @@ v2.3.0 (2023-09-29)
 ---
 
 
-v2.4.0 (2023-12-29)
+v2.4.0 (2023-12-29) - [YANKED]
 -------------------
+
+**Note:** Contains breaking changes in the `ExpressionSearch` class. We recommend using **v2.4.2**
 
 #### Improvements
 
@@ -173,14 +175,34 @@ v2.4.0 (2023-12-29)
 ---
 
 
-v2.4.1 (2024-01-11)
+v2.4.1 (2024-01-11) - [YANKED]
 -------------------
+
+**Note:** Contains breaking changes in the `ExpressionSearch` class. We recommend using **v2.4.2**
 
 #### Improvements
 
 - **ticloud** module:
   - The `get_dynamic_analysis_results` method of the `DynamicAnalysis` class now also supports using a URL-s SHA-1 hash for fetching the URL dynamic analysis results. 
 
+- Error handling: Custom error classes now also carry the original response object. Users can now reach the original status code, error message and all other response properties using the caught error's `response_object` property. 
+---
+
+
+v2.4.2 (2024-01-22)
+-------------------
+
+All changes are calculated agains **v2.3.0**
+
+### Improvements
+- **ticloud** module:
+  - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, `ChangesWhitelistedFiles`, `MalwareFamilyDetection`, `ExpressionSearch`, `VerticalFeedStatistics` and `VerticalFeedSearch` classes.
+  - The following changes were made to the `DynamicAnalysis` class:
+    - Added `windows11` and `linux` to available Dynamic Analysis platforms.
+    - Added the `detonate_url` method.
+    - The `get_dynamic_analysis_results` method now supports fetching the URL dynamic analysis results using the URL string or its SHA-1 hash as a parameter.
+
+- Added TitaniumCloud API codes to the README for better correspondence and orientation.
 - Error handling: Custom error classes now also carry the original response object. Users can now reach the original status code, error message and all other response properties using the caught error's `response_object` property. 
 
 
