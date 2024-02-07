@@ -192,9 +192,9 @@ v2.4.1 (2024-01-11) - [YANKED]
 v2.4.2 (2024-01-22)
 -------------------
 
-All changes are calculated agains **v2.3.0**
+All changes are calculated against **v2.3.0**
 
-### Improvements
+#### Improvements
 - **ticloud** module:
   - Added the `NewFilesFirstScan`, `NewFilesFirstAndRescan`, `FilesWithDetectionChanges`, `CvesExploitedInTheWild`, `NewExploitOrCveSamplesFoundInWildHourly`, `NewExploitAndCveSamplesFoundInWildDaily`, `NewWhitelistedFiles`, `ChangesWhitelistedFiles`, `MalwareFamilyDetection`, `ExpressionSearch`, `VerticalFeedStatistics` and `VerticalFeedSearch` classes.
   - The following changes were made to the `DynamicAnalysis` class:
@@ -204,6 +204,16 @@ All changes are calculated agains **v2.3.0**
 
 - Added TitaniumCloud API codes to the README for better correspondence and orientation.
 - Error handling: Custom error classes now also carry the original response object. Users can now reach the original status code, error message and all other response properties using the caught error's `response_object` property. 
+
+
+v2.4.3 (2024-02-07)
+-------------------
+
+#### Improvements
+
+- Python package dependencies are now set to the following values:
+  - `requests>=2.28.2`
+  - `urllib3>=1.26.14`
 
 
 
