@@ -1,13 +1,16 @@
 ![ReversingLabs](https://raw.githubusercontent.com/reversinglabs/reversinglabs-sdk-py3/master/logo.png)
 
-# ReversingLabsSDK
+# ReversingLabs SDK
 
-A Python SDK for ReversingLabs REST services (TitaniumCloud and appliances) - Python 3 version.
+The official Python SDK for using ReversingLabs services.
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
 
 The SDK consists of several modules, where each module represents either one ReversingLabs service, ReversingLabs appliance or the ReversingLabs TitaniumCloud.
 
+> **ReversingLabs SDK Cookbook**  
+For a simple and comprehensive guide on how to start using the ReversingLabs SDK, visit the [ReversingLabs SDK Cookbook](https://github.com/reversinglabs/reversinglabs-sdk-cookbook) 
+> and explore the provided steps and examples.
 
 ## Module: a1000
 A Python module representing the ReversingLabs A1000 malware analysis platform.
