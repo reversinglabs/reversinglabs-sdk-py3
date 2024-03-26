@@ -21,6 +21,7 @@ setup(
     packages=packages,
     python_requires=">=3.6",
     install_requires=requires,
+    extras_require={"test": ["pytest"]},
     license="MIT",
     zip_safe=False,
     classifiers=[
