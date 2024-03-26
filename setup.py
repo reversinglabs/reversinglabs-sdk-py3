@@ -13,7 +13,7 @@ with open("README.md", "r") as readme:
 setup(
     name="reversinglabs-sdk-py3",
     version=__version__,
-    description="Python SDK for using ReversingLabs services - Python 3 version.",
+    description="Python SDK for using ReversingLabs services.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="ReversingLabs",
