@@ -221,8 +221,11 @@ v2.5.0 (2024-03-29)
 #### Removals
 - **a1000** module:
   - Removed the `a1000.A1000.advanced_search_v2` method.
+- **clouddeepscan** module:
+  - The entire module is no longer supported ant is thus removed from the SDK.
 
 #### Improvements
 - Added unit tests.
 - Added CI/CD (Actions) workflows for running unit tests and publishing the package to PyPI.
-
+- **ticloud** module:
+  - `md5` and `sha256` can now be used in `DynamicAnalysis.get_dynamic_analysis_results` for fetching sample analysis results.
