@@ -8,6 +8,7 @@ A Python module containing common helper functions and variables for ReversingLa
 import codecs
 import binascii
 from http import HTTPStatus
+from ReversingLabs.SDK import __version__
 
 
 MD5 = "md5"
@@ -22,7 +23,7 @@ HASH_LENGTH_MAP = {
     128: SHA512
 }
 
-DEFAULT_USER_AGENT = "ReversingLabs SDK v2.4.3"
+DEFAULT_USER_AGENT = f"ReversingLabs SDK v{__version__}"
 ADVANCED_SEARCH_SORTING_CRITERIA = ("sha1", "firstseen", "threatname", "sampletype", "filecount", "size")
 
 

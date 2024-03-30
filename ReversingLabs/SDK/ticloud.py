@@ -3127,8 +3127,8 @@ class DynamicAnalysis(TiCloudAPI):
 
     __DETONATE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/query/json"
     __DETONATE_ARCHIVE_ENDPOINT = "/api/dynamic/analysis/analyze/v1/archive/query/json"
-    __GET_FILE_RESULTS = "/api/dynamic/analysis/report/v1/query/sha1"
-    __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/sha1"
+    __GET_FILE_RESULTS = "/api/dynamic/analysis/report/v1/query/{hash_type}"
+    __GET_ARCHIVE_RESULTS_ENDPOINT = "/api/dynamic/analysis/report/v1/archive/query/{hash_type}"
     __GET_URL_RESULTS_BASE64 = "/api/dynamic/analysis/report/v1/query/url/base64"
     __GET_URL_RESULTS_SHA1 = "/api/dynamic/analysis/report/v1/query/url/sha1"
 
@@ -3261,7 +3261,7 @@ class DynamicAnalysis(TiCloudAPI):
         if sample_hash:
             validate_hashes(
                 hash_input=[sample_hash],
-                allowed_hash_types=(SHA1,)
+                allowed_hash_types=(SHA1, MD5, SHA256)
             )
             indicator = sample_hash
 
@@ -3270,6 +3270,9 @@ class DynamicAnalysis(TiCloudAPI):
 
             else:
                 endpoint_base = self.__GET_ARCHIVE_RESULTS_ENDPOINT
+
+            hashing_algorithm = HASH_LENGTH_MAP.get(len(sample_hash))
+            endpoint_base = endpoint_base.format(hash_type=hashing_algorithm)
 
         elif url:
             if not isinstance(url, str):

@@ -1,4 +1,5 @@
 from setuptools import setup
+from ReversingLabs.SDK import __version__
 
 
 requires = ["requests>=2.28.2", "urllib3>=1.26.14"]
@@ -11,8 +12,8 @@ with open("README.md", "r") as readme:
 
 setup(
     name="reversinglabs-sdk-py3",
-    version="2.4.3",
-    description="Python SDK for using ReversingLabs services - Python 3 version.",
+    version=__version__,
+    description="Python SDK for using ReversingLabs services.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="ReversingLabs",
@@ -21,6 +22,7 @@ setup(
     packages=packages,
     python_requires=">=3.6",
     install_requires=requires,
+    extras_require={"test": ["pytest"]},
     license="MIT",
     zip_safe=False,
     classifiers=[
