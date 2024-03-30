@@ -221,8 +221,6 @@ v2.5.0 (2024-03-29)
 #### Removals
 - **a1000** module:
   - Removed the `a1000.A1000.advanced_search_v2` method.
-- **clouddeepscan** module:
-  - The entire module is no longer supported ant is thus removed from the SDK.
 
 #### Improvements
 - Added unit tests.
