@@ -215,7 +215,7 @@ v2.4.3 (2024-02-07)
   - `urllib3>=1.26.14`
 
 
-v2.5.0 (2024-03-29)
+v2.5.0 (2024-03-30)
 -------------------
 
 #### Removals
@@ -227,3 +227,10 @@ v2.5.0 (2024-03-29)
 - Added CI/CD (Actions) workflows for running unit tests and publishing the package to PyPI.
 - **ticloud** module:
   - `md5` and `sha256` can now be used in `DynamicAnalysis.get_dynamic_analysis_results` for fetching sample analysis results.
+
+
+v2.5.1 (2024-04-02)
+-------------------
+
+#### Improvements
+- Updated the README with an example of error handling.
