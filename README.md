@@ -1082,44 +1082,26 @@ results = titanium_scale.upload_sample_and_get_results(
 )
 ```
 
-
-#### CloudDeepScan
+#### Error handling
+Each module raises corresponding custom exceptions according to the error status code returned in the response. 
+Custom exception classes that correspond to error status codes also carry the original response object in its entirety. 
+To learn how to fetch and use the response object out of the exception object, see the following examples.
 ```python
-from ReversingLabs.SDK.clouddeepscan import CloudDeepScan, CloudDeepScanException
+from ReversingLabs.SDK.ticloud import FileReputation
 
 
-cloud_deep_scan = CloudDeepScan(
-    token_endpoint="https://exampletokenendpoint.reversinglabs.com/oauth2/token",
-    rest_hostname="https://example.clouddeepscan.com",
-    client_id="exampleclientid",
-    client_secret="exampleclientsecret"
+file_rep = FileReputation(
+    host="https://data.reversinglabs.com",
+    username="u/username",
+    password="password"
 )
-try:
-    submission_id = cloud_deep_scan.upload_sample(sample_path="/path/to/file/suspicious_file.exe")
-except CloudDeepScanException:
-    pass
 
 try:
-    status_data = cloud_deep_scan.fetch_submission(submission_id=submission_id)  # Returns CloudDeepScanSubmissionStatus instance
-    print(status_data.id)  # submission id
-    print(str(status_data.created_at))  # datetime instance
-    print(status_data.status)  # status
-    print(status_data.report)  # URI path to the report file
-except CloudDeepScanException:
-    pass
-
-try:
-    submission_history = cloud_deep_scan.fetch_submission_history(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95")
-    for submission_status in submission_history:
-        print(submission_status.id)  # submission id
-        print(str(submission_status.created_at))  # datetime instance
-        print(submission_status.status)  # status
-        print(submission_status.report)  # URI path to the report file
-except CloudDeepScanException:
-    pass
-
-try:
-    cloud_deep_scan.download_report(sample_hash="0f5de47158e40b5d791cb3698b7dc599be21cf95", report_output_path="reports/report1.json")  # report parent directory must exist
-except CloudDeepScanException:
-    pass
+    resp = file_rep.get_file_reputation(hash_input="cf23df2207d99a74fbe169e3eba035e633b65d94")
+except Exception as e:
+    if hasattr(e, "response_object"):
+        print(e.response_object.content)
+    else:
+        raise 
 ```
+Same approach can also be used for A1000 and TitaniumScale.

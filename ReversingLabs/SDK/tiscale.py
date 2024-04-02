@@ -460,4 +460,4 @@ class TitaniumScale(object):
         exception = RESPONSE_CODE_ERROR_MAP.get(response.status_code, None)
         if not exception:
             return
-        raise exception
+        raise exception(response_object=response)
