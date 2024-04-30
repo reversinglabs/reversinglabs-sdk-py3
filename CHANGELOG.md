@@ -234,3 +234,11 @@ v2.5.1 (2024-04-02)
 
 #### Improvements
 - Updated the README with an example of error handling.
+
+
+2.5.2 (2024-04-30)
+-------------------
+
+#### Improvements
+- **a1000** module:
+  - The function for checking file analysis status is now public. It is called `file_analysis_status`.
