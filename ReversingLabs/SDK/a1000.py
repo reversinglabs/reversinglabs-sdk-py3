@@ -24,8 +24,8 @@ class A1000(object):
 
     __TOKEN_ENDPOINT = "/api-token-auth/"
     __UPLOAD_ENDPOINT = "/api/uploads/"
-    __CHECK_STATUS_ENDPOINT = "/api/samples/status/"
-    __CHECK_URL_STATUS_ENDPOINT = "/api/uploads/v2/url-samples/{task_id}"
+    __FILE_ANALYSIS_STATUS_ENDPOINT = "/api/samples/status/"
+    __URL_ANALYSIS_STATUS_ENDPOINT = "/api/uploads/v2/url-samples/{task_id}"
     __RESULTS_ENDPOINT = "/api/samples/list/"
     __SUMMARY_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/"
     __DETAILED_REPORT_ENDPOINT_V2 = "/api/samples/v2/list/details/"
@@ -161,8 +161,9 @@ class A1000(object):
         """Creates a request towards the A1000 Check Status API to test the connection
         with A1000.
         """
-        _ = self.__analysis_is_finished(
-            sample_hashes=["0000000000000000000000000000000000000000"]
+        self.file_analysis_status(
+            sample_hashes=["0000000000000000000000000000000000000000"],
+            sample_status="processed"
         )
 
         return
@@ -295,6 +296,35 @@ class A1000(object):
 
         return response
 
+    def file_analysis_status(self, sample_hashes, sample_status=None):
+        """Accepts a list of file hashes and returns their analysis completion information.
+            :param sample_hashes: list of hash strings
+            :type sample_hashes: list[str]
+            :param sample_status: return only samples with this classification;
+            supported values are 'processed' and 'not_found'
+            :type sample_status: str
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        data = {"hash_values": sample_hashes}
+
+        params = {}
+
+        if sample_status:
+            params["status"] = sample_status
+
+        url = self._url.format(endpoint=self.__FILE_ANALYSIS_STATUS_ENDPOINT)
+
+        response = self.__post_request(
+            url=url,
+            data=data,
+            params=params
+        )
+
+        self.__raise_on_error(response)
+
+        return response
+
     def check_submitted_url_status(self, task_id):
         """Accepts a task ID returned by the upload sample from url
             :param task_id: ID of the submitted sample
@@ -305,7 +335,7 @@ class A1000(object):
         if not isinstance(task_id, str):
             raise WrongInputError("task_id parameter must be a string.")
 
-        endpoint = self.__CHECK_URL_STATUS_ENDPOINT.format(task_id=task_id)
+        endpoint = self.__URL_ANALYSIS_STATUS_ENDPOINT.format(task_id=task_id)
 
         url = self._url.format(endpoint=endpoint)
 
@@ -426,8 +456,11 @@ class A1000(object):
             if iteration:
                 time.sleep(self._wait_time_seconds)
 
-            analysis_is_finished = self.__analysis_is_finished(sample_hashes)
-            if analysis_is_finished:
+            analysis_status = self.file_analysis_status(sample_hashes=sample_hashes, sample_status="processed")
+
+            if len(analysis_status.json().get("results")) == len(sample_hashes):
+                analysis_is_finished = True
+
                 break
 
         if not analysis_is_finished:
@@ -564,8 +597,11 @@ class A1000(object):
             if iteration:
                 time.sleep(self._wait_time_seconds)
 
-            analysis_is_finished = self.__analysis_is_finished(sample_hashes)
-            if analysis_is_finished:
+            analysis_status = self.file_analysis_status(sample_hashes=sample_hashes, sample_status="processed")
+
+            if len(analysis_status.json().get("results")) == len(sample_hashes):
+                analysis_is_finished = True
+
                 break
 
         if not analysis_is_finished:
@@ -2217,31 +2253,6 @@ class A1000(object):
             return None
 
         return data
-
-    def __analysis_is_finished(self, sample_hashes):
-        """Accepts a list of hashes and returns boolean.
-            :param sample_hashes: list of hash strings
-            :type sample_hashes: list[str]
-            :return: boolean for processing status.
-            :rtype: bool
-        """
-        data = {"hash_values": sample_hashes}
-        params = {"status": "processed"}
-
-        url = self._url.format(endpoint=self.__CHECK_STATUS_ENDPOINT)
-
-        response = self.__post_request(
-            url=url,
-            data=data,
-            params=params
-        )
-
-        self.__raise_on_error(response)
-
-        if len(response.json().get("results")) == len(sample_hashes):
-            return True
-
-        return False
 
     def __get_request(self, url, params=None):
         """A generic GET request method for all A1000 methods.
