@@ -51,6 +51,8 @@ If username and password are used instead, a token fetching request will be done
 - `check_submitted_url_status`
     - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
         report if the report is ready
+- `file_analysis_status`
+    - Accepts a list of file hashes and returns their analysis completion information.
 - `get_submitted_url_report`
     - Accepts a task ID returned by upload_sample_from_url and returns a response
     - This method utilizes the set number of retries and wait time in seconds to time
