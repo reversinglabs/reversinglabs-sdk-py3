@@ -242,3 +242,15 @@ v2.5.1 (2024-04-02)
 #### Improvements
 - **a1000** module:
   - The function for checking file analysis status is now public. It is called `file_analysis_status`.
+
+
+2.5.3 (2024-05-08)
+-------------------
+
+#### Bugfixes
+- **ticloud** module:
+  - The classification override parameter in the `override_classification` method of the `FileReputationUserOverride` now works as expected due to a payload fix.
+
+#### Removals
+- **clouddeepscan** module:
+  - Dropped support for the clouddeepscan module. As of this version, the module is removed from the SDK.

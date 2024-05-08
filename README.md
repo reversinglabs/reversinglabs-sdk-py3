@@ -912,44 +912,6 @@ class TitaniumScale(object):
 
 ***
 
-## Module: clouddeepscan
-Handles communication with Cloud Deep Scan API endpoints.
-
-#### Class:
-```python
-class CloudDeepScan(object)
-```
-
-#### Parameters:
-`token_endpoint` - token endpoint that is used to fetch authorization token  
-`rest_hostname` - REST API hostname that is used as base URL to generate endpoints  
-`client_id` - ID of OAuth2.0 client used for authorization  
-`client_secret` - secret of OAuth2.0 client used for authorization  
-
-
-#### Methods:
-- `upload_sample`
-    - Accepts a file path string of a file that should be scanned and optional configuration of how many part uploads to do concurrently, returns submission ID
-- `fetch_submission`
-    - Accepts submission ID and returns an instance of CloudDeepScanSubmissionStatus
-- `fetch_submission_history`
-    - Accepts either sample name or sample hash and returns list of CloudDeepScanSubmissionStatus objects
-- `download_report`
-    - Accepts sha1 hash of the sample and path of the output file where JSON report will be stored and stores report to that location
-
-#### Class:
-```python
-class CloudDeepScanSubmissionStatus(object)
-```
-
-#### Parameters:
-`id_` - submission ID of the submission  
-`created_at` - datetime instance of time when submission is created  
-`status` - submission status, can be one of: scanned, scanning, error
-`report` - URL pointing to report location, None if status is not "scanned"
-
-***
-
 ## Examples
 #### A1000
 ```python

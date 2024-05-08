@@ -277,9 +277,10 @@ class FileReputationUserOverride(TiCloudAPI):
         """Accepts two parameters:
             1. A list of samples whose classification needs to be overriden
             2. A list of samples whose classification override needs to me removed
-        Both parameters are lists of Python dictionaries.
+        Both parameters are lists of Python dictionaries and
+        both need to contain all three of the following hashes of a sample: sha1, sha256, md5
         For specific examples and a more detailed explanation, read the API documentation.
-            :param override_samples: samples whose classification needs to be overriden
+            :param override_samples: samples whose classification needs to be overriden;
             :type override_samples: list[dict]
             :param remove_override: samples whose classification override needs to me removed
             :type remove_override: list[dict]
@@ -296,8 +297,7 @@ class FileReputationUserOverride(TiCloudAPI):
 
         url = self._url.format(endpoint=endpoint)
 
-        post_json = {"rl": {"query": {"override_samples": override_samples},
-                            "remove_override": remove_override}}
+        post_json = {"rl": {"query": {"override_samples": override_samples, "remove_override": remove_override}}}
 
         response = self._post_request(
             url=url,
