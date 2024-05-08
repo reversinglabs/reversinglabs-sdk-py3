@@ -8,7 +8,7 @@ STATUS_ERRORS = (
 	ServiceUnavailableError, NotAllowedError, TooManyRequestsError, NotAcceptableError
 )
 OTHER_ERRORS = (
-	WrongInputError, CloudDeepScanException
+	WrongInputError,
 )
 ALL_ERRORS = STATUS_ERRORS + OTHER_ERRORS
 
