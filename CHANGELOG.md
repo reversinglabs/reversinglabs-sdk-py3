@@ -254,3 +254,12 @@ v2.5.1 (2024-04-02)
 #### Removals
 - **clouddeepscan** module:
   - Dropped support for the clouddeepscan module. As of this version, the module is removed from the SDK.
+
+
+2.5.4 (2024-05-09)
+-------------------
+
+#### Improvements
+- Updated the Python package dependencies to:
+  - `requests>=2.31.0`
+  - `urllib3>=2.0.7`
