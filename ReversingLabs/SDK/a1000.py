@@ -1124,7 +1124,7 @@ class A1000(object):
             :type classification: str
             :param risk_score: If specified, it must be within range for the specified classification. If not specified,
             a default value is used: Goodware: 0, Suspicious: 6, Malicious: 10
-            :type risk_score: str
+            :type risk_score: int
             :param threat_platform: if specified, it must be on the supported list (platforms and subplatforms - see
             official API docs). If not specified, the default value is 'Win32'.
             :type threat_platform: str
@@ -2114,7 +2114,7 @@ class A1000(object):
             :type classification: str
             :param risk_score: If specified, it must be within range for the specified classification. If not specified,
             a default value is used: Goodware: 0, Suspicious: 6, Malicious: 10
-            :type risk_score: str
+            :type risk_score: int
             :param threat_platform: if specified, it must be on the supported list (platforms and subplatforms - see
             official API docs). If not specified, the default value is 'Win32'.
             :type threat_platform: str

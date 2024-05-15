@@ -263,3 +263,11 @@ v2.5.1 (2024-04-02)
 - Updated the Python package dependencies to:
   - `requests>=2.31.0`
   - `urllib3>=2.0.7`
+
+
+2.5.5 (2024-05-15)
+-------------------
+
+#### Bugfixes
+- **a1000** module:
+  - Changed the `risk_score` parameter's type hint from `str` to `int` in `set_classification` method's docstring.
