@@ -271,3 +271,11 @@ v2.5.1 (2024-04-02)
 #### Bugfixes
 - **a1000** module:
   - Changed the `risk_score` parameter's type hint from `str` to `int` in `set_classification` method's docstring.
+
+
+2.5.6 (2024-05-23)
+-------------------
+
+#### Improvements
+- **a1000** module:
+  - Reintroduced the `a1000.A1000.advanced_search_v2` method. This method will remain in the DEPRECATED state until its permanent removal from the SDK. The permanent removal date will be announced in the CHANGELOG's "Scheduled removals" section. In the meantime, the use of `a1000.A1000.advanced_search_v3` is highly advised.
