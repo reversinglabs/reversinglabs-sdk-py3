@@ -5676,7 +5676,7 @@ class NetworkReputationUserOverride(TiCloudAPI):
                 raise WrongInputError("override_list parameter must be a list of objects")
 
         else:
-            override_list =[]
+            override_list = []
 
         if remove_overrides_list:
             if not isinstance(remove_overrides_list, list):
@@ -5971,9 +5971,9 @@ class VerticalFeedsSearch(TiCloudAPI):
         }
 
         endpoint = self.__API_FEED_ENDPOINT.format(
-            family_name = family_name,
-            time_format = time_format,
-            time_value = time_value
+            family_name=family_name,
+            time_format=time_format,
+            time_value=time_value
         )
 
         url = self._url.format(endpoint=endpoint)
