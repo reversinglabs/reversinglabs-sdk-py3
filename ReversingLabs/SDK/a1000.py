@@ -16,13 +16,11 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
     RequestTimeoutError, WrongInputError, \
     validate_hashes
 
-
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "GOODWARE", "UNKNOWN")
 AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux")
 
 
 class A1000(object):
-
     __TOKEN_ENDPOINT = "/api-token-auth/"
     __UPLOAD_ENDPOINT = "/api/uploads/"
     __FILE_ANALYSIS_STATUS_ENDPOINT = "/api/samples/status/"
@@ -670,12 +668,13 @@ class A1000(object):
         return response
 
     def reanalyze_samples_v2(self, hash_input, titanium_cloud=False, titanium_core=False, rl_cloud_sandbox=False,
-                             cuckoo_sandbox=False, fireeye=False, joe_sandbox=False, cape=False,
+                             assemblyline=False, cape=False, cisco_secure_malware_analytics=False,
+                             cuckoo_sandbox=False, fireeye=False, joe_sandbox=False, vmray_tcbase=False,
                              rl_cloud_sandbox_platform=None):
         """Accepts a single hash or a list of hashes of various types and reanalyzes the corresponding sample(s).
         This method can be used for reanalyzing a single sample or a batch of samples, depending on the data type
         passed.
-        AT least one analysis type must be used (set to True).
+        At least one analysis type must be used (set to True).
         If rl_cloud_sandbox is used as an analysis type, rl_cloud_sandbox_platform must be defined.
             :param hash_input: single hash or a list of hashes
             :type hash_input: str or list[str]
@@ -685,14 +684,20 @@ class A1000(object):
             :type titanium_core: bool
             :param rl_cloud_sandbox: use RL cloud sandbox
             :type rl_cloud_sandbox: bool
+            :param assemblyline: use Assemblyline
+            :type assemblyline: bool
+            :param cape: use Cape
+            :type cape: bool
+            :param cisco_secure_malware_analytics: use Cisco Secure Malware Analytics
+            :type cisco_secure_malware_analytics: bool
             :param cuckoo_sandbox: use Cuckoo sandbox
             :type cuckoo_sandbox: bool
             :param fireeye: use FireEye
             :type fireeye: bool
             :param joe_sandbox: use Joe sandbox
             :type joe_sandbox: bool
-            :param cape: use Cape
-            :type cape: bool
+            :param vmray_tcbase: use VMRay Cloud
+            :type vmray_tcbase: bool
             :param rl_cloud_sandbox_platform: desired platform on which the sample will be detonated;
                                             see ReversingLabs.SDK.helper.AVAILABLE PLATFORMS for options
             :type rl_cloud_sandbox_platform: str
@@ -707,8 +712,16 @@ class A1000(object):
             allowed_hash_types=(MD5, SHA1, SHA256, SHA512)
         )
 
-        analysis_type_dict = {"cloud": titanium_cloud, "core": titanium_core, "rl_cloud_sandbox": rl_cloud_sandbox,
-                              "cuckoo": cuckoo_sandbox, "fireeye": fireeye, "joe": joe_sandbox, "cape": cape}
+        analysis_type_dict = {"cloud": titanium_cloud,
+                              "core": titanium_core,
+                              "rl_cloud_sandbox": rl_cloud_sandbox,
+                              "assemblyline": assemblyline,
+                              "cape": cape,
+                              "cisco_secure_malware_analytics": cisco_secure_malware_analytics,
+                              "cuckoo": cuckoo_sandbox,
+                              "fireeye": fireeye,
+                              "joe": joe_sandbox,
+                              "vmray_tcbase": vmray_tcbase,}
 
         if not all(isinstance(analysis_type, bool) for analysis_type in analysis_type_dict.values()):
             raise WrongInputError("All analysis type parameters must be boolean.")
@@ -1284,7 +1297,8 @@ class A1000(object):
 
         return response
 
-    def get_yara_rulesets_on_the_appliance_v2(self, owner_type=None, status=None, source=None, page=None, page_size=None):
+    def get_yara_rulesets_on_the_appliance_v2(self, owner_type=None, status=None, source=None, page=None,
+                                              page_size=None):
         """Retrieves a list of YARA rulesets that are on the A1000 appliance. The list can be filtered by several
         criteria (ruleset status, source, and owner) using optional parameters.
             :param owner_type: supported values: my (default - currently authenticated user), user, system, all
@@ -1780,8 +1794,8 @@ class A1000(object):
             if sorting_criteria not in ADVANCED_SEARCH_SORTING_CRITERIA or sorting_order not in ("desc", "asc"):
                 raise WrongInputError("Sorting criteria must be one of the following options: {criteria}. "
                                       "Sorting order needs to be 'desc' or 'asc'.".format(
-                                        criteria=ADVANCED_SEARCH_SORTING_CRITERIA
-                                      ))
+                    criteria=ADVANCED_SEARCH_SORTING_CRITERIA
+                ))
             sorting_expression = "{criteria} {order}".format(
                 criteria=sorting_criteria,
                 order=sorting_order
@@ -2215,7 +2229,7 @@ class A1000(object):
         return token
 
     @staticmethod
-    def __create_post_payload(custom_filename=None, file_url=None,  crawler=None, archive_password=None,
+    def __create_post_payload(custom_filename=None, file_url=None, crawler=None, archive_password=None,
                               rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True,
                               classification=None, risk_score=None, threat_platform=None, threat_type=None,
                               threat_name=None, name=None, content=None, publish=None, ticloud=None):
