@@ -6069,19 +6069,21 @@ class TAXIIRansomwareFeed(TiCloudAPI):
 
         return response
 
-    def get_objects(self, api_root, collection_id, result_limit=500, added_after=None, match_id=None):
+    def get_objects(self, api_root, collection_id, result_limit=500, added_after=None, match_id=None, page=None):
         """Returns objects from a TAXII collection.
         Results can be filtered using several parameters.
             :param api_root: api root name
             :type api_root: str
             :param collection_id: collection ID
             :type collection_id: str
-            :param result_limit: number of returned objects
+            :param result_limit: number of returned objects per page
             :type result_limit: int
             :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
             :type added_after: str
             :param match_id: return a specific object matching this ID
             :type match_id: str
+            :param page: identifier of the requested page
+            :type page: str or None
             :return: response
             :rtype: requests.Response
         """
@@ -6099,7 +6101,8 @@ class TAXIIRansomwareFeed(TiCloudAPI):
         query_params = {
             "limit": result_limit,
             "added_after": added_after,
-            "match[id]": match_id
+            "match[id]": match_id,
+            "next": page
         }
 
         endpoint = self.__COLLECTIONS_ENDPOINT.format(api_root=api_root) + collection_id + "/objects/"
@@ -6111,6 +6114,51 @@ class TAXIIRansomwareFeed(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, max_results=5000):
+        """Returns objects from a TAXII collection.
+        This method does the paging automatically and returns a defined number of objects as a list in the end.
+            :param api_root: api root name
+            :type api_root: str
+            :param collection_id: collection ID
+            :type collection_id: str
+            :param result_limit: number of returned objects per page; not to be confused with max_results
+            :type result_limit: int
+            :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
+            :type added_after: str
+            :param max_results: maximum number of objects to be returned in a list in the end;
+            not to be confused with result_limit
+            :type max_results: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(max_results, int):
+            raise WrongInputError("max_results parameter must be integer.")
+
+        results = []
+        next_page = None
+
+        while True:
+            response = self.get_objects(
+                api_root=api_root,
+                collection_id=collection_id,
+                result_limit=result_limit,
+                added_after=added_after,
+                page=next_page
+            )
+
+            response_json = response.json()
+
+            objects = response_json.get("objects")
+            results.extend(objects)
+
+            next_page = response_json.get("next")
+            more_pages = response_json.get("more")
+
+            if len(results) >= max_results or not more_pages:
+                break
+
+        return results[:max_results]
 
 
 def _update_hash_object(input_source, hash_object):
