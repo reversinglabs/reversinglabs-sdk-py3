@@ -1839,10 +1839,11 @@ class URLThreatIntelligence(TiCloudAPI):
 
     def get_url_analysis_feed_from_date(self, time_format, start_time, page_string=None, results_per_page=1000):
         """Accepts time format and a start time and returns URL analyses reports from that defined time onward.
+        It is possible to list analyses up to 90 days into the past.
         A string designating a desired page of results can be provided as an optional parameter.
             :param time_format: possible values: 'utc' or 'timestamp'
             :type time_format: str
-            :param start_time: time from which to retrieve results onwards
+            :param start_time: time from which to retrieve results onwards; up to 90 days into the past
             :type start_time: str
             :param page_string: page designation string returned in the 'next_page' element
             :type page_string: str
@@ -1901,10 +1902,11 @@ class URLThreatIntelligence(TiCloudAPI):
                                                    max_results=5000):
         """Accepts time format and a start time and returns URL analyses reports
         from that defined time onward aggregated as a list.
+        It is possible to list analyses up to 90 days into the past.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
             :param time_format: possible values: 'utc' or 'timestamp'
             :type time_format: str
-            :param start_time: time from which to retrieve results onwards
+            :param start_time: time from which to retrieve results onwards; up to 90 days into the past
             :type start_time: str
             :param results_per_page: number of results per response
             :type results_per_page: int
