@@ -868,6 +868,9 @@ class TAXIIRansomwareFeed(TiCloudAPI)
 - `get_objects`
     - Returns objects from a TAXII collection. 
     - Results can be filtered using several parameters.
+- `get_objects_aggregated`
+    - Returns objects from a TAXII collection. 
+    - This method does the paging automatically and returns a defined number of objects as a list in the end.
 
 
 ***

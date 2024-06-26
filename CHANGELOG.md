@@ -287,4 +287,4 @@ v2.5.1 (2024-04-02)
 #### Improvements
 - **ticloud** module:
   - Added the following text to the docstrings for the `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date` and `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date_aggregated` methods: "It is possible to list analyses up to 90 days into the past."
-  - 
+  - Added the `get_objects_aggregated` method to the `TAXIIRansomwareFeed` class.
