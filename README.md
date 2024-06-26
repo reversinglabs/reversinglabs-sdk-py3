@@ -363,9 +363,11 @@ _TCA-0403_
     - Returns a list of results aggregated through multiple paginated requests
 - `get_url_analysis_feed_from_date`
     - Accepts time format and a start time and returns URL analysis reports from that defined time onward
+    - It is possible to list analyses up to 90 days into the past
     - Returns only one defined page of results using one request
 - `get_url_analysis_feed_from_date_aggregated`
     - Accepts time format and a start time and returns URL analysis reports from that defined time onward
+    - It is possible to list analyses up to 90 days into the past
     - Returns a list of results aggregated through multiple paginated requests
 
 #### Class:

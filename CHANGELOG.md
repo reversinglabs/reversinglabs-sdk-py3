@@ -279,3 +279,12 @@ v2.5.1 (2024-04-02)
 #### Improvements
 - **a1000** module:
   - Reintroduced the `a1000.A1000.advanced_search_v2` method. This method will remain in the DEPRECATED state until its permanent removal from the SDK. The permanent removal date will be announced in the CHANGELOG's "Scheduled removals" section. In the meantime, the use of `a1000.A1000.advanced_search_v3` is highly advised.
+
+
+2.6.0 (2024-06-28)
+-------------------
+
+#### Improvements
+- **ticloud** module:
+  - Added the following text to the docstrings for the `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date` and `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date_aggregated` methods: "It is possible to list analyses up to 90 days into the past."
+  - 
