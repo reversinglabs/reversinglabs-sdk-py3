@@ -290,4 +290,5 @@ v2.5.1 (2024-04-02)
   - Added the `get_objects_aggregated` method to the `TAXIIRansomwareFeed` class.
 
 - **a1000** module:
-  - The `a1000.A1000.get_yara_ruleset_matches_v2` method now also accepts a list u of multiple ruleset names as the `ruleset_name` parameter.
+  - The `get_yara_ruleset_matches_v2` method now also accepts a list u of multiple ruleset names as the `ruleset_name` parameter.
+  - Added the `upload_sample_and_get_detailed_report_v2` method.

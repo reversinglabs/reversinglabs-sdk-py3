@@ -75,6 +75,13 @@ If username and password are used instead, a token fetching request will be done
   - Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples
   - This method utilizes the set number of retries and wait time in seconds and times out if the
         analysis results are not ready
+- `upload_sample_and_get_detailed_report_v2`
+  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        analysis report response.
+  - This method combines uploading a sample and obtaining the detailed analysis report.
+  - Additional fields can be provided.
+  - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
 - `get_classification_v3`
   - Get classification for one sample
 - `reanalyze_samples_v2`

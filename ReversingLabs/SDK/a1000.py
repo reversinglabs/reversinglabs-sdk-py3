@@ -623,6 +623,64 @@ class A1000(object):
 
         return response
 
+    def upload_sample_and_get_detailed_report_v2(self, file_path=None, file_source=None, retry=True, fields=None,
+                                                 custom_filename=None, tags=None, comment=None, cloud_analysis=True,
+                                                 archive_password=None, rl_cloud_sandbox_platform=None,
+                                                 skip_reanalysis=False):
+        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        analysis report response. This method combines uploading a sample and obtaining the detailed analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_path: file path
+            :type file_path: str
+            :param file_source: open file
+            :type file_source: file or BinaryIO
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param skip_reanalysis: skip sample reanalysis when fetching the detailed report
+            :type skip_reanalysis: bool
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param cloud_analysis: use cloud analysis
+            :type cloud_analysis: bool
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
+            :type rl_cloud_sandbox_platform: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if (file_path and file_source) or (not file_path and not file_source):
+            raise WrongInputError("Either file_path or file_source parameter must be provided. "
+                                  "Using both or none of the parameters in sot allowed.")
+
+        if file_path:
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, archive_password,
+                                                           rl_cloud_sandbox_platform, tags, comment, cloud_analysis)
+        else:
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags, archive_password,
+                                                           rl_cloud_sandbox_platform, comment, cloud_analysis)
+
+        response_detail = upload_response.json().get("detail")
+        sha1 = response_detail.get("sha1")
+        sha1 = str(sha1)
+
+        response = self.get_detailed_report_v2(
+            sample_hashes=sha1,
+            retry=retry,
+            fields=fields,
+            skip_reanalysis=skip_reanalysis
+        )
+
+        return response
+
     def get_classification_v3(self, sample_hash, local_only=False, av_scanners=False):
         """Get classification for one sample.
         The default value of local_only is False, which, if not changed, will send a request to TitaniumCloud to
