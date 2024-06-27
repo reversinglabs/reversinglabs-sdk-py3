@@ -1387,14 +1387,11 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        #todo debug
-        print(url)
+        response = self.__get_request(url=url)
 
-        # response = self.__get_request(url=url)
-        #
-        # self.__raise_on_error(response)
-        #
-        # return response
+        self.__raise_on_error(response)
+
+        return response
 
     def create_or_update_yara_ruleset(self, name, content, publish=None, ticloud=None):
         """Creates a new YARA ruleset if it doesn’t exist. If a ruleset with the specified name already exists, a new
