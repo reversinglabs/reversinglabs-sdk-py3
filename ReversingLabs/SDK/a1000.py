@@ -1352,8 +1352,8 @@ class A1000(object):
     def get_yara_ruleset_matches_v2(self, ruleset_name, page=None, page_size=None):
         """Retrieves the list of YARA matches (both local and cloud) for requested rulesets. If multiple rulesets are
         provided in the request, only the samples that match all requested rulesets are listed in the response.
-            :param ruleset_name:
-            :type ruleset_name: str
+            :param ruleset_name: name of a single ruleset (string) or multiple rulesets (list of strings)
+            :type ruleset_name: str or list[str]
             :param page: when this parameter is omitted from the request, all available results are returned at once
             :type page: str
             :param page_size: parameter that controls how many results to return per page in the response
@@ -1361,29 +1361,40 @@ class A1000(object):
             :return: response
             :rtype: requests.Response:
         """
-        params = {"name": ruleset_name, "page": page, "page_size": page_size}
-        params_string_array = []
+        param_list = []
 
-        if bool(params["page"]) != bool(params["page_size"]):
-            raise WrongInputError("page and page_size parametes must be used together")
+        if isinstance(ruleset_name, list):
+            for i, name in enumerate(ruleset_name):
+                ruleset_name[i] = f"name={name}"
 
-        for key, val in params.items():
-            if val:
-                if not isinstance(val, str):
-                    raise WrongInputError("{key} parameter must be a string".format(key=key))
-                params_string_array.append("{key}={val}".format(key=key, val=val))
+            param_list.extend(ruleset_name)
 
-        query_string = "&".join(params_string_array)
+        else:
+            param_list.append(f"name={ruleset_name}")
+
+        if page:
+            param_list.append(f"page={page}")
+
+            if page_size:
+                param_list.append(f"page_size={page_size}")
+
+            else:
+                raise WrongInputError("page and page_size parameters must be used together")
+
+        query_string = "&".join(param_list)
         endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2,
                                                       query_string=query_string)
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__get_request(url=url)
+        #todo debug
+        print(url)
 
-        self.__raise_on_error(response)
-
-        return response
+        # response = self.__get_request(url=url)
+        #
+        # self.__raise_on_error(response)
+        #
+        # return response
 
     def create_or_update_yara_ruleset(self, name, content, publish=None, ticloud=None):
         """Creates a new YARA ruleset if it doesn’t exist. If a ruleset with the specified name already exists, a new
