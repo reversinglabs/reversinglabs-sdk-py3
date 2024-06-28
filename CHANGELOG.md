@@ -288,7 +288,17 @@ v2.5.1 (2024-04-02)
 - **ticloud** module:
   - Added the following text to the docstrings for the `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date` and `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date_aggregated` methods: "It is possible to list analyses up to 90 days into the past."
   - Added the `get_objects_aggregated` method to the `TAXIIRansomwareFeed` class.
+  - The `ticloud.DynamicAnalysis.detonate_sample` method now has a `sample_hash` parameter that accepts SHA-1, SHA-256 and MD5 hashes. See the Deprecations section for more info.
 
 - **a1000** module:
   - The `get_yara_ruleset_matches_v2` method now also accepts a list u of multiple ruleset names as the `ruleset_name` parameter.
   - Added the `upload_sample_and_get_detailed_report_v2` method.
+
+#### Deprecations
+- **ticloud** module:
+  - The `sample_sha1` parameter of the `ticloud.DynamicAnalysis.detonate_sample` method is deprecated and will be removed in 6 months. Use the `sample_hash` parameter instead.
+
+
+### Scheduled removals
+- **December 2024.**:
+  - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.

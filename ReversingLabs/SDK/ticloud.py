@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import requests
+from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
@@ -3160,8 +3161,11 @@ class DynamicAnalysis(TiCloudAPI):
         
         return response
 
-    def detonate_sample(self, sample_sha1, platform, is_archive=False, internet_simulation=False):
+    def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, internet_simulation=False,
+                        sample_sha1=None):
         """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
+            :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
+            :type sample_hash: str
             :param sample_sha1: SHA-1 hash of the sample or archive
             :type sample_sha1: str
             :param platform: desired platform on which the sample or archive will be detonated; see available platforms
@@ -3174,26 +3178,43 @@ class DynamicAnalysis(TiCloudAPI):
             :return: response
             :rtype: requests.Response
         """
-        validate_hashes(
-            hash_input=[sample_sha1],
-            allowed_hash_types=(SHA1,)
-        )
+        if sample_hash:
+            validate_hashes(
+                hash_input=[sample_hash],
+                allowed_hash_types=(SHA1, SHA256, MD5)
+            )
+
+        elif sample_sha1:
+            warn("DEPRECATION WARNING - Parameter sample_sha1 will soon be removed. Use sample_hash instead", Warning)
+
+            validate_hashes(
+                hash_input=[sample_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+
+            sample_hash = sample_sha1
+
+        else:
+            raise WrongInputError("A hash parameter needs provided: sample_hash or sample_sha1 (deprecated)")
+
+        if not platform:
+            raise WrongInputError("The platform parameter needs to be provided.")
 
         response = self.__detonate(
-            sample_sha1=sample_sha1,
+            sample_hash=sample_hash,
             platform=platform,
             is_archive=is_archive,
             internet_simulation=internet_simulation
         )
-        
+
         return response
 
-    def __detonate(self, platform, sample_sha1=None, url_string=None, is_archive=False, internet_simulation=False):
+    def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, internet_simulation=False):
         """Submits a sample, a file archive available in the cloud or a URL for 
         dynamic analysis and returns processing info.
         This is a private method for all dynamic analysis submission methods.
-            :param sample_sha1: SHA-1 hash of the sample or archive
-            :type sample_sha1: str
+            :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
+            :type sample_hash: str
             :param url_string: URL string
             :type url_string: str
             :param platform: desired platform on which the sample or archive will be detonated; see available platforms
@@ -3218,8 +3239,9 @@ class DynamicAnalysis(TiCloudAPI):
         if internet_simulation:
             post_json["rl"]["optional_parameters"] = "internet_simulation=true"
 
-        if sample_sha1:
-            post_json["rl"]["sha1"] = sample_sha1
+        if sample_hash:
+            hash_type = HASH_LENGTH_MAP.get(len(sample_hash))
+            post_json["rl"][hash_type] = sample_hash
 
         elif url_string:
             post_json["rl"]["url"] = url_string
@@ -3243,7 +3265,7 @@ class DynamicAnalysis(TiCloudAPI):
                                      analysis_id=None):
         """Returns dynamic analysis results for a desired file, URL or a file archive.
         The analysis of the selected artifact must be finished for the results to be available.
-            :param sample_hash: SHA-1 hash of a desired sample or archive. mutually exclusive with url
+            :param sample_hash: SHA1, MD5 or SHA256 hash of a desired sample or archive. mutually exclusive with url
             :type sample_hash: str
             :param url: URL string; mutually exclusive with sample_hash
             :type url: str
