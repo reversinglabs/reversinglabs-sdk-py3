@@ -3175,12 +3175,10 @@ class DynamicAnalysis(TiCloudAPI):
         return response
 
     def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, internet_simulation=False,
-                        sample_sha1=None):
+                        sample_name=None, sample_sha1=None):
         """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
             :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
             :type sample_hash: str
-            :param sample_sha1: SHA-1 hash of the sample or archive
-            :type sample_sha1: str
             :param platform: desired platform on which the sample or archive will be detonated; see available platforms
             :type platform: str
             :param is_archive: needs to be set to True if a file archive is being detonated;
@@ -3188,6 +3186,10 @@ class DynamicAnalysis(TiCloudAPI):
             :type is_archive: bool
             :param internet_simulation: perform the dynamic analysis without connecting to the internet
             :type internet_simulation: bool
+            :param sample_name: custom name for the sample
+            :type sample_name: str
+            :param sample_sha1: SHA1 hash of the sample or archive (DEPRECATED)
+            :type sample_sha1: str
             :return: response
             :rtype: requests.Response
         """
@@ -3217,12 +3219,14 @@ class DynamicAnalysis(TiCloudAPI):
             sample_hash=sample_hash,
             platform=platform,
             is_archive=is_archive,
-            internet_simulation=internet_simulation
+            internet_simulation=internet_simulation,
+            sample_name=sample_name
         )
 
         return response
 
-    def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, internet_simulation=False):
+    def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, internet_simulation=False,
+                   sample_name=None):
         """Submits a sample, a file archive available in the cloud or a URL for 
         dynamic analysis and returns processing info.
         This is a private method for all dynamic analysis submission methods.
@@ -3237,6 +3241,8 @@ class DynamicAnalysis(TiCloudAPI):
             :type is_archive: bool
             :param internet_simulation: perform the dynamic analysis without connecting to the internet
             :type internet_simulation: bool
+            :param sample_name: custom name for the sample
+            :type sample_name: str
             :return: response
             :rtype: requests.Response
         """
@@ -3255,6 +3261,9 @@ class DynamicAnalysis(TiCloudAPI):
         if sample_hash:
             hash_type = HASH_LENGTH_MAP.get(len(sample_hash))
             post_json["rl"][hash_type] = sample_hash
+
+            if sample_name:
+                post_json["rl"]["sample_name"] = sample_name
 
         elif url_string:
             post_json["rl"]["url"] = url_string
