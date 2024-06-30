@@ -623,6 +623,64 @@ class A1000(object):
 
         return response
 
+    def upload_sample_and_get_detailed_report_v2(self, file_path=None, file_source=None, retry=True, fields=None,
+                                                 custom_filename=None, tags=None, comment=None, cloud_analysis=True,
+                                                 archive_password=None, rl_cloud_sandbox_platform=None,
+                                                 skip_reanalysis=False):
+        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        analysis report response. This method combines uploading a sample and obtaining the detailed analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_path: file path
+            :type file_path: str
+            :param file_source: open file
+            :type file_source: file or BinaryIO
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param skip_reanalysis: skip sample reanalysis when fetching the detailed report
+            :type skip_reanalysis: bool
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param cloud_analysis: use cloud analysis
+            :type cloud_analysis: bool
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
+            :type rl_cloud_sandbox_platform: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if (file_path and file_source) or (not file_path and not file_source):
+            raise WrongInputError("Either file_path or file_source parameter must be provided. "
+                                  "Using both or none of the parameters in sot allowed.")
+
+        if file_path:
+            upload_response = self.upload_sample_from_path(file_path, custom_filename, archive_password,
+                                                           rl_cloud_sandbox_platform, tags, comment, cloud_analysis)
+        else:
+            upload_response = self.upload_sample_from_file(file_source, custom_filename, tags, archive_password,
+                                                           rl_cloud_sandbox_platform, comment, cloud_analysis)
+
+        response_detail = upload_response.json().get("detail")
+        sha1 = response_detail.get("sha1")
+        sha1 = str(sha1)
+
+        response = self.get_detailed_report_v2(
+            sample_hashes=sha1,
+            retry=retry,
+            fields=fields,
+            skip_reanalysis=skip_reanalysis
+        )
+
+        return response
+
     def get_classification_v3(self, sample_hash, local_only=False, av_scanners=False):
         """Get classification for one sample.
         The default value of local_only is False, which, if not changed, will send a request to TitaniumCloud to
@@ -790,18 +848,18 @@ class A1000(object):
 
         return response
 
-    def list_extracted_files_v2_aggregated(self, sample_hash, max_results=5000):
+    def list_extracted_files_v2_aggregated(self, sample_hash, max_results=None):
         """Get a list of all files TitaniumCore engine extracted from the requested sample during static analysis.
         Paging is done automatically and results from individual responses aggregated into one list and returned.
         The max_results parameter defines the maximum number of results to be returned to the list.
             :param sample_hash: hash string
             :type sample_hash: str
-            :param max_results: maximum number of results to be returned
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        pass
         result_list = []
         next_page = 1
 
@@ -817,14 +875,16 @@ class A1000(object):
             results = response_json.get("results", [])
             result_list.extend(results)
 
-            if len(result_list) > max_results:
-                results = result_list[:max_results]
-                return results
-
             next_page_url = response_json.get("next", None)
             next_page = int(next_page_url.split("?")[1].split("&")[0].split("=")[1]) if next_page_url else None
 
-        return result_list
+            if not max_results:
+                if not next_page:
+                    return result_list
+
+            else:
+                if not next_page or len(result_list) >= max_results:
+                    return result_list[:max_results]
 
     def download_extracted_files(self, sample_hash):
         """Accepts a single hash string and returns a downloadable archive file
@@ -1352,8 +1412,8 @@ class A1000(object):
     def get_yara_ruleset_matches_v2(self, ruleset_name, page=None, page_size=None):
         """Retrieves the list of YARA matches (both local and cloud) for requested rulesets. If multiple rulesets are
         provided in the request, only the samples that match all requested rulesets are listed in the response.
-            :param ruleset_name:
-            :type ruleset_name: str
+            :param ruleset_name: name of a single ruleset (string) or multiple rulesets (list of strings)
+            :type ruleset_name: str or list[str]
             :param page: when this parameter is omitted from the request, all available results are returned at once
             :type page: str
             :param page_size: parameter that controls how many results to return per page in the response
@@ -1361,19 +1421,27 @@ class A1000(object):
             :return: response
             :rtype: requests.Response:
         """
-        params = {"name": ruleset_name, "page": page, "page_size": page_size}
-        params_string_array = []
+        param_list = []
 
-        if bool(params["page"]) != bool(params["page_size"]):
-            raise WrongInputError("page and page_size parametes must be used together")
+        if isinstance(ruleset_name, list):
+            for i, name in enumerate(ruleset_name):
+                ruleset_name[i] = f"name={name}"
 
-        for key, val in params.items():
-            if val:
-                if not isinstance(val, str):
-                    raise WrongInputError("{key} parameter must be a string".format(key=key))
-                params_string_array.append("{key}={val}".format(key=key, val=val))
+            param_list.extend(ruleset_name)
 
-        query_string = "&".join(params_string_array)
+        else:
+            param_list.append(f"name={ruleset_name}")
+
+        if page:
+            param_list.append(f"page={page}")
+
+            if page_size:
+                param_list.append(f"page_size={page_size}")
+
+            else:
+                raise WrongInputError("page and page_size parameters must be used together")
+
+        query_string = "&".join(param_list)
         endpoint = "{endpoint}?{query_string}".format(endpoint=self.__RETRIEVE_MATCHES_FOR_A_YARA_RULESET_ENDPOINT_V2,
                                                       query_string=query_string)
 
@@ -1660,7 +1728,7 @@ class A1000(object):
 
         return response
 
-    def advanced_search_v2_aggregated(self, query_string, ticloud=False, max_results=5000, sorting_criteria=None,
+    def advanced_search_v2_aggregated(self, query_string, ticloud=False, max_results=None, sorting_criteria=None,
                                       sorting_order="desc"):
         """THIS METHOD IS DEPRECATED. Use advanced_search_v3_aggregated instead.
 
@@ -1678,8 +1746,9 @@ class A1000(object):
             :type query_string: str
             :param ticloud: show only cloud results
             :type ticloud: bool
-            :param max_results: maximum results to be returned in a list; default value is 5000
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str
@@ -1689,9 +1758,6 @@ class A1000(object):
             :rtype: list
         """
         warn("This method is deprecated. Use advanced_search_v3_aggregated instead.", DeprecationWarning)
-
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
 
         results = []
         next_page = 1
@@ -1712,14 +1778,16 @@ class A1000(object):
             entries = response_json.get("rl").get("web_search_api").get("entries", [])
             results.extend(entries)
 
-            if len(results) > max_results:
-                results = results[:max_results]
-                return results
-
             next_page = response_json.get("rl").get("web_search_api").get("next_page", None)
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
 
-        return results
+            if not max_results:
+                if not more_pages:
+                    return results
+
+            else:
+                if not more_pages or len(results) >= max_results:
+                    return results[:max_results]
 
     def advanced_search_v3(self, query_string, ticloud=False, start_search_date=None, end_search_date=None,
                            page_number=1, records_per_page=20, sorting_criteria=None, sorting_order="desc"):
@@ -1796,7 +1864,7 @@ class A1000(object):
         return response
 
     def advanced_search_v3_aggregated(self, query_string, ticloud=False, start_search_date=None, end_search_date=None,
-                                      records_per_page=20, max_results=5000, sorting_criteria=None,
+                                      records_per_page=20, max_results=None, sorting_criteria=None,
                                       sorting_order="desc"):
         """This method handles the paging automatically.
         Sends a query string to the A1000 Advanced Search API v3.
@@ -1819,8 +1887,9 @@ class A1000(object):
             :type end_search_date: str
             :param records_per_page: number of records returned per page; maximum value is 100
             :type records_per_page: int
-            :param max_results: maximum number of returned results
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str
@@ -1829,9 +1898,6 @@ class A1000(object):
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = 1
         more_pages = True
@@ -1856,10 +1922,13 @@ class A1000(object):
             next_page = response_json.get("rl").get("web_search_api").get("next_page", None)
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages")
 
-            if len(results) >= max_results or not more_pages:
-                break
+            if not max_results:
+                if not more_pages:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not more_pages or len(results) >= max_results:
+                    return results[:max_results]
 
     def list_containers_for_hashes(self, sample_hashes):
         """Gets a list of all top-level containers from which the requested sample has been extracted during analysis.
@@ -1979,21 +2048,19 @@ class A1000(object):
 
         return response
 
-    def network_ip_to_domain_aggregated(self, ip_addr, page_size=500, max_results=5000):
+    def network_ip_to_domain_aggregated(self, ip_addr, page_size=500, max_results=None):
         """Accepts an IP address string and returns a list of IP-to-domain mappings.
         This method performs the paging automatically and returns a specified maximum number of records.
             :param ip_addr: requested IP address
             :type ip_addr: str
             :param page_size: number of records per page
             :type page_size: int
-            :param max_results: maximum number of returned records
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -2011,10 +2078,13 @@ class A1000(object):
 
             next_page = response_json.get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def network_urls_from_ip(self, ip_addr, page=None, page_size=500):
         """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
@@ -2046,21 +2116,19 @@ class A1000(object):
 
         return response
 
-    def network_urls_from_ip_aggregated(self, ip_addr, page_size=500, max_results=5000):
+    def network_urls_from_ip_aggregated(self, ip_addr, page_size=500, max_results=None):
         """Accepts an IP address string and returns a list of URLs hosted on the requested IP address.
         This method performs the paging automatically and returns a specified maximum number of records.
             :param ip_addr: requested IP address
             :type ip_addr: str
             :param page_size: number of records per page
             :type page_size: int
-            :param max_results: maximum number of returned records
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -2078,10 +2146,13 @@ class A1000(object):
 
             next_page = response_json.get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def network_files_from_ip(self, ip_addr, extended_results=True, classification=None, page=None, page_size=500):
         """Accepts an IP address string and returns a list of hashes and
@@ -2128,7 +2199,7 @@ class A1000(object):
         return response
 
     def network_files_from_ip_aggregated(self, ip_addr, extended_results=True, classification=None, page_size=500,
-                                         max_results=5000):
+                                         max_results=None):
         """Accepts an IP address string and returns a list of hashes and
         classifications for files found on the requested IP address.
         This method performs the paging automatically and returns a specified maximum number of records.
@@ -2140,14 +2211,12 @@ class A1000(object):
             :type classification: str
             :param page_size: number of records per page
             :type page_size: int
-            :param max_results: maximum number of returned records
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -2167,10 +2236,13 @@ class A1000(object):
 
             next_page = response_json.get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def __ip_addr_endpoints(self, ip_addr, specific_endpoint, params=None):
         """Private method for all IP related endpoints from the Network Threat Intelligence API.

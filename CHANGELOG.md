@@ -279,3 +279,29 @@ v2.5.1 (2024-04-02)
 #### Improvements
 - **a1000** module:
   - Reintroduced the `a1000.A1000.advanced_search_v2` method. This method will remain in the DEPRECATED state until its permanent removal from the SDK. The permanent removal date will be announced in the CHANGELOG's "Scheduled removals" section. In the meantime, the use of `a1000.A1000.advanced_search_v3` is highly advised.
+
+
+2.6.0 (2024-06-28)
+-------------------
+
+#### Improvements
+- **ticloud** module:
+  - Added the following text to the docstrings for the `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date` and `ticloud.URLThreatIntelligence.get_url_analysis_feed_from_date_aggregated` methods: "It is possible to list analyses up to 90 days into the past."
+  - Added the `get_objects_aggregated` method to the `TAXIIRansomwareFeed` class.
+  - The `ticloud.DynamicAnalysis.detonate_sample` method now has a `sample_hash` parameter that accepts SHA-1, SHA-256 and MD5 hashes. See the Deprecations section for more info.
+  - The `ticloud.DynamicAnalysis.detonate_sample` method now has a `sample_name` parameter that enable the user to define a custom sample name.
+  - Added the option to fetch all results in auto paging (aggregating) methods. From now on, in such methods, setting the `max_results` parameter to None returns all results.
+
+- **a1000** module:
+  - The `get_yara_ruleset_matches_v2` method now also accepts a list u of multiple ruleset names as the `ruleset_name` parameter.
+  - Added the `upload_sample_and_get_detailed_report_v2` method.
+  - Added the option to fetch all results in auto paging (aggregating) methods. From now on, in such methods, setting the `max_results` parameter to None returns all results.
+
+#### Deprecations
+- **ticloud** module:
+  - The `sample_sha1` parameter of the `ticloud.DynamicAnalysis.detonate_sample` method is deprecated and will be removed in 6 months. Use the `sample_hash` parameter instead.
+
+
+### Scheduled removals
+- **December 2024.**:
+  - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.

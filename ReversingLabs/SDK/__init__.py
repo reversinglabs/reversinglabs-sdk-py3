@@ -5,4 +5,4 @@ ReversingLabs SDK
 A Python SDK for communicating with ReversingLabs services.
 """
 
-__version__ = "2.5.6"
+__version__ = "2.6.0"

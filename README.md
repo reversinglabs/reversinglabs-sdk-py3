@@ -75,6 +75,13 @@ If username and password are used instead, a token fetching request will be done
   - Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples
   - This method utilizes the set number of retries and wait time in seconds and times out if the
         analysis results are not ready
+- `upload_sample_and_get_detailed_report_v2`
+  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        analysis report response.
+  - This method combines uploading a sample and obtaining the detailed analysis report.
+  - Additional fields can be provided.
+  - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
 - `get_classification_v3`
   - Get classification for one sample
 - `reanalyze_samples_v2`
@@ -363,9 +370,11 @@ _TCA-0403_
     - Returns a list of results aggregated through multiple paginated requests
 - `get_url_analysis_feed_from_date`
     - Accepts time format and a start time and returns URL analysis reports from that defined time onward
+    - It is possible to list analyses up to 90 days into the past
     - Returns only one defined page of results using one request
 - `get_url_analysis_feed_from_date_aggregated`
     - Accepts time format and a start time and returns URL analysis reports from that defined time onward
+    - It is possible to list analyses up to 90 days into the past
     - Returns a list of results aggregated through multiple paginated requests
 
 #### Class:
@@ -866,6 +875,9 @@ class TAXIIRansomwareFeed(TiCloudAPI)
 - `get_objects`
     - Returns objects from a TAXII collection. 
     - Results can be filtered using several parameters.
+- `get_objects_aggregated`
+    - Returns objects from a TAXII collection. 
+    - This method does the paging automatically and returns a defined number of objects as a list in the end.
 
 
 ***
