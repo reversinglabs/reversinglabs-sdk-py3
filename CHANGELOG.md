@@ -295,6 +295,7 @@ v2.5.1 (2024-04-02)
 - **a1000** module:
   - The `get_yara_ruleset_matches_v2` method now also accepts a list u of multiple ruleset names as the `ruleset_name` parameter.
   - Added the `upload_sample_and_get_detailed_report_v2` method.
+  - Added the option to fetch all results in auto paging (aggregating) methods. From now on, in such methods, setting the `max_results` parameter to None returns all results.
 
 #### Deprecations
 - **ticloud** module:
