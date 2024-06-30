@@ -346,21 +346,19 @@ class FileReputationUserOverride(TiCloudAPI):
 
         return response
 
-    def list_active_overrides_aggregated(self, hash_type, max_results=50000):
+    def list_active_overrides_aggregated(self, hash_type, max_results=None):
         """Accepts a hash type designation and returns the hashes of all currently active
         classification overrides for the current organization.
         This method does the paging action automatically and a maximum number of results returned
         in the list can be defined with the max_results parameter.
             :param hash_type: type of hashes that will be returned
             :type hash_type: str
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_hash = None
 
@@ -377,10 +375,13 @@ class FileReputationUserOverride(TiCloudAPI):
 
             next_hash = response_json.get("rl").get("user_override").get("next_hash", None)
 
-            if len(results) >= max_results or not next_hash:
-                break
+            if not max_results:
+                if not next_hash:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_hash or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class AVScanners(TiCloudAPI):
@@ -811,7 +812,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         return response
 
     def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None,
-                                      results_per_page=1000, max_results=5000):
+                                      results_per_page=1000, max_results=None):
         """ This method accepts a hash string and returns a list of results aggregated throughout the pages.
         A maximum number of desired results can be defined with the 'max_results' parameter.
             :param hash_input: sha1 hash string
@@ -822,14 +823,12 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             :type classification: str
             :param results_per_page: number of results returned per page
             :type results_per_page: int
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_sha1 = None
 
@@ -849,10 +848,13 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("group_by_rha1").get("next_page_sha1", None)
 
-            if len(results) >= max_results or not next_page_sha1:
-                break
+            if not max_results:
+                if not next_page_sha1:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page_sha1 or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class RHA1Analytics(TiCloudAPI):
@@ -1053,7 +1055,7 @@ class URIIndex(TiCloudAPI):
 
         return response
 
-    def get_uri_index_aggregated(self, uri_input, classification=None, max_results=5000):
+    def get_uri_index_aggregated(self, uri_input, classification=None, max_results=None):
         """Accepts an email address, URL, DNS name or IPv4 string and returns a response.
         This method returns a list of results aggregated throughout the pages.
         A maximum number of desired results can be defined.
@@ -1061,14 +1063,12 @@ class URIIndex(TiCloudAPI):
             :type uri_input: str
             :param classification: only samples of this classification will be returned
             :type classification: str
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_sha1 = ""
 
@@ -1086,10 +1086,13 @@ class URIIndex(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("uri_index").get("next_page_sha1", None)
 
-            if len(results) >= max_results or not next_page_sha1:
-                break
+            if not max_results:
+                if not next_page_sha1:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page_sha1 or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class AdvancedSearch(TiCloudAPI):
@@ -1158,7 +1161,7 @@ class AdvancedSearch(TiCloudAPI):
 
         return response
 
-    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=50000,
+    def search_aggregated(self, query_string, sorting_criteria=None, sorting_order="desc", max_results=None,
                           records_per_page=10000):
         """Sends the query string to the Advanced Search API.
         The query string must be composed of key-value pairs separated by space.
@@ -1175,16 +1178,14 @@ class AdvancedSearch(TiCloudAPI):
             :type sorting_criteria: str
             :param sorting_order: sorting order; possible values are 'desc', 'asc'
             :type sorting_order: str
-            :param max_results: maximum results to be returned in the list; default value is 5000
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :param records_per_page: number of records returned per page
             :type records_per_page: int
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = 1
         more_pages = True
@@ -1203,14 +1204,16 @@ class AdvancedSearch(TiCloudAPI):
             entries = response_json.get("rl").get("web_search_api").get("entries", [])
             results.extend(entries)
 
-            if len(results) >= max_results:
-                results = results[:max_results]
-                return results
-
             next_page = response_json.get("rl").get("web_search_api").get("next_page", None)
             more_pages = response_json.get("rl").get("web_search_api").get("more_pages", False)
 
-        return results
+            if not max_results:
+                if not more_pages:
+                    return results
+
+            else:
+                if not more_pages or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class ExpressionSearch(TiCloudAPI):
@@ -1297,7 +1300,7 @@ class ExpressionSearch(TiCloudAPI):
 
         return response
 
-    def search_aggregated(self, query, date=None, max_results=5000):
+    def search_aggregated(self, query, date=None, max_results=None):
         """Sends the query to the Expression Search API.
         The query must be a list of at least 2 strings. Each string is in the form of a key and a value with
         an equals sign between them and no spaces.
@@ -1318,14 +1321,12 @@ class ExpressionSearch(TiCloudAPI):
             :type query: list
             :param date: return results from this date forward
             :type date: str or any
-            :param max_results: maximum results to be returned in the list; default value is 5000
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = 1
 
@@ -1343,17 +1344,19 @@ class ExpressionSearch(TiCloudAPI):
 
             next_page = response_json.get("rl").get("web_sample_search_download").get("next_page", None)
 
-            if len(results) >= max_results:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def get_latest_expression(self, query):
         """Service returns only new samples from the last 24 hours.
         The query must be a list of at least 2 strings. Each string is in the form of a key and a value with 
         an equals sign between then and no spaces.
         The value can have multiple options separated with a pipe symbol.
-        This method returns a list of aggregated results with a maximum length defined in the 'max_results' parameter.
             Query examples:
 
             ['status=MALICIOUS',
@@ -1401,7 +1404,7 @@ class ExpressionSearch(TiCloudAPI):
         return response
 
     def statistics_search(self, query, time_format, time_value, page_number=1):
-        """Returns aggregated statistics about new samples in TitaniumCloud system
+        """Returns statistics about new samples in the TitaniumCloud system
         that match the requested criteria. Service returns samples on the requested
         date. At least 2 search criteria must be provided in each request. Every 
         request returns a maximum of 1000 results. If more than 1000 samples match
@@ -1490,7 +1493,7 @@ class ExpressionSearch(TiCloudAPI):
         return response
 
     def get_latest_statistics(self, query):
-        """Returns aggregated statistics about new samples in TitaniumCloud system
+        """Returns statistics about new samples in the TitaniumCloud system
         that match the requested criteria. Service returns samples on the requested
         date. At least 2 search criteria must be provided in each request. Every 
         request returns a maximum of 1000 results. If more than 1000 samples match
@@ -1711,7 +1714,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, url_input, extended=True, classification=None, last_analysis=False,
-                                        analysis_id=None, results_per_page=1000, max_results=5000):
+                                        analysis_id=None, results_per_page=1000, max_results=None):
         """Accepts a URL string and returns a list of downloaded files aggregated through multiple pages of results.
         A maximum number of desired results in the list can be defined with the 'max_results' parameter.
         Optional parameters include file number limit,requesting an extended report, requesting only files of specific
@@ -1728,14 +1731,12 @@ class URLThreatIntelligence(TiCloudAPI):
             :type analysis_id: str
             :param results_per_page: number of results to be returned in one page; maximum value is 1000
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -1757,10 +1758,13 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def get_latest_url_analysis_feed(self, page_string=None, results_per_page=1000):
         """Returns the latest URL analyses reports.
@@ -1804,19 +1808,17 @@ class URLThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def get_latest_url_analysis_feed_aggregated(self, results_per_page=1000, max_results=5000):
+    def get_latest_url_analysis_feed_aggregated(self, results_per_page=1000, max_results=None):
         """Returns the latest URL analyses reports aggregated as list.
         Maximum desired number of results in the list can be defined with the 'max_results' parameter.
             :param results_per_page: number of results per response; maximum value is 1000
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -1833,10 +1835,13 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def get_url_analysis_feed_from_date(self, time_format, start_time, page_string=None, results_per_page=1000):
         """Accepts time format and a start time and returns URL analyses reports from that defined time onward.
@@ -1900,7 +1905,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_url_analysis_feed_from_date_aggregated(self, time_format, start_time, results_per_page=1000,
-                                                   max_results=5000):
+                                                   max_results=None):
         """Accepts time format and a start time and returns URL analyses reports
         from that defined time onward aggregated as a list.
         It is possible to list analyses up to 90 days into the past.
@@ -1911,14 +1916,12 @@ class URLThreatIntelligence(TiCloudAPI):
             :type start_time: str
             :param results_per_page: number of results per response
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -1937,10 +1940,13 @@ class URLThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class AnalyzeURL(TiCloudAPI):
@@ -2062,7 +2068,7 @@ class DomainThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, domain, extended=True, classification=None, results_per_page=1000,
-                                        max_results=50000):
+                                        max_results=None):
         """Accepts a domain string and retrieves a list of files downloaded from the submitted domain.
         This method performs the paging automatically and returns a list of results. The maximum number of results
         to be returned can be set.
@@ -2074,14 +2080,12 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type classification: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -2101,10 +2105,13 @@ class DomainThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def urls_from_domain(self, domain, page_string=None, results_per_page=1000):
         """Accepts a domain string and returns a list of URLs associated with the requested domain.
@@ -2126,7 +2133,7 @@ class DomainThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def urls_from_domain_aggregated(self, domain, results_per_page=1000, max_results=5000):
+    def urls_from_domain_aggregated(self, domain, results_per_page=1000, max_results=None):
         """Accepts a domain string and returns a list of URLs associated with the requested domain.
         This method performs the paging automatically and returns a list of results. The maximum number of results
         to be returned can be set.
@@ -2134,14 +2141,12 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type domain: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2159,10 +2164,13 @@ class DomainThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def domain_to_ip_resolutions(self, domain, page_string=None, results_per_page=1000):
         """Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain.
@@ -2184,7 +2192,7 @@ class DomainThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def domain_to_ip_resolutions_aggregated(self, domain, results_per_page=1000, max_results=5000):
+    def domain_to_ip_resolutions_aggregated(self, domain, results_per_page=1000, max_results=None):
         """Accepts a domain string and returns a list of domain-to-IP mappings for the requested domain.
         This method performs the paging automatically and returns a list of results. The maximum number of results
         to be returned can be set.
@@ -2192,14 +2200,12 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type domain: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2217,10 +2223,13 @@ class DomainThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def related_domains(self, domain, page_string=None, results_per_page=1000):
         """Accepts a domain string and returns a list of domains that have
@@ -2243,7 +2252,7 @@ class DomainThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def related_domains_aggregated(self, domain, results_per_page=1000, max_results=5000):
+    def related_domains_aggregated(self, domain, results_per_page=1000, max_results=None):
         """Accepts a domain string and returns a list of domains that have
         the same top parent domain as the requested domain.
         This method performs the paging automatically and returns a list of results. The maximum number of results
@@ -2252,14 +2261,12 @@ class DomainThreatIntelligence(TiCloudAPI):
             :type domain: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2277,10 +2284,13 @@ class DomainThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def __domain_endpoints(self, domain, results_per_page, page_string, specific_endpoint):
         """Private method for domain-related endpoints.
@@ -2403,7 +2413,7 @@ class IPThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, ip_address, extended=True, classification=None, results_per_page=1000,
-                                        max_results=50000):
+                                        max_results=None):
         """Accepts an IP address as a string and returns a list of files
         downloaded from the submitted IP address.
         This method performs the paging automatically and returns a list of results. The maximum number of results
@@ -2416,14 +2426,12 @@ class IPThreatIntelligence(TiCloudAPI):
             :type classification: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2443,10 +2451,13 @@ class IPThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def urls_from_ip(self, ip_address, page_string=None, results_per_page=1000):
         """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
@@ -2468,7 +2479,7 @@ class IPThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def urls_from_ip_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+    def urls_from_ip_aggregated(self, ip_address, results_per_page=1000, max_results=None):
         """Accepts an IP address as a string and returns a list of URLs associated with the requested IP.
         This method performs the paging automatically and returns a list of results. The maximum number of results
         to be returned can be set.
@@ -2476,14 +2487,12 @@ class IPThreatIntelligence(TiCloudAPI):
             :type ip_address: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2501,10 +2510,13 @@ class IPThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def ip_to_domain_resolutions(self, ip_address, page_string=None, results_per_page=1000):
         """Accepts an IP address as a string and returns a list of IP-to-domain
@@ -2527,7 +2539,7 @@ class IPThreatIntelligence(TiCloudAPI):
 
         return response
 
-    def ip_to_domain_resolutions_aggregated(self, ip_address, results_per_page=1000, max_results=50000):
+    def ip_to_domain_resolutions_aggregated(self, ip_address, results_per_page=1000, max_results=None):
         """Accepts an IP address as a string and returns a list of IP-to-domain
         mappings for the specified IP address.
         This method performs the paging automatically and returns a list of results. The maximum number of results
@@ -2536,14 +2548,12 @@ class IPThreatIntelligence(TiCloudAPI):
             :type ip_address: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = ""
 
@@ -2561,10 +2571,13 @@ class IPThreatIntelligence(TiCloudAPI):
 
             next_page = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page:
-                break
+            if not max_results:
+                if not next_page:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page or len(results) >= max_results:
+                    return results[:max_results]
 
     def __ip_endpoints(self, ip_address, results_per_page, page_string, specific_endpoint):
         """Private method for IP-related endpoints.
@@ -3430,7 +3443,7 @@ class CertificateIndex(TiCloudAPI):
         return response
 
     def get_certificate_information_aggregated(self, certificate_thumbprint, extended_results=True, classification=None,
-                                               results_per_page=100, max_results=5000):
+                                               results_per_page=100, max_results=None):
         """Accepts a hash (thumbprint) and returns a list of SHA1 hashes for samples signed with the certificate
          matching the requested thumbprint.
          This method automatically handles paging and returns a list of results instead of a Response object.
@@ -3444,14 +3457,12 @@ class CertificateIndex(TiCloudAPI):
             :type classification: str or None
             :param results_per_page: number of returned results per page; default and maximum is 100
             :type results_per_page: int
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_hash = None
 
@@ -3471,10 +3482,13 @@ class CertificateIndex(TiCloudAPI):
 
             next_page_hash = response_json.get("rl").get("next_page", None)
 
-            if len(results) >= max_results or not next_page_hash:
-                break
+            if not max_results:
+                if not next_page_hash:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page_hash or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class CertificateAnalytics(TiCloudAPI):
@@ -3590,7 +3604,7 @@ class CertificateThumbprintSearch(TiCloudAPI):
 
         return response
 
-    def search_common_names_aggregated(self, common_name, results_per_page=100, max_results=5000):
+    def search_common_names_aggregated(self, common_name, results_per_page=100, max_results=None):
         """Accepts a certificate common name and returns common names matching the request, along with the list of
         thumbprints of all the certificates sharing that common name.
         The common name can contain an asterisk wildcard ('*') substituting any number of any characters.
@@ -3599,14 +3613,12 @@ class CertificateThumbprintSearch(TiCloudAPI):
             :type common_name: str
             :param results_per_page: number of results per page
             :type results_per_page: int
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_common_name, next_page_thumbprint = None, None
 
@@ -3626,10 +3638,13 @@ class CertificateThumbprintSearch(TiCloudAPI):
             next_page_common_name = response_json.get("rl").get("next_page_common_name", None)
             next_page_thumbprint = response_json.get("rl").get("next_page_thumbprint", None)
 
-            if len(results) >= max_results or not any((next_page_common_name, next_page_thumbprint)):
-                break
+            if not max_results:
+                if not any((next_page_common_name, next_page_thumbprint)):
+                    return results
 
-        return results[:max_results]
+            else:
+                if not any((next_page_common_name, next_page_thumbprint)) or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class RansomwareIndicators(TiCloudAPI):
@@ -4961,19 +4976,17 @@ class ImpHashSimilarity(TiCloudAPI):
 
         return response
 
-    def get_imphash_index_aggregated(self, imphash, max_results=5000):
+    def get_imphash_index_aggregated(self, imphash, max_results=None):
         """Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash.
         This method automatically handles paging and returns a list of results instead of a Response object.
-           :param imphash: imphash string
-           :type imphash: str
-           :param max_results: maximum number of results to be returned in the list
-           :type max_results: int
-           :return: list of results
-           :rtype: list
+            :param imphash: imphash string
+            :type imphash: str
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
+            :return: list of results
+            :rtype: list
        """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_sha1 = None
 
@@ -4990,10 +5003,13 @@ class ImpHashSimilarity(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("imphash_index").get("next_page_sha1", None)
 
-            if len(results) >= max_results or not next_page_sha1:
-                break
+            if not max_results:
+                if not next_page_sha1:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page_sha1 or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class YARAHunting(TiCloudAPI):
@@ -5743,17 +5759,15 @@ class NetworkReputationUserOverride(TiCloudAPI):
 
         return response
 
-    def list_overrides_aggregated(self, max_results=50000):
+    def list_overrides_aggregated(self, max_results=None):
         """Returns a list of overrides that the user has made.
         This method automatically handles paging and returns a list of results instead of a Response object.
-            :param max_results: maximum number of results to be returned in the list
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
            :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page_sha1 = ""
 
@@ -5767,10 +5781,13 @@ class NetworkReputationUserOverride(TiCloudAPI):
 
             next_page_sha1 = response_json.get("rl").get("user_override").get("next_network_location", None)
 
-            if len(results) >= max_results or not next_page_sha1:
-                break
+            if not max_results:
+                if not next_page_sha1:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not next_page_sha1 or len(results) >= max_results:
+                    return results[:max_results]
 
 
 class MalwareFamilyDetection(TiCloudAPI):
@@ -6137,7 +6154,7 @@ class TAXIIRansomwareFeed(TiCloudAPI):
 
         return response
 
-    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, max_results=5000):
+    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, max_results=None):
         """Returns objects from a TAXII collection.
         This method does the paging automatically and returns a defined number of objects as a list in the end.
             :param api_root: api root name
@@ -6148,15 +6165,12 @@ class TAXIIRansomwareFeed(TiCloudAPI):
             :type result_limit: int
             :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
             :type added_after: str
-            :param max_results: maximum number of objects to be returned in a list in the end;
-            not to be confused with result_limit
-            :type max_results: int
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
             :return: list of results
             :rtype: list
         """
-        if not isinstance(max_results, int):
-            raise WrongInputError("max_results parameter must be integer.")
-
         results = []
         next_page = None
 
@@ -6177,10 +6191,13 @@ class TAXIIRansomwareFeed(TiCloudAPI):
             next_page = response_json.get("next")
             more_pages = response_json.get("more")
 
-            if len(results) >= max_results or not more_pages:
-                break
+            if not max_results:
+                if not more_pages:
+                    return results
 
-        return results[:max_results]
+            else:
+                if not more_pages or len(results) >= max_results:
+                    return results[:max_results]
 
 
 def _update_hash_object(input_source, hash_object):
