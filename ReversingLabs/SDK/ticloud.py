@@ -3255,15 +3255,19 @@ class DynamicAnalysis(TiCloudAPI):
         if not isinstance(internet_simulation, bool):
             raise WrongInputError("internet_simulation parameter must be boolean.")
 
-        if internet_simulation:
-            post_json["rl"]["optional_parameters"] = "internet_simulation=true"
-
         if sample_hash:
             hash_type = HASH_LENGTH_MAP.get(len(sample_hash))
             post_json["rl"][hash_type] = sample_hash
 
+            optional_parameters = []
+
             if sample_name:
-                post_json["rl"]["sample_name"] = sample_name
+                optional_parameters.append(f"sample_name={sample_name}")
+
+            if internet_simulation:
+                optional_parameters.append("internet_simulation=true")
+
+            post_json["rl"]["optional_parameters"] = ", ".join(optional_parameters)
 
         elif url_string:
             post_json["rl"]["url"] = url_string
