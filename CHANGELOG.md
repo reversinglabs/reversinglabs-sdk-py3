@@ -305,3 +305,10 @@ v2.5.1 (2024-04-02)
 ### Scheduled removals
 - **December 2024.**:
   - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.
+
+
+2.6.1 (2024-07-03)
+-------------------
+
+#### Improvements
+- Added more unit tests for all currently available modules.
