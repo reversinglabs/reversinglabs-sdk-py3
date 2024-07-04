@@ -4,7 +4,8 @@ from unittest import mock
 from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, FileAnalysis, FileAnalysisNonMalicious, \
 	AdvancedSearch, ExpressionSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
-	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, \
+	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
+	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, NetworkReputation, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -749,3 +750,230 @@ class TestCertificateIndex:
 		)
 
 
+class TestRansomwareIndicators:
+	@classmethod
+	def setup_class(cls):
+		cls.rf = RansomwareIndicators(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.rf.get_indicators(
+			hours_back=3,
+			indicator_types=['ipv4', 'hash', 'domain', 'uri']
+		)
+
+		expected_url = f"{HOST}/api/public/v1/ransomware/indicators?withHealth=0&tagFormat=dict&" \
+						  "hours=3&indicatorTypes=ipv4,hash,domain,uri&onlyFreemium=0"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+
+class TestNewMalwareFilesFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.feed = NewMalwareFilesFeed(HOST, USERNAME, PASSWORD)
+
+	def test_pull(self, requests_mock):
+		self.feed.pull_with_timestamp(
+			time_format="timestamp",
+			time_value="1234567"
+		)
+
+		expected_url = f"{HOST}/api/feed/malware/detection/v1/query/timestamp/1234567?format=json&sample_available=false&limit=1000"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+
+class TestNewMalwareURIFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.feed = NewMalwareURIFeed(HOST, USERNAME, PASSWORD)
+
+	def test_pull(self, requests_mock):
+		self.feed.pull_latest()
+
+		expected_url = f"{HOST}/api/feed/malware_uri/v1/query/latest?format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+
+class TestImpHashSimilarity:
+	@classmethod
+	def setup_class(cls):
+		cls.imphash = ImpHashSimilarity(HOST, USERNAME, PASSWORD)
+
+	def test_imphash(self, requests_mock):
+		imphash = "abcdefg"
+
+		self.imphash.get_imphash_index(imphash, next_page_sha1=SHA1)
+
+		expected_url = f"{HOST}/api/imphash_index/v1/query/{imphash}/start_sha1/{SHA1}?format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+
+class TestYARAHunting:
+	@classmethod
+	def setup_class(cls):
+		cls.yara = YARAHunting(HOST, USERNAME, PASSWORD)
+
+	def test_yara(self, requests_mock):
+		self.yara.create_ruleset(
+			ruleset_name="name",
+			ruleset_text="ruleset_text"
+		)
+
+		post_json = {
+			"ruleset_name": "name",
+			"text": "ruleset_text"
+		}
+
+		expected_url = f"{HOST}/api/yara/admin/v1/ruleset"
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None,
+			json=post_json,
+			data=None
+		)
+
+	def test_wrong_ruleset_text(self, requests_mock):
+		with pytest.raises(WrongInputError, match=r"ruleset_text parameter must be unicode string."):
+			self.yara.create_ruleset(ruleset_name="name", ruleset_text=123)
+
+		assert not requests_mock.post.called
+
+
+class TestYARARetroHunting:
+	@classmethod
+	def setup_class(cls):
+		cls.yara = YARARetroHunting(HOST, USERNAME, PASSWORD)
+
+	def test_enable_retro(self, requests_mock):
+		ruleset_name = "name"
+
+		self.yara.enable_retro_hunt(ruleset_name=ruleset_name)
+
+		expected_url = f"{HOST}/api/yara/admin/v1/ruleset/enable-retro-hunt"
+
+		post_json = {"ruleset_name": ruleset_name}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None,
+			json=post_json,
+			data=None
+		)
+
+
+class TestTAXIIRansomwareFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.taxii = TAXIIRansomwareFeed(HOST, USERNAME, PASSWORD)
+
+	def test_get_objects(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="lite-root",
+			collection_id="123456"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			params=query_params
+		)
+
+
+class TestCustomerUsage:
+	@classmethod
+	def setup_class(cls):
+		cls.usage = CustomerUsage(HOST, USERNAME, PASSWORD)
+
+	def test_usage(self, requests_mock):
+		self.usage.daily_usage(single_date="2024-07-03")
+
+		expected_url = f"{HOST}/api/customer_usage/v1/usage/daily"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params={"date": "2024-07-03", "format": "json", "from": None, "to": None}
+		)
+
+
+class TestNetworkReputation:
+	@classmethod
+	def setup_class(cls):
+		cls.net_rep = NetworkReputation(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		locations = ["some.domain", "another.domain"]
+
+		self.net_rep.get_network_reputation(
+			network_locations=locations
+		)
+
+		expected_url = f"{HOST}/api/networking/reputation/v1/query/json"
+
+		post_json = {"rl": {"query": {"network_locations": [{"network_location": "some.domain"}, {"network_location": "another.domain"}], "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None,
+			json=post_json,
+			data=None
+		)
