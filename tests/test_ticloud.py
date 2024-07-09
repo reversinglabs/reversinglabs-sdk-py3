@@ -5,7 +5,8 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	AdvancedSearch, ExpressionSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
-	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, NetworkReputation, \
+	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, \
+	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -171,6 +172,121 @@ class TestFileReputation:
 
 		with pytest.raises(NotFoundError):
 			self.file_reputation.get_file_reputation(SHA1)
+
+
+class TestFileReputationUserOverride:
+	@classmethod
+	def setup_class(cls):
+		cls.override = FileReputationUserOverride(HOST, USERNAME, PASSWORD)
+
+	def test_list_active(self, requests_mock):
+		hash_type = "sha1"
+		self.override.list_active_overrides(
+			hash_type=hash_type
+		)
+
+		expected_url = f"{HOST}/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}?format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+	def test_override(self, requests_mock):
+		override_samples = [
+			{
+				"sha1": SHA1,
+				"sha256": SHA256,
+				"md5": MD5,
+				"classification": "SUSPICIOUS"
+			}
+		]
+
+		remove_override = [
+			{
+				"sha1": SHA1,
+				"sha256": SHA256,
+				"md5": MD5
+			}
+		]
+
+		self.override.override_classification(
+			override_samples=override_samples,
+			remove_override=remove_override
+		)
+
+		expected_url = f"{HOST}/api/databrowser/malware_presence/user_override/json"
+		post_json = {"rl": {"query": {"override_samples": override_samples, "remove_override": remove_override}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			json=post_json,
+			data=None,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+
+class TestNetworkReputationUserOverride:
+	@classmethod
+	def setup_class(cls):
+		cls.override = NetworkReputationUserOverride(HOST, USERNAME, PASSWORD)
+
+	def test_list_overrides(self, requests_mock):
+		self.override.list_overrides()
+
+		expected_url = f"{HOST}/api/networking/user_override/v1/query/list_overrides"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params={"format": "json", "next_network_location": None}
+		)
+
+	def test_override(self, requests_mock):
+		override_list = [{
+			'network_location': 'example_network_location',
+			'type': 'url',
+			'classification': 'SUSPICIOUS',
+			'categories': ['list', 'of', 'arbitrary', 'categories']
+		}]
+
+		remove_list = [{
+			'network_location': 'example_network_location',
+			'type': 'url'
+		}]
+
+		self.override.reputation_override(
+			override_list=override_list,
+			remove_overrides_list=remove_list
+		)
+
+		expected_url = f"{HOST}/api/networking/user_override/v1/query/json"
+
+		post_json = {"rl": {"query": {"user_override":
+										  {"override_network_locations": override_list,
+										   "remove_overrides": remove_list}, "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			json=post_json,
+			data=None,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
 
 
 class TestAVScanners:
@@ -370,8 +486,9 @@ class TestURIIndex:
 		self.uri_index.get_uri_index(self.test_url, classification="MALICIOUS",
 									 page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271")
 
-		expected_url = (f"{HOST}/api/uri_index/v1/query/0164af1f2e83a7411a3c8cfd02b1424156a21b6b/21841b32c6165b27dddbd4d6eb3a672defe54271?"
-						f"format=json&classification=MALICIOUS")
+		expected_url = (
+			f"{HOST}/api/uri_index/v1/query/0164af1f2e83a7411a3c8cfd02b1424156a21b6b/21841b32c6165b27dddbd4d6eb3a672defe54271?"
+			f"format=json&classification=MALICIOUS")
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
@@ -389,7 +506,8 @@ class TestAdvancedSearch:
 		cls.adv_search = AdvancedSearch(HOST, USERNAME, PASSWORD)
 
 	def test_wrong_input(self, requests_mock):
-		with pytest.raises(WrongInputError, match=r"records_per_page parameter must be integer with value between 1 and 10000"):
+		with pytest.raises(WrongInputError,
+						   match=r"records_per_page parameter must be integer with value between 1 and 10000"):
 			self.adv_search.search("search_query", records_per_page=12000)
 
 		with pytest.raises(WrongInputError, match=r"Sorting criteria must be one of the following options"):
@@ -400,11 +518,13 @@ class TestAdvancedSearch:
 	def test_single_query(self, requests_mock):
 		requests_mock.post.return_value.status_code = 200
 
-		self.adv_search.search(query_string="av-count:5 available:TRUE", sorting_criteria="sha1", sorting_order="desc", page_number=2, records_per_page=5)
+		self.adv_search.search(query_string="av-count:5 available:TRUE", sorting_criteria="sha1", sorting_order="desc",
+							   page_number=2, records_per_page=5)
 
 		expected_url = f"{HOST}/api/search/v1/query"
 
-		post_json = {"query": "av-count:5 available:TRUE", "page": 2, "records_per_page": 5, "format": "json", "sort": "sha1 desc"}
+		post_json = {"query": "av-count:5 available:TRUE", "page": 2, "records_per_page": 5, "format": "json",
+					 "sort": "sha1 desc"}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -506,7 +626,9 @@ class TestURLThreatIntelligence:
 
 		expected_url = f"{HOST}/api/networking/url/v1/report/query/json"
 
-		post_json = {"rl": {"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml", "response_format": "json"}}}
+		post_json = {"rl": {
+			"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml",
+					  "response_format": "json"}}}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -532,7 +654,9 @@ class TestAnalyzeURL:
 
 		expected_url = f"{HOST}/api/networking/url/v1/analyze/query/json"
 
-		post_json = {"rl": {"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml", "response_format": "json"}}}
+		post_json = {"rl": {
+			"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml",
+					  "response_format": "json"}}}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -635,6 +759,10 @@ class TestFileUpload:
 			data=meta_xml
 		)
 
+	def test_upload_file(self, requests_mock):
+		with pytest.raises(WrongInputError, match=r"file_handle parameter must be a file open in 'rb' mode"):
+			self.upload.upload_sample_from_file(file_handle="aaa")
+
 
 class TestDeleteFile:
 	@classmethod
@@ -681,7 +809,7 @@ class TestDataChangeSubscription:
 	def setup_class(cls):
 		cls.data_change = DataChangeSubscription(HOST, USERNAME, PASSWORD)
 
-	def test_query(self, requests_mock):
+	def test_subscribe(self, requests_mock):
 		self.data_change.subscribe([SHA1, SHA1])
 
 		expected_url = f"{HOST}/api/subscription/data_change/v1/bulk_query/subscribe/json"
@@ -699,6 +827,21 @@ class TestDataChangeSubscription:
 			data=None
 		)
 
+	def test_unsubscribe(self):
+		with pytest.raises(WrongInputError, match=r"All hashes in the list must be of the same type."):
+			self.data_change.unsubscribe(hashes=[SHA1, SHA256])
+
+	def test_pull_from_feed(self):
+		with pytest.raises(WrongInputError, match=r"events parameter must be a list of strings"):
+			self.data_change.pull_from_feed(events="event1,event2")
+
+	def test_continuous_data_change_feed(self):
+		with pytest.raises(WrongInputError, match=r"If the timestamp time_format is used, time_value parameter must be a Unix"):
+			self.data_change.continuous_data_change_feed(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"If the utc time_format is used, time_value parameter must be written in the"):
+			self.data_change.continuous_data_change_feed(time_format="utc", time_value="12345678")
+
 
 class TestDynamicAnalysis:
 	@classmethod
@@ -715,7 +858,8 @@ class TestDynamicAnalysis:
 
 		expected_url = f"{HOST}/api/dynamic/analysis/analyze/v1/query/json"
 
-		post_json = {"rl": {"platform": "windows10", "response_format": "json", "sha1": SHA1, "optional_parameters": "sample_name=sample_name, internet_simulation=true"}}
+		post_json = {"rl": {"platform": "windows10", "response_format": "json", "sha1": SHA1,
+							"optional_parameters": "sample_name=sample_name, internet_simulation=true"}}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -727,6 +871,24 @@ class TestDynamicAnalysis:
 			json=post_json,
 			data=None
 		)
+
+	def test_file_analysis_results(self, requests_mock):
+		self.da.get_dynamic_analysis_results(sample_hash=SHA1, latest=True)
+
+		expected_url = f"{HOST}/api/dynamic/analysis/report/v1/query/sha1/{SHA1}/latest?format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
+
+	def test_url_analysis_results(self):
+		with pytest.raises(WrongInputError, match=r"analysis_id parameter bust be string."):
+			self.da.get_dynamic_analysis_results(url_sha1=SHA1, analysis_id=123)
 
 
 class TestCertificateIndex:
@@ -762,7 +924,7 @@ class TestRansomwareIndicators:
 		)
 
 		expected_url = f"{HOST}/api/public/v1/ransomware/indicators?withHealth=0&tagFormat=dict&" \
-						  "hours=3&indicatorTypes=ipv4,hash,domain,uri&onlyFreemium=0"
+					   "hours=3&indicatorTypes=ipv4,hash,domain,uri&onlyFreemium=0"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
@@ -906,7 +1068,7 @@ class TestTAXIIRansomwareFeed:
 	def setup_class(cls):
 		cls.taxii = TAXIIRansomwareFeed(HOST, USERNAME, PASSWORD)
 
-	def test_get_objects(self, requests_mock):
+	def test_get_objects_lite(self, requests_mock):
 		self.taxii.get_objects(
 			api_root="lite-root",
 			collection_id="123456"
@@ -920,6 +1082,30 @@ class TestTAXIIRansomwareFeed:
 		}
 
 		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			params=query_params
+		)
+
+	def test_get_objects_regular(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="regular-root",
+			collection_id="654321"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/regular-root/collections/654321/objects/"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
@@ -965,7 +1151,9 @@ class TestNetworkReputation:
 
 		expected_url = f"{HOST}/api/networking/reputation/v1/query/json"
 
-		post_json = {"rl": {"query": {"network_locations": [{"network_location": "some.domain"}, {"network_location": "another.domain"}], "response_format": "json"}}}
+		post_json = {"rl": {"query": {
+			"network_locations": [{"network_location": "some.domain"}, {"network_location": "another.domain"}],
+			"response_format": "json"}}}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -977,3 +1165,63 @@ class TestNetworkReputation:
 			json=post_json,
 			data=None
 		)
+
+
+class TestMalwareFamilyDetection:
+	pass
+
+
+class TestVerticalFeedsStatistics:
+	pass
+
+
+class TestVerticalFeedsSearch:
+	pass
+
+
+class TestCertificateAnalytics:
+	pass
+
+
+class TestCertificateThumbprintSearch:
+	pass
+
+
+class TestNewMalwarePlatformFiltered:
+	pass
+
+
+class TestNewFilesFirstScan:
+	pass
+
+
+class TestNewFilesFirstAndRescan:
+	pass
+
+
+class TestFilesWithDetectionChanges:
+	pass
+
+
+class TestMWPChangeEventsFeed:
+	pass
+
+
+class TestCvesExploitedInTheWild:
+	pass
+
+
+class TestNewExploitOrCveSamplesFoundInWildHourly:
+	pass
+
+
+class TestNewExploitAndCveSamplesFoundInWildDaily:
+	pass
+
+
+class TestNewWhitelistedFiles:
+	pass
+
+
+class TestChangesWhitelistedFiles:
+	pass
