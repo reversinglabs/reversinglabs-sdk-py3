@@ -6,7 +6,11 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
 	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, \
-	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, \
+	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
+	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
+	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
+	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
+	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -1168,60 +1172,258 @@ class TestNetworkReputation:
 
 
 class TestMalwareFamilyDetection:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.malware_family = MalwareFamilyDetection(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.malware_family.get_malware_family(hash_type="SHA1", hash_value=SHA1)
+
+		expected_url = f"{HOST}/api/malware/family/detection/v1/query/sha1/{SHA1}"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
 
 
 class TestVerticalFeedsStatistics:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.verticalstats = VerticalFeedsStatistics(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"The all_time parameter can not be used together with weeks."):
+			self.verticalstats.feed_query(
+				category="financial",
+				filter="counts",
+				weeks=5,
+				all_time=True
+			)
+
+	def test_query(self, requests_mock):
+		self.verticalstats.feed_query(
+			category="financial",
+			filter="counts",
+			weeks=5,
+			all_time=False
+		)
+
+		expected_url = f"{HOST}/api/feed/malware/detection/family/v2/statistics/category/financial/counts"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params={"format": "json", "weeks": 5}
+		)
 
 
 class TestVerticalFeedsSearch:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.verticalsearch = VerticalFeedsSearch(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.verticalsearch.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32", family_name="aaa")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.verticalsearch.feed_query(time_format="utc", time_value="12345678", family_name="aaa")
 
 
 class TestCertificateAnalytics:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.analytics = CertificateAnalytics(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.analytics.get_certificate_analytics(certificate_thumbprints=SHA1)
+
+		expected_url = f"{HOST}/api/certificate/analytics/v1/query/thumbprint/{SHA1}?format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
 
 
 class TestCertificateThumbprintSearch:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.thumbsearch = CertificateThumbprintSearch(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"Both next_page_common_name and next_page_thumbprint parameters need to be used"):
+			self.thumbsearch.search_common_names(common_name="aaaa", next_page_common_name="bbb")
 
 
 class TestNewMalwarePlatformFiltered:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.new_malware = NewMalwarePlatformFiltered(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.new_malware.feed_query(
+			time_format="timestamp",
+			time_value="12345678"
+		)
+
+		expected_url = f"{HOST}/api/feed/malware/detection/platform/v1/query/timestamp/12345678?sample_available=false&limit=1000&format=json"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params=None
+		)
 
 
 class TestNewFilesFirstScan:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.new_files = NewFilesFirstScan(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.new_files.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.new_files.feed_query(time_format="utc", time_value="12345678")
 
 
 class TestNewFilesFirstAndRescan:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.new_files = NewFilesFirstAndRescan(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.new_files.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.new_files.feed_query(time_format="utc", time_value="12345678")
 
 
 class TestFilesWithDetectionChanges:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.files_changes = FilesWithDetectionChanges(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.files_changes.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.files_changes.feed_query(time_format="utc", time_value="12345678")
 
 
 class TestMWPChangeEventsFeed:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.mwp_events = MWPChangeEventsFeed(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"If the timestamp time_format is used, time_value parameter must be a Unix"):
+			self.mwp_events.pull_with_timestamp(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"If the utc time_format is used, time_value parameter must be written in the"):
+			self.mwp_events.pull_with_timestamp(time_format="utc", time_value="12345678")
 
 
 class TestCvesExploitedInTheWild:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.cves = CvesExploitedInTheWild(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.cves.pull_daily_cve_report(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"If the date format is used, time_value must be provided as 'YYY-MM-DD'"):
+			self.cves.pull_daily_cve_report(time_format="date", time_value="12345678")
 
 
 class TestNewExploitOrCveSamplesFoundInWildHourly:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.hourly = NewExploitOrCveSamplesFoundInWildHourly(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.hourly.latest_hourly_exploit_list_query(sample_available=True, active_cve=True)
+
+		expected_url = f"{HOST}/api/feed/malware/detection/exploit/hourly/v2/query/latest"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params={
+				"sample_available": "true",
+				"active_cve": "true",
+				"format": "json"
+			}
+		)
 
 
 class TestNewExploitAndCveSamplesFoundInWildDaily:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.daily = NewExploitAndCveSamplesFoundInWildDaily(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		self.daily.latest_daily_exploit_list_query(sample_available=True)
+
+		expected_url = f"{HOST}/api/feed/malware/exploit/daily/v1/query/latest"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT},
+			params={
+				"sample_available": "true",
+				"format": "json"
+			}
+		)
 
 
 class TestNewWhitelistedFiles:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.whitelisted = NewWhitelistedFiles(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.whitelisted.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.whitelisted.feed_query(time_format="utc", time_value="12345678")
 
 
 class TestChangesWhitelistedFiles:
-	pass
+	@classmethod
+	def setup_class(cls):
+		cls.changes = ChangesWhitelistedFiles(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.changes.feed_query(time_format="timestamp", time_value="2024-05-15T22:12:32")
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.changes.feed_query(time_format="utc", time_value="12345678")
