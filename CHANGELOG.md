@@ -312,3 +312,10 @@ v2.5.1 (2024-04-02)
 
 #### Improvements
 - Added more unit tests for all currently available modules.
+
+
+2.6.2 (2024-07-10)
+-------------------
+
+#### Improvements
+- Added more unit tests for all currently available modules.
