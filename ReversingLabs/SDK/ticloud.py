@@ -5879,47 +5879,45 @@ class VerticalFeedsStatistics(TiCloudAPI):
         filtered by category. The service can return a list of malware family names
         newly added to each category, the number of unieque new samples added for each
         malware family in a category, and a list of top 20 malware families per category
-            param: category: Corresponds to the verticals feed category the user is requesting to access.
+            :param category: Corresponds to the verticals feed category the user is requesting to access.
             Only one category can be requested in each query. Note that the response for the 'exploit'
             category contains addional 'scanner_coverage' data not found in other categories.
             Enum: 'financial', 'retail', 'ransomware', 'apt', 'exploit', 'configuration'
-            type: category: str
-            param: filter: applied to filter data to request. Enum: 'first_seen', 'counts', 'top_list'
-            type: filter: str
-            param: weeks: specifies the number of weeks for which the data will be returned in response
-            type: weeks: int
-            param: all_time: Instructs the service to return all available data for the requested category
-            type all_time: boolean
+            :type category: str
+            :param filter: applied to filter data to request. Enum: 'first_seen', 'counts', 'top_list'
+            :type filter: str
+            :param weeks: specifies the number of weeks for which the data will be returned in response
+            :type weeks: int
+            :param all_time: Instructs the service to return all available data for the requested category
+            :type all_time: boolean
         """
         if category not in VERTICAL_FEEDS_CATEGORIES:
             raise WrongInputError("Only the following categories are allowed: {category}".format(
                 category=VERTICAL_FEEDS_CATEGORIES))
 
-        if filter.lower() not in ("counts", "top_list", "first_seen"):
+        if filter not in ("counts", "top_list", "first_seen"):
             raise WrongInputError("Only the following filters are allowed: 'counts', 'top_list' and 'first_seen'")
+
+        query_params = {
+            "format": "json"
+        }
 
         if isinstance(weeks, int):
 
             if weeks not in range(0, 30):
                 raise WrongInputError("The value for weeks can be a number between 0 and 30")
 
-            query_params = {
-                "weeks": weeks,
-                "format": "json"
-            }
-
-            raise WrongInputError("Weeks needs to be provided as integer")
+            query_params["weeks"] = weeks
 
         if all_time:
+            query_params["all_time"] = "true"
 
-            query_params = {
-                "all_time": "true",
-                "format": "json"
-            }
+            if "weeks" in query_params:
+                raise WrongInputError("The all_time parameter can not be used together with weeks.")
 
         endpoint = self.__API_FEED_ENDPOINT.format(
-            category = category,
-            filter = filter
+            category=category,
+            filter=filter
         )
 
         url = self._url.format(endpoint=endpoint)
