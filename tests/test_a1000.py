@@ -89,6 +89,60 @@ class TestA1000:
 			files=None
 		)
 
+	def test_sample_from_file(self):
+		with pytest.raises(WrongInputError, match=r"file_source parameter must be a file open in 'rb' mode."):
+			self.a1000.upload_sample_from_file(file_source="/path/to/file")
+
+	def test_file_status(self, requests_mock):
+		self.a1000.file_analysis_status(sample_hashes=[SHA1, SHA1], sample_status="MALICIOUS")
+
+		expected_url = f"{self.host}/api/samples/status/"
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			params={"status": "MALICIOUS"},
+			json=None,
+			data={"hash_values": [SHA1, SHA1]},
+			files=None
+		)
+
+	def test_url_status(self, requests_mock):
+		self.a1000.check_submitted_url_status(task_id="aaa")
+
+		expected_url = f"{self.host}/api/uploads/v2/url-samples/aaa"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			params=None
+		)
+
+	def test_url_report(self, requests_mock):
+		with pytest.raises(WrongInputError, match=r"task_id parameter must be a string."):
+			self.a1000.get_submitted_url_report(task_id=123, retry=False)
+
+	def test_detailed_report(self, requests_mock):
+		with pytest.raises(WrongInputError, match=r"fields parameter must be a list of strings."):
+			self.a1000.get_detailed_report_v2(sample_hashes=SHA1, fields="field1,field2")
+
+	def test_download_sample(self, requests_mock):
+		self.a1000.download_sample(sample_hash=SHA1)
+
+		expected_url = f"{self.host}/api/samples/{SHA1}/download/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			params=None
+		)
+
 	def test_wrong_id(self, requests_mock):
 		with pytest.raises(WrongInputError, match=r"task_id parameter must be a string."):
 			self.a1000.get_submitted_url_report(task_id=123, retry=False)
@@ -304,6 +358,9 @@ class TestA1000:
 			files=None
 		)
 
+	def test_yara_retro_status(self, requests_mock):
+		pass
+
 	def test_wrong_operation(self, requests_mock):
 		with pytest.raises(WrongInputError, match=r"operation parameter must be either 'START' or 'STOP'"):
 			self.a1000.start_or_stop_yara_local_retro_scan("BEGIN")
@@ -343,7 +400,7 @@ class TestA1000:
 			files=None
 		)
 
-	def test_network_report(self, requests_mock):
+	def test_domain_report(self, requests_mock):
 		domain = "some.test.domain"
 
 		self.a1000.network_domain_report(domain)
@@ -357,3 +414,25 @@ class TestA1000:
 			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
 			params=None
 		)
+
+	def test_ip_to_domain(self, requests_mock):
+		self.a1000.network_ip_to_domain("1.2.3.4")
+
+		params = {
+			"page": None,
+			"page_size": 500
+		}
+
+		expected_url = f"{self.host}/api/network-threat-intel/ip/1.2.3.4/resolutions/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			params=params
+		)
+
+	def test_files_from_ip(self, requests_mock):
+		with pytest.raises(WrongInputError, match=r"is allowed as the classification input"):
+			self.a1000.network_files_from_ip(ip_addr="1.2.3.4", classification="KNOWN")
