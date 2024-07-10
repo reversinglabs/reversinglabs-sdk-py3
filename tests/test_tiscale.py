@@ -39,6 +39,18 @@ class TestTitaniumScale:
 	def setup_class(cls):
 		cls.tiscale = TitaniumScale(cls.host, token=cls.token)
 
+	def test_sample_from_path(self):
+		with pytest.raises(WrongInputError, match=r"file_path must be a string."):
+			self.tiscale.upload_sample_from_path(file_path=123)
+
+	def test_sample_from_file(self):
+		with pytest.raises(WrongInputError, match=r"file_source parameter must be a file open in 'rb' mode."):
+			self.tiscale.upload_sample_from_file(file_source="/path/to/file")
+
+	def test_get_results(self):
+		with pytest.raises(WrongInputError, match=r"full_report parameter must be boolean."):
+			self.tiscale.get_results(task_url="/task/url", full_report=3)
+
 	def test_list_tasks(self, requests_mock):
 		self.tiscale.list_processing_tasks(age=10, custom_token="custom")
 
