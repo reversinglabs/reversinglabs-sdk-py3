@@ -46,8 +46,8 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a file path string and returns a response containing the analysis task ID
 - `upload_sample_from_file`
     - Accepts a file open in 'rb' mode and returns a response containing the analysis task ID
-- `upload_sample_from_url`
-    - Accepts a url and returns a response containing the analysis task ID
+- `submit_url_for_analysis`
+    - Sends a URL for analysis on A1000.
 - `check_submitted_url_status`
     - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
         report if the report is ready
@@ -57,8 +57,8 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a task ID returned by upload_sample_from_url and returns a response
     - This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
-- `upload_sample_from_url_and_get_report`
-    - Accepts a url and returns a response containing the analysis report
+- `submit_url_for_analysis_and_get_report`
+    - Sends a URL for analysis on A1000.
     - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
 - `get_summary_report_v2`
