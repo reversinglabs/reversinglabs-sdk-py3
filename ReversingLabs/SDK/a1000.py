@@ -264,14 +264,14 @@ class A1000(object):
 
         return response
 
-    def upload_sample_from_url(self, file_url, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
-        """Accepts a file url and returns a response.
+    def submit_url_for_analysis(self, url_string, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
+        """Sends a URL for analysis on A1000.
         Additional parameters can be provided.
-            :param file_url: URL from which the appliance should download the data
-            :type file_url: str
+            :param url_string: URL to analyze
+            :type url_string: str
             :param crawler: crawler method (local or cloud)
             :type crawler: str
-            :param archive_password: password, if file is a password-protected archive
+            :param archive_password: password, if it is a password-protected archive
             :type archive_password: str
             :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
@@ -283,7 +283,7 @@ class A1000(object):
             crawler=crawler,
             archive_password=archive_password,
             rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
-            file_url=file_url
+            url_string=url_string
         )
 
         url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
@@ -381,20 +381,20 @@ class A1000(object):
         raise RequestTimeoutError("Report fetching attempts finished - The analysis report is still not ready "
                                   "or the sample does not exist on the appliance.")
 
-    def upload_sample_from_url_and_get_report(self, file_url, retry=True, crawler="local", archive_password=None,
-                                              rl_cloud_sandbox_platform=None):
-        """Accepts a file url for file upload and returns a report response.
-        This method combines uploading a sample from url and obtaining the summary analysis report.
+    def submit_url_for_analysis_and_get_report(self, url_string, retry=True, crawler="local", archive_password=None,
+                                               rl_cloud_sandbox_platform=None):
+        """Sends a URL for analysis on A1000.
+        This method combines submitting a URL for analysis and obtaining the summary analysis report.
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready.
-            :param file_url: URL from which the appliance should download the data
-            :type file_url: str
+            :param url_string: URL to analyze
+            :type url_string: str
             :param retry: if set to False there will only be one try at obtaining the analysis report
             :type retry: bool
             :param crawler: crawler method (local or cloud)
             :type crawler: string
-            :param archive_password: password, if file is a password-protected archive
+            :param archive_password: password, if it is a password-protected archive
             :type archive_password: str
             :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
@@ -402,9 +402,9 @@ class A1000(object):
             :rtype: requests.Response
         """
 
-        upload_response = self.upload_sample_from_url(file_url=file_url, crawler=crawler,
-                                                      archive_password=archive_password,
-                                                      rl_cloud_sandbox_platform=rl_cloud_sandbox_platform)
+        upload_response = self.submit_url_for_analysis(url_string=url_string, crawler=crawler,
+                                                       archive_password=archive_password,
+                                                       rl_cloud_sandbox_platform=rl_cloud_sandbox_platform)
 
         response_detail = upload_response.json().get("detail")
         task_id = response_detail.get("id")
@@ -2287,15 +2287,15 @@ class A1000(object):
         return token
 
     @staticmethod
-    def __create_post_payload(custom_filename=None, file_url=None,  crawler=None, archive_password=None,
+    def __create_post_payload(custom_filename=None, url_string=None, crawler=None, archive_password=None,
                               rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True,
                               classification=None, risk_score=None, threat_platform=None, threat_type=None,
                               threat_name=None, name=None, content=None, publish=None, ticloud=None):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
-            :param file_url: URL from which the appliance should download the data
-            :type file_url: str
+            :param url_string: URL to analyze
+            :type url_string: str
             :param crawler: crawler method (local or cloud)
             :type crawler: str
             :param archive_password: password, if file is a password-protected archive
@@ -2340,10 +2340,10 @@ class A1000(object):
         if tags and not isinstance(tags, str):
             raise WrongInputError("tags parameter must be string.")
 
-        if file_url:
-            if not isinstance(file_url, str):
+        if url_string:
+            if not isinstance(url_string, str):
                 raise WrongInputError("file_url parameter must be string.")
-            if not file_url.startswith(("http://", "https://")):
+            if not url_string.startswith(("http://", "https://")):
                 raise WrongInputError("Supported file_url protocols are HTTP and HTTPS.")
 
         if crawler and crawler not in ("cloud", "local"):
@@ -2417,8 +2417,8 @@ class A1000(object):
         if cloud_analysis:
             data["analysis"] = "cloud"
 
-        if file_url:
-            data["url"] = file_url
+        if url_string:
+            data["url"] = url_string
 
         if classification:
             data['classification'] = classification

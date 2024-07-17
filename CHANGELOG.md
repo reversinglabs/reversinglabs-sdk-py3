@@ -319,3 +319,11 @@ v2.5.1 (2024-04-02)
 
 #### Improvements
 - Added more unit tests for all currently available modules.
+
+
+2.6.3 (2024-07-17)
+-------------------
+
+#### Bugfixes
+- **a1000** module:
+  - Changed the `upload_sample_from_url` method's name to `submit_url_for_analysis`.

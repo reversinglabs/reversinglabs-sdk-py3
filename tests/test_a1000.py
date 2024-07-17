@@ -73,8 +73,8 @@ class TestA1000:
 	def setup_class(cls):
 		cls.a1000 = A1000(cls.host, token=cls.token)
 
-	def test_sample_from_url(self, requests_mock):
-		self.a1000.upload_sample_from_url(file_url="https://some.url")
+	def test_submit_url(self, requests_mock):
+		self.a1000.submit_url_for_analysis(url_string="https://some.url")
 
 		expected_url = f"{self.host}/api/uploads/"
 
