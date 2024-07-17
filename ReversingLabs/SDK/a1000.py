@@ -2294,7 +2294,7 @@ class A1000(object):
         """Accepts optional fields and returns a formed dictionary of those fields.
             :param custom_filename: custom file name for upload
             :type custom_filename: str
-            :param url_string: URL from which the appliance should download the data
+            :param url_string: URL to analyze
             :type url_string: str
             :param crawler: crawler method (local or cloud)
             :type crawler: str
