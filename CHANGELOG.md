@@ -302,11 +302,6 @@ v2.5.1 (2024-04-02)
   - The `sample_sha1` parameter of the `ticloud.DynamicAnalysis.detonate_sample` method is deprecated and will be removed in 6 months. Use the `sample_hash` parameter instead.
 
 
-### Scheduled removals
-- **December 2024.**:
-  - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.
-
-
 2.6.1 (2024-07-03)
 -------------------
 
@@ -327,3 +322,16 @@ v2.5.1 (2024-04-02)
 #### Bugfixes
 - **a1000** module:
   - Changed the `upload_sample_from_url` method's name to `submit_url_for_analysis`.
+
+
+2.6.4 (2024-07-24)
+-------------------
+
+#### Bugfixes
+- **ticloud** module:
+  - Implemented the default user agent string in embedded `FileAnalysis` calls.
+
+
+### Scheduled removals
+- **December 2024.**:
+  - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.
