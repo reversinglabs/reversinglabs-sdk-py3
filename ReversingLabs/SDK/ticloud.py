@@ -764,7 +764,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             password=self._password,
             verify=self._verify,
             hash_input=hash_input,
-            allow_none_return=self._allow_none_return
+            allow_none_return=self._allow_none_return,
+            user_agent=self._headers.get("User-Agent")
         )
 
         endpoint_base = self.__SINGLE_QUERY_ENDPOINT.format(
@@ -896,7 +897,8 @@ class RHA1Analytics(TiCloudAPI):
                 password=self._password,
                 verify=self._verify,
                 hash_input=hash_input,
-                allow_none_return=self._allow_none_return
+                allow_none_return=self._allow_none_return,
+                user_agent=self._headers.get("User-Agent")
             )
 
             endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
@@ -921,7 +923,8 @@ class RHA1Analytics(TiCloudAPI):
                 password=self._password,
                 verify=self._verify,
                 hash_input=hash_input[0],
-                allow_none_return=self._allow_none_return
+                allow_none_return=self._allow_none_return,
+                user_agent=self._headers.get("User-Agent")
             )
 
             url = "{host}{endpoint}".format(
@@ -6263,7 +6266,7 @@ def calculate_hash(data_input, hashing_algorithm):
     return hash_hex
 
 
-def get_rha1_type(host, username, password, verify, hash_input, allow_none_return):
+def get_rha1_type(host, username, password, verify, hash_input, allow_none_return, user_agent):
     """Returns an RHA1 file type string.
         :param host: host string
         :type host: str
@@ -6277,6 +6280,8 @@ def get_rha1_type(host, username, password, verify, hash_input, allow_none_retur
         :type hash_input: str
         :param allow_none_return: allow None as return value
         :type allow_none_return: bool
+        :param user_agent: default user agent string
+        :type user_agent: str
         :returns: RHA1 file type
         :rtype: str
     """
@@ -6284,7 +6289,8 @@ def get_rha1_type(host, username, password, verify, hash_input, allow_none_retur
         host=host,
         username=username,
         password=password,
-        verify=verify
+        verify=verify,
+        user_agent=user_agent
     )
 
     try:
