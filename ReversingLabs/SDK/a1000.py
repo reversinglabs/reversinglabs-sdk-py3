@@ -74,7 +74,8 @@ class A1000(object):
                    "identification_name", "identification_version", "file_size", "extracted_file_count",
                    "local_first_seen", "local_last_seen", "classification_origin", "classification_reason",
                    "classification_source", "classification", "riskscore", "classification_result", "ticore", "tags",
-                   "summary", "ticloud", "aliases", "networkthreatintelligence", "domainthreatintelligence"
+                   "summary", "ticloud", "aliases", "networkthreatintelligence", "domainthreatintelligence", "imphash",
+                   "discussion", "proposed_filename", "av_scanners", "av_scanners_summary"
                    )
 
     __TITANIUM_CORE_FIELDS = "sha1, sha256, sha512, md5, imphash, info, application, protection, security, behaviour," \
@@ -555,7 +556,8 @@ class A1000(object):
 
         return response
 
-    def get_detailed_report_v2(self, sample_hashes, retry=False, fields=None, skip_reanalysis=False):
+    def get_detailed_report_v2(self, sample_hashes, retry=False, fields=None, skip_reanalysis=False,
+                               include_networkthreatintelligence=True):
         """Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples.
         This method utilizes the set number of retries and wait time in seconds and times out if the
         analysis results are not ready.
@@ -567,6 +569,8 @@ class A1000(object):
             :type fields: list[str]
             :param skip_reanalysis: skip sample reanalysis when fetching the summary report
             :type skip_reanalysis: bool
+            :param include_networkthreatintelligence: include network threat intelligence in the detailed report
+            :type include_networkthreatintelligence: bool
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
@@ -617,8 +621,14 @@ class A1000(object):
             "skip_reanalysis": str(skip_reanalysis).lower()
         }
 
-        response = self.__post_request(url=url, data=data)
+        if include_networkthreatintelligence:
+            if "networkthreatintelligence" not in fields or "domainthreatintelligence" not in fields:
+                raise WrongInputError("If include_networkthreatintelligence is set to True, the fields list must "
+                                      "include both 'networkthreatintelligence' and 'domainthreatintelligence'.")
 
+            data["include_networkthreatintelligence"] = str(include_networkthreatintelligence).lower()
+
+        response = self.__post_request(url=url, data=data)
         self.__raise_on_error(response)
 
         return response
@@ -626,7 +636,7 @@ class A1000(object):
     def upload_sample_and_get_detailed_report_v2(self, file_path=None, file_source=None, retry=True, fields=None,
                                                  custom_filename=None, tags=None, comment=None, cloud_analysis=True,
                                                  archive_password=None, rl_cloud_sandbox_platform=None,
-                                                 skip_reanalysis=False):
+                                                 skip_reanalysis=False, include_networkthreatintelligence=True):
         """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
         analysis report response. This method combines uploading a sample and obtaining the detailed analysis report.
         Additional fields can be provided.
@@ -654,6 +664,8 @@ class A1000(object):
             :type archive_password: str
             :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
             :type rl_cloud_sandbox_platform: str
+            :param include_networkthreatintelligence: include network threat intelligence in the detailed report
+            :type include_networkthreatintelligence: bool
             :return: response
             :rtype: requests.Response
         """
@@ -676,7 +688,8 @@ class A1000(object):
             sample_hashes=sha1,
             retry=retry,
             fields=fields,
-            skip_reanalysis=skip_reanalysis
+            skip_reanalysis=skip_reanalysis,
+            include_networkthreatintelligence=include_networkthreatintelligence
         )
 
         return response
