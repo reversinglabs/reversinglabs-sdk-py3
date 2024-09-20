@@ -6213,6 +6213,49 @@ class TAXIIRansomwareFeed(TiCloudAPI):
                     return results[:max_results]
 
 
+class AdvancedActions(object):
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+
+        self._rldata_client = FileAnalysis(
+            host=host,
+            username=username,
+            password=password,
+            verify=verify,
+            user_agent=user_agent,
+            proxies=proxies,
+            allow_none_return=allow_none_return
+        )
+
+        self._da_client = DynamicAnalysis(
+            host=host,
+            username=username,
+            password=password,
+            verify=verify,
+            user_agent=user_agent,
+            proxies=proxies,
+            allow_none_return=allow_none_return
+        )
+
+    def enriched_file_analysis(self, sample_hash):
+        da_response = self._da_client.get_dynamic_analysis_results(
+            sample_hash=sample_hash
+        )
+
+        rldata_response = self._rldata_client.get_analysis_results(
+            hash_input=sample_hash
+        )
+
+        da_report = da_response.json().get("rl", {}).get("report")
+        if da_report:
+            rldata_report = rldata_response.json()
+            rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
+
+            return rldata_report
+
+        return {}
+
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
