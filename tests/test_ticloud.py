@@ -891,7 +891,7 @@ class TestDynamicAnalysis:
 		)
 
 	def test_url_analysis_results(self):
-		with pytest.raises(WrongInputError, match=r"analysis_id parameter bust be string."):
+		with pytest.raises(WrongInputError, match=r"analysis_id parameter must be string."):
 			self.da.get_dynamic_analysis_results(url_sha1=SHA1, analysis_id=123)
 
 
