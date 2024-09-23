@@ -879,6 +879,13 @@ class TAXIIRansomwareFeed(TiCloudAPI)
     - Returns objects from a TAXII collection. 
     - This method does the paging automatically and returns a defined number of objects as a list in the end.
 
+#### Class:
+```python
+class AdvancedActions(object)
+````
+#### Methods:
+- `enriched_file_analysis`
+  - Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis report.
 
 ***
 

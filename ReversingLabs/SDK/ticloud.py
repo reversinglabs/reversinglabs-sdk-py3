@@ -11,11 +11,10 @@ import hashlib
 import json
 import os
 import requests
-from warnings import warn
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
-    WrongInputError, validate_hashes
+    WrongInputError, validate_hashes, deprecated_args
 
 
 XML = "xml"
@@ -727,7 +726,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def get_similar_hashes(self, hash_input, extended_results=True, classification=None, page_sha1=None,
-                           results_per_page=1000):
+                           results_per_page=1000, rha1_type=None):
         """Accepts a hash string and returns a response.
         This method returns only one page of results per call and accepts defining
         the specific page that will be returned by stating its first SHA-1 hash in the result list.
@@ -742,6 +741,9 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             :type page_sha1: hash
             :param results_per_page: limit the number of result entries; default and maximum is 1000
             :type results_per_page: int
+            :param rha1_type: measure of RHA1 precision level; check API documentation for available values;
+            leaving the parameter as None will result in automatic RHA1 type calculation
+            :type rha1_type: str
             :return: response
             :rtype: requests.Response
         """
@@ -758,15 +760,16 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         if extended_results not in ("true", "false"):
             raise WrongInputError("extended_results parameter must be boolean.")
 
-        rha1_type = get_rha1_type(
-            host=self._host,
-            username=self._username,
-            password=self._password,
-            verify=self._verify,
-            hash_input=hash_input,
-            allow_none_return=self._allow_none_return,
-            user_agent=self._headers.get("User-Agent")
-        )
+        if not rha1_type:
+            rha1_type = get_rha1_type(
+                host=self._host,
+                username=self._username,
+                password=self._password,
+                verify=self._verify,
+                hash_input=hash_input,
+                allow_none_return=self._allow_none_return,
+                user_agent=self._headers.get("User-Agent")
+            )
 
         endpoint_base = self.__SINGLE_QUERY_ENDPOINT.format(
             rha1_type=rha1_type,
@@ -813,7 +816,7 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
         return response
 
     def get_similar_hashes_aggregated(self, hash_input, extended_results=True, classification=None,
-                                      results_per_page=1000, max_results=None):
+                                      results_per_page=1000, max_results=None, rha1_type=None):
         """ This method accepts a hash string and returns a list of results aggregated throughout the pages.
         A maximum number of desired results can be defined with the 'max_results' parameter.
             :param hash_input: sha1 hash string
@@ -827,6 +830,9 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
             :param max_results: number of results to be returned in the list;
             set as integer to receive a defined number of results or leave as None to receive all available results
             :type max_results: int or None
+            :param rha1_type: measure of RHA1 precision level; check API documentation for available values;
+            leaving the parameter as None will result in automatic RHA1 type calculation
+            :type rha1_type: str
             :return: list of results
             :rtype: list
         """
@@ -839,7 +845,8 @@ class RHA1FunctionalSimilarity(TiCloudAPI):
                 extended_results=extended_results,
                 classification=classification,
                 page_sha1=next_page_sha1,
-                results_per_page=results_per_page
+                results_per_page=results_per_page,
+                rha1_type=rha1_type
             )
 
             response_json = response.json()
@@ -872,12 +879,15 @@ class RHA1Analytics(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def get_rha1_analytics(self, hash_input, extended_results=True):
+    def get_rha1_analytics(self, hash_input, extended_results=True, rha1_type=None):
         """Accepts a SHA-1 hash string and returns a response.
             :param hash_input: sha1 hash string or list of sha1 strings
             :type hash_input: str or list[str]
             :param extended_results: show extended response
             :type extended_results: bool
+            :param rha1_type: measure of RHA1 precision level; check API documentation for available values;
+            leaving the parameter as None will result in automatic RHA1 type calculation
+            :type rha1_type: str
             :return: response
             :rtype: requests.Response
         """
@@ -891,15 +901,16 @@ class RHA1Analytics(TiCloudAPI):
                 allowed_hash_types=(SHA1,)
             )
 
-            rha1_type = get_rha1_type(
-                host=self._host,
-                username=self._username,
-                password=self._password,
-                verify=self._verify,
-                hash_input=hash_input,
-                allow_none_return=self._allow_none_return,
-                user_agent=self._headers.get("User-Agent")
-            )
+            if not rha1_type:
+                rha1_type = get_rha1_type(
+                    host=self._host,
+                    username=self._username,
+                    password=self._password,
+                    verify=self._verify,
+                    hash_input=hash_input,
+                    allow_none_return=self._allow_none_return,
+                    user_agent=self._headers.get("User-Agent")
+                )
 
             endpoint = self.__SINGLE_QUERY_ENDPOINT.format(
                 rha1_type=rha1_type,
@@ -917,15 +928,16 @@ class RHA1Analytics(TiCloudAPI):
                 allowed_hash_types=(SHA1,)
             )
 
-            rha1_type = get_rha1_type(
-                host=self._host,
-                username=self._username,
-                password=self._password,
-                verify=self._verify,
-                hash_input=hash_input[0],
-                allow_none_return=self._allow_none_return,
-                user_agent=self._headers.get("User-Agent")
-            )
+            if not rha1_type:
+                rha1_type = get_rha1_type(
+                    host=self._host,
+                    username=self._username,
+                    password=self._password,
+                    verify=self._verify,
+                    hash_input=hash_input[0],
+                    allow_none_return=self._allow_none_return,
+                    user_agent=self._headers.get("User-Agent")
+                )
 
             url = "{host}{endpoint}".format(
                 host=self._host,
@@ -2639,10 +2651,12 @@ class FileUpload(TiCloudAPI):
             :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
             data change feed subscription list
             :type subscribe: str
-            :param archive_type: used to define the compression algorithm if sending an archive file;
+            :param archive_type: use only if the archive is protected;
+            used to define the compression algorithm of the protected archive file;
             supported values: 'zip'
             :type archive_type: str
-            :param archive_password: the password for extracting the content of the archive
+            :param archive_password: use only if the archive is protected;
+            the password for extracting the content of the archive
             :type archive_password: str
             :return: response
             :rtype: requests.Response
@@ -2684,10 +2698,12 @@ class FileUpload(TiCloudAPI):
             :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
             data change feed subscription list
             :type subscribe: str
-            :param archive_type: used to define the compression algorithm if sending an archive file;
+            :param archive_type: use only if the archive is protected;
+            used to define the compression algorithm of the protected archive file;
             supported values: 'zip'
             :type archive_type: str
-            :param archive_password: the password for extracting the content of the archive
+            :param archive_password: use only if the archive is protected;
+            the password for extracting the content of the archive
             :type archive_password: str
             :return: response
             :rtype: requests.Response
@@ -3158,12 +3174,16 @@ class DynamicAnalysis(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def detonate_url(self, url_string, platform):
+    def detonate_url(self, url_string, platform, **optional_parameters):
         """Submits a URL for dynamic analysis and returns processing info.
             :param url_string: URL string
             :type url_string: str
             :param platform: desired platform on which the sample or archive will be detonated; see available platforms
             :type platform: str
+            :param optional_parameters: optional key-value parameters;
+            possible options for keys are geolocation and locale; see official API documentation for possible
+            options for values; usage example is geolocation='us', locale='en-US';
+            :type optional_parameters: any
             :return: response
             :rtype: requests.Response
         """
@@ -3173,12 +3193,13 @@ class DynamicAnalysis(TiCloudAPI):
         response = self.__detonate(
             url_string=url_string,
             platform=platform,
+            optional_parameters=optional_parameters
         )
         
         return response
 
-    def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, internet_simulation=False,
-                        sample_name=None, sample_sha1=None):
+    @deprecated_args(dpr_args=["internet_simulation", "sample_name", "sample_sha1"])
+    def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, **optional_parameters):
         """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
             :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
             :type sample_hash: str
@@ -3187,49 +3208,35 @@ class DynamicAnalysis(TiCloudAPI):
             :param is_archive: needs to be set to True if a file archive is being detonated;
             currently supported archive types: .zip
             :type is_archive: bool
-            :param internet_simulation: perform the dynamic analysis without connecting to the internet
-            :type internet_simulation: bool
-            :param sample_name: custom name for the sample
-            :type sample_name: str
-            :param sample_sha1: SHA1 hash of the sample or archive (DEPRECATED)
-            :type sample_sha1: str
+            :param optional_parameters: optional key-value parameters;
+            possible options for keys are internet_simulation, sample_name, geolocation and locale;
+            see official API documentation for possible options for values;
+            usage example is sample_name='Sample1', internet_simulation='true', geolocation='us', locale='en-US';
+            :type optional_parameters: any
             :return: response
             :rtype: requests.Response
         """
-        if sample_hash:
-            validate_hashes(
-                hash_input=[sample_hash],
-                allowed_hash_types=(SHA1, SHA256, MD5)
-            )
+        if "sample_sha1" in optional_parameters:
+            if not sample_hash:
+                sample_hash = optional_parameters.get("sample_sha1")
 
-        elif sample_sha1:
-            warn("DEPRECATION WARNING - Parameter sample_sha1 will soon be removed. Use sample_hash instead", Warning)
+            del optional_parameters["sample_sha1"]
 
-            validate_hashes(
-                hash_input=[sample_sha1],
-                allowed_hash_types=(SHA1,)
-            )
-
-            sample_hash = sample_sha1
-
-        else:
-            raise WrongInputError("A hash parameter needs provided: sample_hash or sample_sha1 (deprecated)")
-
-        if not platform:
-            raise WrongInputError("The platform parameter needs to be provided.")
+        validate_hashes(
+            hash_input=[sample_hash],
+            allowed_hash_types=(SHA1, SHA256, MD5)
+        )
 
         response = self.__detonate(
             sample_hash=sample_hash,
             platform=platform,
             is_archive=is_archive,
-            internet_simulation=internet_simulation,
-            sample_name=sample_name
+            optional_parameters=optional_parameters
         )
 
         return response
 
-    def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, internet_simulation=False,
-                   sample_name=None):
+    def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, optional_parameters=None):
         """Submits a sample, a file archive available in the cloud or a URL for 
         dynamic analysis and returns processing info.
         This is a private method for all dynamic analysis submission methods.
@@ -3242,10 +3249,6 @@ class DynamicAnalysis(TiCloudAPI):
             :param is_archive: needs to be set to True if a file archive is being detonated;
             currently supported archive types: .zip
             :type is_archive: bool
-            :param internet_simulation: perform the dynamic analysis without connecting to the internet
-            :type internet_simulation: bool
-            :param sample_name: custom name for the sample
-            :type sample_name: str
             :return: response
             :rtype: requests.Response
         """
@@ -3255,30 +3258,26 @@ class DynamicAnalysis(TiCloudAPI):
 
         post_json = {"rl": {"platform": platform, "response_format": "json"}}
 
-        if not isinstance(internet_simulation, bool):
-            raise WrongInputError("internet_simulation parameter must be boolean.")
-
         if sample_hash:
             hash_type = HASH_LENGTH_MAP.get(len(sample_hash))
             post_json["rl"][hash_type] = sample_hash
 
-            optional_parameters = []
-
-            if sample_name:
-                optional_parameters.append(f"sample_name={sample_name}")
-
-            if internet_simulation:
-                optional_parameters.append("internet_simulation=true")
-
-            post_json["rl"]["optional_parameters"] = ", ".join(optional_parameters)
-
         elif url_string:
             post_json["rl"]["url"] = url_string
+
+        optional = []
+
+        for k, v in optional_parameters.items():
+            optional.append(f"{k}={str(v).lower() if k == 'internet_simulation' else v}")
+            post_json["rl"]["optional_parameters"] = ", ".join(optional)
 
         if not is_archive:
             url = self._url.format(endpoint=self.__DETONATE_ENDPOINT)
 
         else:
+            if not isinstance(is_archive, bool):
+                raise WrongInputError("is_archive parameter must be boolean.")
+
             url = self._url.format(endpoint=self.__DETONATE_ARCHIVE_ENDPOINT)
 
         response = self._post_request(
@@ -3362,7 +3361,7 @@ class DynamicAnalysis(TiCloudAPI):
         if not is_archive:
             if analysis_id:
                 if not isinstance(analysis_id, str):
-                    raise WrongInputError("analysis_id parameter bust be string.")
+                    raise WrongInputError("analysis_id parameter must be string.")
 
                 endpoint = "{endpoint}/{analysis_id}".format(
                     endpoint=endpoint,
@@ -6212,6 +6211,63 @@ class TAXIIRansomwareFeed(TiCloudAPI):
             else:
                 if not more_pages or len(results) >= max_results:
                     return results[:max_results]
+
+
+class AdvancedActions(object):
+    """A class containing advanced and combined actions
+    utilizing various different classes."""
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+
+        self._rldata_client = FileAnalysis(
+            host=host,
+            username=username,
+            password=password,
+            verify=verify,
+            user_agent=user_agent,
+            proxies=proxies,
+            allow_none_return=allow_none_return
+        )
+
+        self._da_client = DynamicAnalysis(
+            host=host,
+            username=username,
+            password=password,
+            verify=verify,
+            user_agent=user_agent,
+            proxies=proxies,
+            allow_none_return=allow_none_return
+        )
+
+    def enriched_file_analysis(self, sample_hash):
+        """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
+        report.
+            :param sample_hash: sample hash
+            :type sample_hash: str
+            :return: file analysis report enriched with dynamic analysis
+            :rtype: dict
+        """
+        da_response = self._da_client.get_dynamic_analysis_results(
+            sample_hash=sample_hash
+        )
+
+        rldata_response = self._rldata_client.get_analysis_results(
+            hash_input=sample_hash
+        )
+
+        da_report = da_response.json().get("rl", {}).get("report")
+        if da_report:
+            rldata_report = rldata_response.json()
+            try:
+                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
+            except KeyError:
+                rldata_report["rl"]["sample"]["dynamic_analysis"] = {}
+                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
+
+            return rldata_report
+
+        return {}
 
 
 def _update_hash_object(input_source, hash_object):

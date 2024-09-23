@@ -10,7 +10,7 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
 	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
-	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
+	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, AdvancedActions, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -863,7 +863,7 @@ class TestDynamicAnalysis:
 		expected_url = f"{HOST}/api/dynamic/analysis/analyze/v1/query/json"
 
 		post_json = {"rl": {"platform": "windows10", "response_format": "json", "sha1": SHA1,
-							"optional_parameters": "sample_name=sample_name, internet_simulation=true"}}
+							"optional_parameters": "internet_simulation=true, sample_name=sample_name"}}
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
@@ -891,7 +891,7 @@ class TestDynamicAnalysis:
 		)
 
 	def test_url_analysis_results(self):
-		with pytest.raises(WrongInputError, match=r"analysis_id parameter bust be string."):
+		with pytest.raises(WrongInputError, match=r"analysis_id parameter must be string."):
 			self.da.get_dynamic_analysis_results(url_sha1=SHA1, analysis_id=123)
 
 
@@ -1427,3 +1427,63 @@ class TestChangesWhitelistedFiles:
 
 		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
 			self.changes.feed_query(time_format="utc", time_value="12345678")
+
+
+@pytest.fixture
+def dynamic_analysis_mock():
+	with mock.patch("ReversingLabs.SDK.ticloud.DynamicAnalysis.get_dynamic_analysis_results", autospec=True) as dynamic_mock:
+		yield dynamic_mock
+
+
+@pytest.fixture
+def file_analysis_mock():
+	with mock.patch("ReversingLabs.SDK.ticloud.FileAnalysis.get_analysis_results", autospec=True) as rldata_mock:
+		yield rldata_mock
+
+
+class TestAdvancedActions:
+	@classmethod
+	def setup_class(cls):
+		cls.adv_actions = AdvancedActions(HOST, USERNAME, PASSWORD)
+
+	def test_no_da_report(self, dynamic_analysis_mock, file_analysis_mock):
+		dynamic_analysis_mock.return_value.json.return_value = {}
+
+		file_analysis_mock.return_value.json.return_value = {
+			"rl": {
+				"sample": {
+					"sha1": SHA1
+				}
+			}
+		}
+
+		result = self.adv_actions.enriched_file_analysis(sample_hash=SHA1)
+		expected_result = {}
+
+		assert result == expected_result
+
+	def test_existing_da_field(self, dynamic_analysis_mock, file_analysis_mock):
+		dynamic_analysis_mock.return_value.json.return_value = {
+			"rl": {
+				"report": {
+					"da_key": "da_value"
+				}
+			}
+		}
+
+		file_analysis_mock.return_value.json.return_value = {
+			"rl": {
+				"sample": {
+					"sha1": SHA1,
+					"dynamic_analysis": {
+						"entries": [
+							{"existing_field": "existing_value"}
+						]
+					}
+				}
+			}
+		}
+
+		result = self.adv_actions.enriched_file_analysis(sample_hash=SHA1)
+		assert "entries" in result.get("rl").get("sample").get("dynamic_analysis")
+		assert "report" in result.get("rl").get("sample").get("dynamic_analysis")
