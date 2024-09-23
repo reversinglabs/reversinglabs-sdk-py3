@@ -6214,6 +6214,9 @@ class TAXIIRansomwareFeed(TiCloudAPI):
 
 
 class AdvancedActions(object):
+    """A class containing advanced and combined actions
+    utilizing various different classes."""
+
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
 
@@ -6238,6 +6241,13 @@ class AdvancedActions(object):
         )
 
     def enriched_file_analysis(self, sample_hash):
+        """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
+        report.
+            :param sample_hash: sample hash
+            :type sample_hash: str
+            :return: file analysis report enriched with dynamic analysis
+            :rtype: dict
+        """
         da_response = self._da_client.get_dynamic_analysis_results(
             sample_hash=sample_hash
         )
@@ -6249,7 +6259,11 @@ class AdvancedActions(object):
         da_report = da_response.json().get("rl", {}).get("report")
         if da_report:
             rldata_report = rldata_response.json()
-            rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
+            try:
+                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
+            except KeyError:
+                rldata_report["rl"]["sample"]["dynamic_analysis"] = {}
+                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
 
             return rldata_report
 
