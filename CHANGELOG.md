@@ -332,6 +332,24 @@ v2.5.1 (2024-04-02)
   - Implemented the default user agent string in embedded `FileAnalysis` calls.
 
 
+2.7.0 (2024-07-24)
+-------------------
+
+#### Improvements
+- **ticloud** module:
+  - `rha1_type` is now an optional parameter in the `RHA1FunctionalSimilarity` and `RHA1Analitics` class methods. The user can decide if it should be passed in manually or calculated automatically.
+  - `detonate_url` and `detonate_sample` methods of the `DynamicAnalysis` class now accept optional parameters through `**optional_parameters`. Optional parameters should be passed in as key-value pairs (kwargs). Named parameters `internet_simulation` and `sample_name` are now deprecated and should be used through `**optional_parameters`.
+  - Added the `AdvancedActions` class containing the `enriched_file_analysis` method which returns a File Analysis report enriched with Dynamic Analysis.
+
+#### Deprecations
+- **ticloud** module:
+  - Parameters `internet_simulation` and `sample_name` of the `DynamicAnalysis.detonate_sample` method are now deprecated. Use `**optional_parameters` instead.
+
+
+
+
 ### Scheduled removals
 - **December 2024.**:
-  - In the `ticloud.DynamicAnalysis.detonate_sample` method the `sample_sha1` parameter will be removed.
+  - Parameter `sample_sha1` from the `ticloud.DynamicAnalysis.detonate_sample` method will be removed. Parameter `sample_hash` should be used instead.
+- **March 2025.**:
+  - Parameters `internet_simulation` and `sample_name` from the `ticloud.DynamicAnalysis.detonate_sample` method will be removed and should be further used through `**optional_parameters`.

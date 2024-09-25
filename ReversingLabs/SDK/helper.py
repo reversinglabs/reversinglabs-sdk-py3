@@ -7,7 +7,11 @@ A Python module containing common helper functions and variables for ReversingLa
 
 import codecs
 import binascii
+from functools import wraps
 from http import HTTPStatus
+import inspect
+from warnings import warn
+
 from ReversingLabs.SDK import __version__
 
 
@@ -170,3 +174,31 @@ def validate_hashes(hash_input, allowed_hash_types):
                 "Only hash strings of the following types are allowed as input values: {allowed}".format(
                     allowed=allowed_hash_types
                 ))
+
+
+def deprecated_args(dpr_args: list):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            arg_names = list(inspect.getfullargspec(func).args)
+            arg_names.extend(dpr_args)
+            args_kv = dict(zip(arg_names, args))
+            new_args = list(args)
+            for k in dpr_args:
+                if k not in kwargs and k in args_kv:
+                    if k == "sample_sha1":
+                        warn(f"DEPRECATION WARNING - Parameter sample_sha1 is deprecated. "
+                             f"Start using sample_hash instead.", Warning)
+
+                    else:
+                        warn(f"DEPRECATION WARNING - Parameter {k} is deprecated. "
+                             f"Start using it through optional_parameters.", Warning)
+                    arg_idx = arg_names.index(k)
+                    del new_args[arg_idx]
+                    del arg_names[arg_idx]
+                    kwargs[k] = args_kv[k]
+            return func(*new_args, **kwargs)
+
+        return wrapper
+
+    return decorator
