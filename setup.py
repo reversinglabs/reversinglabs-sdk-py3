@@ -43,6 +43,7 @@ setup(
     ],
     project_urls={
         "Documentation": "https://github.com/reversinglabs/reversinglabs-sdk-py3/blob/main/README.md",
-        "Source": "https://github.com/reversinglabs/reversinglabs-sdk-py3"
+        "Source": "https://github.com/reversinglabs/reversinglabs-sdk-py3",
+        "Changes": "https://github.com/reversinglabs/reversinglabs-sdk-py3/blob/main/CHANGELOG.md"
     },
 )
