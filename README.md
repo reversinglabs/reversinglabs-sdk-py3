@@ -928,7 +928,37 @@ class TitaniumScale(object):
 - `get_yara_id`
   - Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance.
 
+***
 
+## Module: fie
+A Python module representing the ReversingLabs File Inspection Engine platform.
+#### Class:
+```python
+class FileInspectionEngine(object):
+    def __init__(self, host, verify, proxies, user_agent)
+```
+#### Parameters:
+`host` - File Inspection Engine address
+`verify` - verify SSL certificate  
+`proxies` - optional proxies in use  
+`user_agent` - optional user agent string  
+
+#### Methods:
+- `test_connection`
+    - Creates a lightweight request towards the FIE scan API to test the connection.
+- `scan_using_file_path`
+    - Sends a file to the FIE for inspection and returns a simple verdict in the submit response.
+    - Uses a file path string as input.
+- `scan_using_open_file`
+    - Sends a file to the FIE for inspection and returns a simple verdict in the submit response.
+    - Uses an open file handle as input.
+- `report_using_file_path`
+    - Sends a file to the FIE for inspection and returns a more complex analysis report in the submit response.
+    - Uses a file path string as input.
+- `report_using_open_file`
+    - Sends a file to the FIE for inspection and returns a more complex analysis report in the submit response.
+    - Uses an open file handle as input.
+  
 ***
 
 ## Examples
@@ -1063,6 +1093,23 @@ results = titanium_scale.upload_sample_and_get_results(
     file_source=open("/path/to/file.exe", "rb"),
     full_report=True
 )
+```
+
+#### File Inspection Engine
+```python
+from ReversingLabs.SDK.fie import FileInspectionEngine
+
+
+fie = FileInspectionEngine(
+    host="http://fie.address",
+    verify=True
+)
+
+results = fie.scan_using_file_path(
+    file_path="/local/path/to/file.exe"
+)
+
+print(results.json())
 ```
 
 #### Error handling
