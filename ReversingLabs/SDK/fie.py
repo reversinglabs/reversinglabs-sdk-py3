@@ -49,8 +49,7 @@ class FileInspectionEngine(object):
 		return host
 
 	def test_connection(self):
-		"""Creates a lightweight request towards the FIE scan API to test the connection
-		with FIE.
+		"""Creates a lightweight request towards the FIE scan API to test the connection.
 		"""
 		fake_file = BytesIO(b'this is a sample text')
 
@@ -64,6 +63,7 @@ class FileInspectionEngine(object):
 
 	def scan_using_file_path(self, file_path):
 		"""Sends a file to the FIE for inspection and returns a simple verdict in the submit response.
+		Uses a file path string as input.
 			:param file_path: local path to the file
 			:type file_path: str
 			:return: response
@@ -86,6 +86,7 @@ class FileInspectionEngine(object):
 
 	def scan_using_open_file(self, file_source):
 		"""Sends a file to the FIE for inspection and returns a simple verdict in the submit response.
+		Uses an open file handle as input.
 			:param file_source: open file in rb mode
 			:type file_source: file or BinaryIO
 			:return: response
@@ -100,6 +101,7 @@ class FileInspectionEngine(object):
 
 	def report_using_file_path(self, file_path):
 		"""Sends a file to the FIE for inspection and returns a more complex analysis report in the submit response.
+		Uses a file path string as input.
 			:param file_path: local path to the file
 			:type file_path: str
 			:return: response
@@ -122,6 +124,7 @@ class FileInspectionEngine(object):
 
 	def report_using_open_file(self, file_source):
 		"""Sends a file to the FIE for inspection and returns a more complex analysis report in the submit response.
+		Uses an open file handle as input.
 			:param file_source: open file in rb mode
 			:type file_source: file or BinaryIO
 			:return: response
