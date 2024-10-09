@@ -332,7 +332,7 @@ v2.5.1 (2024-04-02)
   - Implemented the default user agent string in embedded `FileAnalysis` calls.
 
 
-2.7.0 (2024-07-24)
+2.7.0 (2024-09-25)
 -------------------
 
 #### Improvements
@@ -346,6 +346,13 @@ v2.5.1 (2024-04-02)
   - Parameters `internet_simulation` and `sample_name` of the `DynamicAnalysis.detonate_sample` method are now deprecated. Use `**optional_parameters` instead.
 
 
+2.7.1 (2024-10-09)
+-------------------
+
+#### Improvements
+- **fie** module:
+  - Introduced a new module called **fie** which corresponds to the ReversingLabs **File Investigation Engine (FIE)** service. 
+  - The module currently has one class with four methods for sending files to FIE for analysis and fetching the short classification or more detailed analysis reports.
 
 
 ### Scheduled removals
