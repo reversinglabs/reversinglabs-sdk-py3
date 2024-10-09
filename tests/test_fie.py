@@ -37,19 +37,6 @@ class TestFIE:
 		cls.fie = FileInspectionEngine(cls.host)
 
 	def test_scan_using_path(self):
-		self.fie.scan_using_file_path(file_path="/my/file/path.exe")
-
-		expected_url = f"{self.host}/scan"
-
-		requests_mock.post.assert_called_with(
-			url=expected_url,
-			verify=True,
-			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
-			data=
-		)
-
-	def test_scan_using_path_wrong(self):
 		with pytest.raises(WrongInputError, match=r"file_path must be a string."):
 			self.fie.scan_using_file_path(file_path=123)
 
