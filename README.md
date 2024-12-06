@@ -507,9 +507,9 @@ class NewMalwareURIFeed(TiCloudAPI)
 _TCF-0301_
 #### Methods:
 - `pull_with_timestamp`
-    - Accepts a time format definition and a time value. Returns records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+    - Accepts a time format definition and a time value. Returns records with IPs, domains, URLs, emails, and sample hashes extracted from malware samples
 - `pull_latest`
-    - Returns a maximum of 1000 latest records with Ps, domains, URLs, emails, and sample hashes extracted from malware samples
+    - Returns a maximum of 1000 latest records with IPs, domains, URLs, emails, and sample hashes extracted from malware samples
 
 #### Class:
 ```python

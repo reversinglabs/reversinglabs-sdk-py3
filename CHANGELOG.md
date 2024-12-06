@@ -355,6 +355,16 @@ v2.5.1 (2024-04-02)
   - The module currently has one class with four methods for sending files to FIE for analysis and fetching the short classification or more detailed analysis reports.
 
 
+2.7.2 (2024-12-06)
+-------------------
+
+#### Improvements
+- **ticloud** module:
+  - Corrected a typo in the docstrings and the README.
+  
+
+
+
 ### Scheduled removals
 - **December 2024.**:
   - Parameter `sample_sha1` from the `ticloud.DynamicAnalysis.detonate_sample` method will be removed. Parameter `sample_hash` should be used instead.

@@ -4679,7 +4679,7 @@ class NewMalwareURIFeed(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def pull_with_timestamp(self, time_format, time_value):
-        """Accepts a time format definition and a time value. Returns records with Ps, domains, URLs,
+        """Accepts a time format definition and a time value. Returns records with IPs, domains, URLs,
         emails, and sample hashes extracted from malware samples.
         To fetch the next batch of records, use the last_timestamp from the response increased by 1.
         The time value needs to be within the last 365 days.
@@ -4723,7 +4723,7 @@ class NewMalwareURIFeed(TiCloudAPI):
         return response
 
     def pull_latest(self):
-        """Returns a maximum of 1000 latest records with Ps, domains, URLs,
+        """Returns a maximum of 1000 latest records with IPs, domains, URLs,
         emails, and sample hashes extracted from malware samples."""
         url = self._url.format(endpoint=self.__PULL_LATEST_ENDPOINT)
 
