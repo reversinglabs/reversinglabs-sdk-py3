@@ -361,12 +361,26 @@ v2.5.1 (2024-04-02)
 #### Improvements
 - **ticloud** module:
   - Corrected a typo in the docstrings and the README.
+
+
+2.8.0 (2024-12-24)
+-------------------
+
+#### Removals
+- **ticloud** module:
+  - Removed the deprecated `sample_sha1` parameter from the `ticloud.DynamicAnalysis.detonate_sample` method.
+
+#### Improvements
+- **ticloud** module:
+  - Parameters `internet_simulation` and `sample_name` from the `ticloud.DynamicAnalysis.detonate_sample` method are now used through the `**optiona_parameters` key-value parameter instead of as individual named parameters.
+
+### Reversinglabs SDK Cookbook changes
+#### Improvements
+- **Scenarios and Workflows** notebooks:
+  - Added the `download_advanced_search_matches_a1000.ipynb`, `download_advanced_search_matches_titaniumcloud.ipynb`, `download_yara_retro_matches_a1000.ipynb` and `download_yara_retro_matches_titaniumcloud.ipynb` notebooks.
+
+- **Command line tools and scripts**:
+  - Added the `cyber_defense_alliance.py` command line tool.
   
-
-
-
-### Scheduled removals
-- **December 2024.**:
-  - Parameter `sample_sha1` from the `ticloud.DynamicAnalysis.detonate_sample` method will be removed. Parameter `sample_hash` should be used instead.
-- **March 2025.**:
-  - Parameters `internet_simulation` and `sample_name` from the `ticloud.DynamicAnalysis.detonate_sample` method will be removed and should be further used through `**optional_parameters`.
+Starting with ReversingLabs SDK version 2.8.0, the **ReversingLabs SDK Cookbook** project's release cycle and versioning are closely tied to this project.  
+This changelog will also be keeping track of changes made to the ReversingLabs SDK Cookbook project.

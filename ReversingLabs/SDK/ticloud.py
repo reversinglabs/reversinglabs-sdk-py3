@@ -3198,7 +3198,6 @@ class DynamicAnalysis(TiCloudAPI):
         
         return response
 
-    @deprecated_args(dpr_args=["internet_simulation", "sample_name", "sample_sha1"])
     def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, **optional_parameters):
         """Submits a sample or a file archive available in the cloud for dynamic analysis and returns processing info.
             :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
@@ -3217,10 +3216,7 @@ class DynamicAnalysis(TiCloudAPI):
             :rtype: requests.Response
         """
         if "sample_sha1" in optional_parameters:
-            if not sample_hash:
-                sample_hash = optional_parameters.get("sample_sha1")
-
-            del optional_parameters["sample_sha1"]
+            raise WrongInputError("sample_sha1 parameter was removed. Use sample_hash instead.")
 
         validate_hashes(
             hash_input=[sample_hash],

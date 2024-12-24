@@ -1407,7 +1407,7 @@ class A1000(object):
             :param ruleset_name: name of the YARA ruleset to retrieve. Ruleset names are case-sensitive
             :type ruleset_name: str
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         if not isinstance(ruleset_name, str):
             raise WrongInputError("ruleset_name parameter must be a string")
@@ -1432,7 +1432,7 @@ class A1000(object):
             :param page_size: parameter that controls how many results to return per page in the response
             :type page_size: str
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         param_list = []
 
@@ -1479,7 +1479,7 @@ class A1000(object):
             :param ticloud: determines whether the ruleset should be synchronized with TitaniumCloud or not
             :type ticloud: bool
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         data = self.__create_post_payload(
             name=name,
@@ -1506,7 +1506,7 @@ class A1000(object):
             C1000 cluster
             :type publish: bool
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         post_json = self.__create_post_payload(
             name=name,
@@ -1534,7 +1534,7 @@ class A1000(object):
             C1000 cluster
             :type publish: bool
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         data = self.__create_post_payload(
             name=name,
@@ -1557,7 +1557,7 @@ class A1000(object):
     def get_yara_ruleset_synchronization_time(self):
         """Gets information about the current synchronization status for TitaniumCloud-enabled rulesets.
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         endpoint = self.__GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT
 
@@ -1574,7 +1574,7 @@ class A1000(object):
             :param sync_time: format should be UTC (YYYY-MM-DD hh:mm)
             :type sync_time: str
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         try:
             datetime.datetime.strptime(sync_time, '%Y-%m-%d %H:%M')
@@ -1597,7 +1597,7 @@ class A1000(object):
             :param operation: accepted values: START, STOP (case-sensitive)
             :type operation: str
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         if operation not in ("START", "STOP"):
             raise WrongInputError("operation parameter must be either 'START' or 'STOP'")
@@ -1617,7 +1617,7 @@ class A1000(object):
         state of Local Retro, time and date when the latest Local Retro scan was started and/or stopped, and a list of
         previous Local Retro scans with the same details.
             :return: response
-            :rtype: requests.Response:
+            :rtype: requests.Response
         """
         endpoint = self.__YARA_LOCAL_RETROSCAN_ENDPOINT
 
