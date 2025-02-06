@@ -6208,6 +6208,178 @@ class TAXIIRansomwareFeed(TiCloudAPI):
                 if not more_pages or len(results) >= max_results:
                     return results[:max_results]
 
+class TAXIIFeed(TiCloudAPI):
+    """TCTF-0001"""
+
+    __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
+    __API_ROOT_ENDPOINT = "/api/taxii/{api_root}/"
+    __COLLECTIONS_ENDPOINT = "/api/taxii/{api_root}/collections/"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(TAXIIFeed, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["Accept"] = "application/taxii+json;version=2.1"
+
+    def discovery_info(self):
+        """Returns the information from the TAXII Server's discovery endpoint.
+        The returned info shows the available api roots.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__DISCOVERY_ENDPOINT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def __info_endpoints(self, specific_endpoint, api_root):
+        """A private method for information TAXII endpoints.
+            :param specific_endpoint: specific information endpoint
+            :type specific_endpoint: str
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(specific_endpoint, str):
+            raise WrongInputError("specific_endpoint parameter must be a string.")
+
+        if not isinstance(api_root, str):
+            raise WrongInputError("api_root parameter must be a string.")
+
+        endpoint = specific_endpoint.format(api_root=api_root)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def api_root_info(self, api_root):
+        """Returns information about a specific api root.
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__info_endpoints(
+            specific_endpoint=self.__API_ROOT_ENDPOINT,
+            api_root=api_root
+        )
+
+        return response
+
+    def collections_info(self, api_root):
+        """Returns information about available collections in an api root.
+            :param api_root: api root name
+            :type api_root: str
+            :return: response
+            :rtype: requests.Response
+        """
+        response = self.__info_endpoints(
+            specific_endpoint=self.__COLLECTIONS_ENDPOINT,
+            api_root=api_root
+        )
+
+        return response
+
+    def get_objects(self, api_root, collection_id, result_limit=500, added_after=None, match_id=None, page=None):
+        """Returns objects from a TAXII collection.
+        Results can be filtered using several parameters.
+            :param api_root: api root name
+            :type api_root: str
+            :param collection_id: collection ID
+            :type collection_id: str
+            :param result_limit: number of returned objects per page
+            :type result_limit: int
+            :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
+            :type added_after: str
+            :param match_id: return a specific object matching this ID
+            :type match_id: str
+            :param page: identifier of the requested page
+            :type page: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(result_limit, int):
+            raise WrongInputError("result_limit parameter must be an integer.")
+
+        if added_after:
+            if not isinstance(added_after, str):
+                raise WrongInputError("added_after parameter must be a string.")
+
+        if match_id:
+            if not isinstance(match_id, str):
+                raise WrongInputError("match_id parameter must be a string.")
+
+        query_params = {
+            "limit": result_limit,
+            "added_after": added_after,
+            "match[id]": match_id,
+            "next": page
+        }
+
+        endpoint = self.__COLLECTIONS_ENDPOINT.format(api_root=api_root) + collection_id + "/objects/"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, max_results=None):
+        """Returns objects from a TAXII collection.
+        This method does the paging automatically and returns a defined number of objects as a list in the end.
+            :param api_root: api root name
+            :type api_root: str
+            :param collection_id: collection ID
+            :type collection_id: str
+            :param result_limit: number of returned objects per page; not to be confused with max_results
+            :type result_limit: int
+            :param added_after: timestamp string in the 'YYYY-MM-DDThh:mm:ssZ' format
+            :type added_after: str
+            :param max_results: number of results to be returned in the list;
+            set as integer to receive a defined number of results or leave as None to receive all available results
+            :type max_results: int or None
+            :return: list of results
+            :rtype: list
+        """
+        results = []
+        next_page = None
+
+        while True:
+            response = self.get_objects(
+                api_root=api_root,
+                collection_id=collection_id,
+                result_limit=result_limit,
+                added_after=added_after,
+                page=next_page
+            )
+
+            response_json = response.json()
+
+            objects = response_json.get("objects")
+            results.extend(objects)
+
+            next_page = response_json.get("next")
+            more_pages = response_json.get("more")
+
+            if not max_results:
+                if not more_pages:
+                    return results
+
+            else:
+                if not more_pages or len(results) >= max_results:
+                    return results[:max_results]
 
 class AdvancedActions(object):
     """A class containing advanced and combined actions
