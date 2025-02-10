@@ -6032,13 +6032,7 @@ class VerticalFeedsSearch(TiCloudAPI):
 
         self._raise_on_error(response)
 
-        return response 
-
-class TAXIIRansomwareFeed(TAXIIFeed):
-    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
-                 allow_none_return=False):
-        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
-                                                  user_agent=user_agent, allow_none_return=allow_none_return) 
+        return response
 
 class TAXIIFeed(TiCloudAPI):
     """TCTF-0001"""
@@ -6212,6 +6206,12 @@ class TAXIIFeed(TiCloudAPI):
             else:
                 if not more_pages or len(results) >= max_results:
                     return results[:max_results]
+
+class TAXIIRansomwareFeed(TAXIIFeed):
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return) 
 
 class AdvancedActions(object):
     """A class containing advanced and combined actions
