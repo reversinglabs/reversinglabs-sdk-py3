@@ -20,7 +20,7 @@ setup(
     author_email="support@reversinglabs.com",
     url="https://github.com/reversinglabs/reversinglabs-sdk-py3",
     packages=packages,
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=requires,
     extras_require={"test": ["pytest"]},
     license="MIT",
