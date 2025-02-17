@@ -378,9 +378,9 @@ v2.5.1 (2024-04-02)
 2.8.1 (2025-02-17)
 -------------------
 
-#### Hotfixes
-- **setup.py** :
-  - Updated requests lib to a newest version (requests>=2.32.3"), urllib removed. Python set to require -">=3.9"
+#### Improvements
+- Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
+- Python 3.9 is now defined as the oldest version of Python supported by this project.
 
 ### Reversinglabs SDK Cookbook changes
 #### Improvements
