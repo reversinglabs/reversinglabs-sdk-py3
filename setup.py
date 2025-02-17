@@ -2,7 +2,7 @@ from setuptools import setup
 from ReversingLabs.SDK import __version__
 
 
-requires = ["requests>=2.31.0,<2.32.0", "urllib3>=2.3.0"]
+requires = ["requests>=2.32.3", "urllib3>=2.3.0"]
 
 packages = ["ReversingLabs",
             "ReversingLabs.SDK"]
@@ -20,7 +20,7 @@ setup(
     author_email="support@reversinglabs.com",
     url="https://github.com/reversinglabs/reversinglabs-sdk-py3",
     packages=packages,
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=requires,
     extras_require={"test": ["pytest"]},
     license="MIT",
