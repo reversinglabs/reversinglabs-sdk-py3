@@ -1135,4 +1135,4 @@ except Exception as e:
     else:
         raise 
 ```
-Same approach can also be used for A1000 and TitaniumScale.
+Same approach can also be used for A1000 and TitaniumScale. 
