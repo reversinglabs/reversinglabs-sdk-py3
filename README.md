@@ -1,6 +1,3 @@
-![ReversingLabs](./logo.png)
-
-
 # ReversingLabs SDK
 
 The official Python SDK for using ReversingLabs services.
