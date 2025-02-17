@@ -1,4 +1,5 @@
-![ReversingLabs](https://raw.githubusercontent.com/reversinglabs/reversinglabs-sdk-py3/master/logo.png)
+![ReversingLabs](./logo.png)
+
 
 # ReversingLabs SDK
 
@@ -1134,4 +1135,4 @@ except Exception as e:
     else:
         raise 
 ```
-Same approach can also be used for A1000 and TitaniumScale.
+Same approach can also be used for A1000 and TitaniumScale. 
