@@ -375,12 +375,20 @@ v2.5.1 (2024-04-02)
   - Parameters `internet_simulation` and `sample_name` from the `ticloud.DynamicAnalysis.detonate_sample` method are now used through the `**optiona_parameters` key-value parameter instead of as individual named parameters.
 
 
-2.8.1 (2025-02-17)
+2.8.1 (2025-02-17) - [YANKED]
 -------------------
 
 #### Improvements
 - Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
 - Python 3.9 is now defined as the oldest version of Python supported by this project.
+
+2.8.2 (2025-02-17)
+-------------------
+
+#### Improvements
+- Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
+- Python 3.9 is now defined as the oldest version of Python supported by this project.
+
 
 ### Reversinglabs SDK Cookbook changes
 #### Improvements
