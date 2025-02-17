@@ -2,7 +2,7 @@ from setuptools import setup
 from ReversingLabs.SDK import __version__
 
 
-requires = ["requests>=2.32.3", "urllib3>=2.3.0"]
+requires = ["requests>=2.32.3"]
 
 packages = ["ReversingLabs",
             "ReversingLabs.SDK"]
