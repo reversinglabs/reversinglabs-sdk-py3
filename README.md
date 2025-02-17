@@ -1,4 +1,4 @@
-![ReversingLabs](https://alt-gitlab.rl.lan/integrations/sdk/reversinglabs-sdk-py3/-/raw/INTG-2712/logo.png)
+![ReversingLabs](./logo.png)
 
 
 # ReversingLabs SDK
