@@ -1,4 +1,5 @@
-![ReversingLabs](https://raw.githubusercontent.com/reversinglabs/reversinglabs-sdk-py3/master/logo.png)
+![ReversingLabs](./logo.png)
+
 
 # ReversingLabs SDK
 
