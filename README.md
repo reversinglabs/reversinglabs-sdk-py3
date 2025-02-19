@@ -1,8 +1,4 @@
-# ReversingLabs SDK
-
-![RL Status Badge](https://secure.software/repo/badge/foo/v1.1.1)
-HTML:
-<img alt="RL Status Badge" src="https://secure.software/repo/badge/foo/v1.1.1">
+# ReversingLabs SDK &middot; [![RL Status Badge](https://secure.software/pypi/badge/reversinglabs-sdk-py3)](https://secure.software/pypi/packages/reversinglabs-sdk-py3)
 
 The official Python SDK for using ReversingLabs services.
 
