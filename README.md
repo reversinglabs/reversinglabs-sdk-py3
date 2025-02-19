@@ -1,5 +1,9 @@
 # ReversingLabs SDK
 
+![RL Status Badge](https://secure.software/repo/badge/foo/v1.1.1)
+HTML:
+<img alt="RL Status Badge" src="https://secure.software/repo/badge/foo/v1.1.1">
+
 The official Python SDK for using ReversingLabs services.
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
