@@ -389,6 +389,12 @@ v2.5.1 (2024-04-02)
 - Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
 - Python 3.9 is now defined as the oldest version of Python supported by this project.
 
+2.8.3 (2025-02-21)
+-------------------
+
+#### Improvements
+- Added the Spectra Assure badge to the Readme file.
+
 
 ### Reversinglabs SDK Cookbook changes
 #### Improvements
