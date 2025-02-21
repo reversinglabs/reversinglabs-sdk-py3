@@ -393,7 +393,7 @@ v2.5.1 (2024-04-02)
 -------------------
 
 #### Improvements
-- Added Spectra assure badge
+- Added the Spectra Assure badge to the Readme file.
 
 
 ### Reversinglabs SDK Cookbook changes
