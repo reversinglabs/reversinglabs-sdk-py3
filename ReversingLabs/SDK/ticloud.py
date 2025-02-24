@@ -6193,7 +6193,7 @@ class TAXIIFeed(TiCloudAPI):
 
             response_json = response.json()
 
-            objects = response_json.get("objects")
+            objects = response_json.get("objects", [])
             results.extend(objects)
 
             next_page = response_json.get("next")
