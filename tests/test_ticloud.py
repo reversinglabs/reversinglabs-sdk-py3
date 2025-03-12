@@ -5,7 +5,7 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	AdvancedSearch, ExpressionSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
-	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, \
+	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, TAXIIFeed, CustomerUsage, \
 	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
 	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
@@ -1120,6 +1120,58 @@ class TestTAXIIRansomwareFeed:
 			params=query_params
 		)
 
+class TestTAXIIFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.taxii = TAXIIFeed(HOST, USERNAME, PASSWORD)
+
+	def test_get_objects_lite(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="lite-root",
+			collection_id="123456"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			params=query_params
+		)
+
+	def test_get_objects_regular(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="regular-root",
+			collection_id="654321"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/regular-root/collections/654321/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			params=query_params
+		)
 
 class TestCustomerUsage:
 	@classmethod
