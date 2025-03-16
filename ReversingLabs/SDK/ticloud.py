@@ -14,7 +14,7 @@ import requests
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
-    WrongInputError, validate_hashes, deprecated_args
+    WrongInputError, validate_hashes
 
 
 XML = "xml"
@@ -6207,67 +6207,12 @@ class TAXIIFeed(TiCloudAPI):
                 if not more_pages or len(results) >= max_results:
                     return results[:max_results]
 
+
 class TAXIIRansomwareFeed(TAXIIFeed):
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
         super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
-                                                  user_agent=user_agent, allow_none_return=allow_none_return) 
-
-class AdvancedActions(object):
-    """A class containing advanced and combined actions
-    utilizing various different classes."""
-
-    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
-                 allow_none_return=False):
-
-        self._rldata_client = FileAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
-
-        self._da_client = DynamicAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
-
-    def enriched_file_analysis(self, sample_hash):
-        """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
-        report.
-            :param sample_hash: sample hash
-            :type sample_hash: str
-            :return: file analysis report enriched with dynamic analysis
-            :rtype: dict
-        """
-        da_response = self._da_client.get_dynamic_analysis_results(
-            sample_hash=sample_hash
-        )
-
-        rldata_response = self._rldata_client.get_analysis_results(
-            hash_input=sample_hash
-        )
-
-        da_report = da_response.json().get("rl", {}).get("report")
-        if da_report:
-            rldata_report = rldata_response.json()
-            try:
-                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
-            except KeyError:
-                rldata_report["rl"]["sample"]["dynamic_analysis"] = {}
-                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
-
-            return rldata_report
-
-        return {}
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
 
 
 def _update_hash_object(input_source, hash_object):
