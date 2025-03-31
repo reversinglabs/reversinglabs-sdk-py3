@@ -341,7 +341,7 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__get_request(url=url, method_name=inspect.currentframe().f_code.co_name)
+        response = self.__get_request(url=url)
 
         self.__raise_on_error(response)
 
@@ -987,8 +987,7 @@ class A1000(object):
 
             response = self.__post_request(
                 url=url,
-                data=data,
-                method_name=f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name}"
+                data=data
             )
 
         else:

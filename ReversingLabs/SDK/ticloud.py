@@ -8,6 +8,7 @@ A Python module for the ReversingLabs TitaniumCloud REST API-s.
 import base64
 import datetime
 import hashlib
+import inspect
 import json
 import os
 import requests
@@ -60,9 +61,8 @@ class TiCloudAPI(object):
                 raise WrongInputError("proxies parameter can not be an empty dictionary.")
         self._proxies = proxies
 
-        self._headers = {
-            "User-Agent": user_agent
-        }
+        self._user_agent = user_agent
+        self._headers = {}
         self._allow_none_return = allow_none_return
 
     @staticmethod
@@ -96,6 +96,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.get(
             url=url,
             auth=self._credentials,
@@ -119,6 +122,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.post(
             url=url,
             auth=self._credentials,
@@ -141,6 +147,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.delete(
             url=url,
             auth=self._credentials,
@@ -159,6 +168,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.put(
             url=url,
             auth=self._credentials,

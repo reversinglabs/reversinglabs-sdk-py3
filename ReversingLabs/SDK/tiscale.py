@@ -5,6 +5,7 @@ TitaniumScale
 A Python module for the ReversingLabs TitaniumScale appliance REST API.
 """
 
+import inspect
 import json
 import requests
 import time
@@ -26,7 +27,8 @@ class TitaniumScale(object):
         self._host = self.__validate_host(host)
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-        self._headers = {"User-Agent": user_agent}
+        self._user_agent = user_agent
+        self._headers = {}
         if token:
             self._headers["Authorization"] = "Token {token}".format(token=token)
 
@@ -238,6 +240,9 @@ class TitaniumScale(object):
             full_report=full_report
         )
 
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.get(
             url=url,
             verify=self._verify,
@@ -290,6 +295,9 @@ class TitaniumScale(object):
 
         url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
 
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.post(
             url=url,
             files=files,
@@ -325,6 +333,9 @@ class TitaniumScale(object):
             query_params["token"] = "Token {custom_token}".format(custom_token=custom_token)
 
         url = self._url.format(endpoint=self.__MULTIPLE_TASKS_ENDPOINT)
+
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_code.co_name}")
 
         response = requests.get(
             url=url,
@@ -374,6 +385,9 @@ class TitaniumScale(object):
         endpoint = self.__SINGLE_TASK_ENDPOINT.format(task_id=task_id)
         url = self._url.format(endpoint=endpoint)
 
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_code.co_name}")
+
         response = requests.get(
             url=url,
             verify=self._verify,
@@ -398,6 +412,9 @@ class TitaniumScale(object):
 
         endpoint = self.__SINGLE_TASK_ENDPOINT.format(task_id=task_id)
         url = self._url.format(endpoint=endpoint)
+
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_code.co_name}")
 
         response = requests.delete(
             url=url,
@@ -424,6 +441,9 @@ class TitaniumScale(object):
 
         url = self._url.format(endpoint=self.__MULTIPLE_TASKS_ENDPOINT)
 
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_code.co_name}")
+
         response = requests.delete(
             url=url,
             verify=self._verify,
@@ -439,6 +459,9 @@ class TitaniumScale(object):
     def get_yara_id(self):
         """Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance."""
         url = self._url.format(endpoint=self.__YARA_ID_ENDPOINT)
+
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_code.co_name}")
 
         response = requests.get(
             url=url,

@@ -414,6 +414,7 @@ v2.5.1 (2024-04-02)
   - The `AdvancedActions` class was moved from the `ticloud` module into `advanced`.
   - The `SpectraAssureScenarios` and `SpectraAssureClient` enable the user to perform actions that combine the **ReversingLabs Spectra Assure** platform with TitaniumCloud and A1000.
 
+- The user agent string now also carries the class and method name.
 
 ### ReversingLabs SDK Cookbook changes
 #### Improvements
