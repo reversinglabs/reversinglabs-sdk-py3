@@ -1,6 +1,5 @@
 import pytest
 from unittest import mock
-from ReversingLabs.SDK import __version__
 from ReversingLabs.SDK.tiscale import TitaniumScale
 from ReversingLabs.SDK.helper import WrongInputError, DEFAULT_USER_AGENT
 
@@ -21,9 +20,6 @@ def test_tiscale_object():
 	with pytest.raises(WrongInputError, match=r"host parameter must contain a protocol definition at the beginning."):
 		TitaniumScale(host=invalid_host, token=token)
 
-	user_agent = tiscale._headers.get("User-Agent")
-	assert __version__ in user_agent
-
 
 @pytest.fixture
 def requests_mock():
@@ -34,6 +30,8 @@ def requests_mock():
 class TestTitaniumScale:
 	host = "https://my.host"
 	token = "token"
+
+	headers = {"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {token}"}
 
 	@classmethod
 	def setup_class(cls):
@@ -61,11 +59,13 @@ class TestTitaniumScale:
 
 		expected_url = f"{self.host}/api/tiscale/v1/task"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} list_processing_tasks"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=query_params
 		)
 
@@ -82,11 +82,13 @@ class TestTitaniumScale:
 
 		expected_url = f"{self.host}/api/tiscale/v1/task/1"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} get_processing_task_info"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=query_params
 		)
 
@@ -97,11 +99,13 @@ class TestTitaniumScale:
 
 		expected_url = f"{self.host}/api/tiscale/v1/task/1"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} delete_processing_task"
+
 		requests_mock.delete.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"}
+			headers=self.headers
 		)
 
 	def test_wrong_task_id(self, requests_mock):
@@ -117,21 +121,25 @@ class TestTitaniumScale:
 
 		expected_url = f"{self.host}/api/tiscale/v1/task"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} delete_multiple_tasks"
+
 		requests_mock.delete.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=query_params
 		)
 
 	def test_yara_id(self, requests_mock):
 		self.tiscale.get_yara_id()
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} get_yara_id"
+
 		requests_mock.get.assert_called_with(
 			url=f"{self.host}/api/tiscale/v1/yara",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"}
+			headers=self.headers
 		)
 
