@@ -1131,8 +1131,8 @@ class AdvancedSearch(TiCloudAPI):
 
             'av-count:5 available:TRUE'
 
-            :param query_string: query string
-            :type query_string: str
+            :param query_string: search query; can be a string or a dict
+            :type query_string: str or dict
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str
@@ -1145,9 +1145,6 @@ class AdvancedSearch(TiCloudAPI):
             :returns: response
             :rtype: requests.Response
         """
-        if not isinstance(query_string, str):
-            raise WrongInputError("The search query must be a string.")
-
         if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 10000:
             raise WrongInputError("records_per_page parameter must be integer "
                                   "with value between 1 and 10000 (included).")
@@ -1186,8 +1183,8 @@ class AdvancedSearch(TiCloudAPI):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: search query - see API documentation for details on writing search queries
-            :type query_string: str
+            :param query_string: search query; can be a string or a dict
+            :type query_string: str or dict
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str

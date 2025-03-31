@@ -1813,7 +1813,7 @@ class A1000(object):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: search query
+            :param query_string: search query; can be a string or a dict
             :type query_string: str or dict
             :param ticloud: show only cloud results
             :type ticloud: bool
@@ -1886,7 +1886,7 @@ class A1000(object):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: search query
+            :param query_string: search query; can be a string or a dict
             :type query_string: str or dict
             :param ticloud: show only cloud results
             :type ticloud: bool
