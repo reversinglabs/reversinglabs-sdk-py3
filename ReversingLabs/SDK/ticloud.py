@@ -8,13 +8,14 @@ A Python module for the ReversingLabs TitaniumCloud REST API-s.
 import base64
 import datetime
 import hashlib
+import inspect
 import json
 import os
 import requests
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
-    WrongInputError, validate_hashes, deprecated_args
+    WrongInputError, validate_hashes
 
 
 XML = "xml"
@@ -60,9 +61,8 @@ class TiCloudAPI(object):
                 raise WrongInputError("proxies parameter can not be an empty dictionary.")
         self._proxies = proxies
 
-        self._headers = {
-            "User-Agent": user_agent
-        }
+        self._user_agent = user_agent
+        self._headers = {}
         self._allow_none_return = allow_none_return
 
     @staticmethod
@@ -96,6 +96,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.get(
             url=url,
             auth=self._credentials,
@@ -119,6 +122,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.post(
             url=url,
             auth=self._credentials,
@@ -141,6 +147,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.delete(
             url=url,
             auth=self._credentials,
@@ -159,6 +168,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.put(
             url=url,
             auth=self._credentials,
@@ -1131,8 +1143,8 @@ class AdvancedSearch(TiCloudAPI):
 
             'av-count:5 available:TRUE'
 
-            :param query_string: query string
-            :type query_string: str
+            :param query_string: search query; can be a string or a dict
+            :type query_string: str or dict
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str
@@ -1145,9 +1157,6 @@ class AdvancedSearch(TiCloudAPI):
             :returns: response
             :rtype: requests.Response
         """
-        if not isinstance(query_string, str):
-            raise WrongInputError("The search query must be a string.")
-
         if not isinstance(records_per_page, int) or not 1 <= records_per_page <= 10000:
             raise WrongInputError("records_per_page parameter must be integer "
                                   "with value between 1 and 10000 (included).")
@@ -1186,8 +1195,8 @@ class AdvancedSearch(TiCloudAPI):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: search query - see API documentation for details on writing search queries
-            :type query_string: str
+            :param query_string: search query; can be a string or a dict
+            :type query_string: str or dict
             :param sorting_criteria: define the criteria used in sorting; possible values are 'sha1', 'firstseen',
             'threatname', 'sampletype', 'filecount', 'size'
             :type sorting_criteria: str
@@ -6032,10 +6041,9 @@ class VerticalFeedsSearch(TiCloudAPI):
 
         self._raise_on_error(response)
 
-        return response 
+        return response
 
-
-class TAXIIRansomwareFeed(TiCloudAPI):
+class TAXIIFeed(TiCloudAPI):
     """TCTF-0001"""
 
     __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
@@ -6044,7 +6052,7 @@ class TAXIIRansomwareFeed(TiCloudAPI):
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
-        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
+        super(TAXIIFeed, self).__init__(host, username, password, verify, proxies,
                                                   user_agent=user_agent, allow_none_return=allow_none_return)
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
@@ -6194,7 +6202,7 @@ class TAXIIRansomwareFeed(TiCloudAPI):
 
             response_json = response.json()
 
-            objects = response_json.get("objects")
+            objects = response_json.get("objects", [])
             results.extend(objects)
 
             next_page = response_json.get("next")
@@ -6209,61 +6217,11 @@ class TAXIIRansomwareFeed(TiCloudAPI):
                     return results[:max_results]
 
 
-class AdvancedActions(object):
-    """A class containing advanced and combined actions
-    utilizing various different classes."""
-
+class TAXIIRansomwareFeed(TAXIIFeed):
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
-
-        self._rldata_client = FileAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
-
-        self._da_client = DynamicAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
-
-    def enriched_file_analysis(self, sample_hash):
-        """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
-        report.
-            :param sample_hash: sample hash
-            :type sample_hash: str
-            :return: file analysis report enriched with dynamic analysis
-            :rtype: dict
-        """
-        da_response = self._da_client.get_dynamic_analysis_results(
-            sample_hash=sample_hash
-        )
-
-        rldata_response = self._rldata_client.get_analysis_results(
-            hash_input=sample_hash
-        )
-
-        da_report = da_response.json().get("rl", {}).get("report")
-        if da_report:
-            rldata_report = rldata_response.json()
-            try:
-                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
-            except KeyError:
-                rldata_report["rl"]["sample"]["dynamic_analysis"] = {}
-                rldata_report["rl"]["sample"]["dynamic_analysis"]["report"] = da_report
-
-            return rldata_report
-
-        return {}
+        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
+                                                  user_agent=user_agent, allow_none_return=allow_none_return)
 
 
 def _update_hash_object(input_source, hash_object):

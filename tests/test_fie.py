@@ -19,9 +19,6 @@ def test_fie_object():
 	with pytest.raises(WrongInputError, match=r"host parameter must contain a protocol definition at the beginning."):
 		FileInspectionEngine(host=invalid_host)
 
-	user_agent = fie._headers.get("User-Agent")
-	assert __version__ in user_agent
-
 
 @pytest.fixture
 def requests_mock():

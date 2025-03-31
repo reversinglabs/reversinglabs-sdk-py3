@@ -5,6 +5,7 @@ File Inspection Engine (FIE)
 A Python module for the ReversingLabs File Inspection Engine REST API.
 """
 
+import inspect
 import requests
 from io import BytesIO
 
@@ -20,8 +21,8 @@ class FileInspectionEngine(object):
 		self._host = self.__validate_host(host)
 		self._url = "{host}{{endpoint}}".format(host=self._host)
 		self._verify = verify
-
-		self._headers = {"User-Agent": user_agent}
+		self._user_agent = user_agent
+		self._headers = {}
 
 		if proxies:
 			if not isinstance(proxies, dict):
@@ -150,6 +151,9 @@ class FileInspectionEngine(object):
 			raise WrongInputError("file_source parameter must be a file open in 'rb' mode.")
 
 		url = self._url.format(endpoint=endpoint)
+
+		self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+									   f"{inspect.currentframe().f_back.f_code.co_name}")
 
 		response = requests.post(
 			url=url,

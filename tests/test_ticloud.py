@@ -5,12 +5,12 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	AdvancedSearch, ExpressionSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
-	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, CustomerUsage, \
+	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, TAXIIFeed, CustomerUsage, \
 	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
 	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
 	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
-	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, AdvancedActions, \
+	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -146,7 +146,7 @@ class TestFileReputation:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.file_reputation.__class__.__name__} get_file_reputation"},
 			params=None
 		)
 
@@ -167,7 +167,7 @@ class TestFileReputation:
 			data=None,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.file_reputation.__class__.__name__} get_file_reputation"},
 			params=None
 		)
 
@@ -196,7 +196,7 @@ class TestFileReputationUserOverride:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} list_active_overrides"},
 			params=None
 		)
 
@@ -233,7 +233,7 @@ class TestFileReputationUserOverride:
 			data=None,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} override_classification"},
 			params=None
 		)
 
@@ -253,7 +253,7 @@ class TestNetworkReputationUserOverride:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} list_overrides"},
 			params={"format": "json", "next_network_location": None}
 		)
 
@@ -288,7 +288,7 @@ class TestNetworkReputationUserOverride:
 			data=None,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} reputation_override"},
 			params=None
 		)
 
@@ -319,7 +319,7 @@ class TestAVScanners:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.av_scanners.__class__.__name__} get_scan_results"},
 			params=None
 		)
 
@@ -349,7 +349,7 @@ class TestFileAnalysis:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rldata.__class__.__name__} get_analysis_results"},
 			params=None,
 			json=post_json,
 			data=None
@@ -379,7 +379,7 @@ class TestFileAnalysisNonMalicious:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rldata_nonmal.__class__.__name__} get_analysis_results"},
 			params={"format": "json"}
 		)
 
@@ -411,7 +411,7 @@ class TestRHA1FunctionalSimilarity:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rha1.__class__.__name__} get_similar_hashes"},
 			params=None
 		)
 
@@ -443,7 +443,7 @@ class TestRHA1Analytics:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rha1.__class__.__name__} get_rha1_analytics"},
 			params=None
 		)
 
@@ -467,7 +467,7 @@ class TestURIStatistics:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.uristats.__class__.__name__} get_uri_statistics"},
 			params=None
 		)
 
@@ -499,7 +499,7 @@ class TestURIIndex:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.uri_index.__class__.__name__} get_uri_index"},
 			params=None
 		)
 
@@ -535,7 +535,7 @@ class TestAdvancedSearch:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.adv_search.__class__.__name__} search"},
 			params=None,
 			json=post_json,
 			data=None
@@ -571,7 +571,7 @@ class TestExpressionSearch:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.exp_search.__class__.__name__} search"},
 			params=None
 		)
 
@@ -595,7 +595,7 @@ class TestFileDownload:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.download.__class__.__name__} get_download_status"},
 			params=None,
 			json=post_json,
 			data=None
@@ -613,7 +613,7 @@ class TestFileDownload:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.download.__class__.__name__} download_sample"},
 			params=None
 		)
 
@@ -639,7 +639,7 @@ class TestURLThreatIntelligence:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.url_ti.__class__.__name__} get_url_report"},
 			params=None,
 			json=post_json,
 			data=None
@@ -667,7 +667,7 @@ class TestAnalyzeURL:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.analyze_url.__class__.__name__} submit_url"},
 			params=None,
 			json=post_json,
 			data=None
@@ -693,7 +693,7 @@ class TestDomainThreatIntelligence:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.domain_ti.__class__.__name__} get_domain_report"},
 			params=None,
 			json=post_json,
 			data=None
@@ -725,7 +725,7 @@ class TestIPThreatIntelligence:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ip_ti.__class__.__name__} get_ip_report"},
 			params=None,
 			json=post_json,
 			data=None
@@ -757,7 +757,7 @@ class TestFileUpload:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.upload.__class__.__name__} __upload_meta"},
 			params=params,
 			json=None,
 			data=meta_xml
@@ -783,7 +783,7 @@ class TestDeleteFile:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.delete_file.__class__.__name__} delete_samples"},
 			json=None
 		)
 
@@ -803,7 +803,7 @@ class TestReanalyzeFile:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.reanalyze.__class__.__name__} reanalyze_samples"},
 			params=None
 		)
 
@@ -825,7 +825,7 @@ class TestDataChangeSubscription:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.data_change.__class__.__name__} __subscription_action"},
 			params=None,
 			json=post_json,
 			data=None
@@ -870,7 +870,7 @@ class TestDynamicAnalysis:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.da.__class__.__name__} __detonate"},
 			params=None,
 			json=post_json,
 			data=None
@@ -886,7 +886,7 @@ class TestDynamicAnalysis:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.da.__class__.__name__} get_dynamic_analysis_results"},
 			params=None
 		)
 
@@ -911,7 +911,7 @@ class TestCertificateIndex:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ci.__class__.__name__} get_certificate_information"},
 			params=None
 		)
 
@@ -935,7 +935,7 @@ class TestRansomwareIndicators:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rf.__class__.__name__} get_indicators"},
 			params=None
 		)
 
@@ -958,7 +958,7 @@ class TestNewMalwareFilesFeed:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.feed.__class__.__name__} _pull_with_timestamp"},
 			params=None
 		)
 
@@ -978,7 +978,7 @@ class TestNewMalwareURIFeed:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.feed.__class__.__name__} pull_latest"},
 			params=None
 		)
 
@@ -1000,7 +1000,7 @@ class TestImpHashSimilarity:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.imphash.__class__.__name__} get_imphash_index"},
 			params=None
 		)
 
@@ -1028,7 +1028,7 @@ class TestYARAHunting:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.yara.__class__.__name__} create_ruleset"},
 			params=None,
 			json=post_json,
 			data=None
@@ -1060,7 +1060,7 @@ class TestYARARetroHunting:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.yara.__class__.__name__} __retro_hunt_action"},
 			params=None,
 			json=post_json,
 			data=None
@@ -1092,7 +1092,7 @@ class TestTAXIIRansomwareFeed:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
 			params=query_params
 		)
 
@@ -1116,10 +1116,63 @@ class TestTAXIIRansomwareFeed:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, 'Accept': 'application/taxii+json;version=2.1'},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
 			params=query_params
 		)
 
+
+class TestTAXIIFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.taxii = TAXIIFeed(HOST, USERNAME, PASSWORD)
+
+	def test_get_objects_lite(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="lite-root",
+			collection_id="123456"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
+			params=query_params
+		)
+
+	def test_get_objects_regular(self, requests_mock):
+		self.taxii.get_objects(
+			api_root="regular-root",
+			collection_id="654321"
+		)
+
+		query_params = {
+			"limit": 500,
+			"added_after": None,
+			"match[id]": None,
+			"next": None
+		}
+
+		expected_url = f"{HOST}/api/taxii/regular-root/collections/654321/objects/"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
+			params=query_params
+		)
 
 class TestCustomerUsage:
 	@classmethod
@@ -1136,7 +1189,7 @@ class TestCustomerUsage:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.usage.__class__.__name__} daily_usage"},
 			params={"date": "2024-07-03", "format": "json", "from": None, "to": None}
 		)
 
@@ -1164,7 +1217,7 @@ class TestNetworkReputation:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.net_rep.__class__.__name__} get_network_reputation"},
 			params=None,
 			json=post_json,
 			data=None
@@ -1186,7 +1239,7 @@ class TestMalwareFamilyDetection:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.malware_family.__class__.__name__} get_malware_family"},
 			params=None
 		)
 
@@ -1220,7 +1273,7 @@ class TestVerticalFeedsStatistics:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.verticalstats.__class__.__name__} feed_query"},
 			params={"format": "json", "weeks": 5}
 		)
 
@@ -1253,7 +1306,7 @@ class TestCertificateAnalytics:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.analytics.__class__.__name__} get_certificate_analytics"},
 			params=None
 		)
 
@@ -1286,7 +1339,7 @@ class TestNewMalwarePlatformFiltered:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.new_malware.__class__.__name__} feed_query"},
 			params=None
 		)
 
@@ -1371,7 +1424,7 @@ class TestNewExploitOrCveSamplesFoundInWildHourly:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.hourly.__class__.__name__} latest_hourly_exploit_list_query"},
 			params={
 				"sample_available": "true",
 				"active_cve": "true",
@@ -1395,7 +1448,7 @@ class TestNewExploitAndCveSamplesFoundInWildDaily:
 			auth=(USERNAME, PASSWORD),
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT},
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.daily.__class__.__name__} latest_daily_exploit_list_query"},
 			params={
 				"sample_available": "true",
 				"format": "json"
@@ -1429,61 +1482,3 @@ class TestChangesWhitelistedFiles:
 			self.changes.feed_query(time_format="utc", time_value="12345678")
 
 
-@pytest.fixture
-def dynamic_analysis_mock():
-	with mock.patch("ReversingLabs.SDK.ticloud.DynamicAnalysis.get_dynamic_analysis_results", autospec=True) as dynamic_mock:
-		yield dynamic_mock
-
-
-@pytest.fixture
-def file_analysis_mock():
-	with mock.patch("ReversingLabs.SDK.ticloud.FileAnalysis.get_analysis_results", autospec=True) as rldata_mock:
-		yield rldata_mock
-
-
-class TestAdvancedActions:
-	@classmethod
-	def setup_class(cls):
-		cls.adv_actions = AdvancedActions(HOST, USERNAME, PASSWORD)
-
-	def test_no_da_report(self, dynamic_analysis_mock, file_analysis_mock):
-		dynamic_analysis_mock.return_value.json.return_value = {}
-
-		file_analysis_mock.return_value.json.return_value = {
-			"rl": {
-				"sample": {
-					"sha1": SHA1
-				}
-			}
-		}
-
-		result = self.adv_actions.enriched_file_analysis(sample_hash=SHA1)
-		expected_result = {}
-
-		assert result == expected_result
-
-	def test_existing_da_field(self, dynamic_analysis_mock, file_analysis_mock):
-		dynamic_analysis_mock.return_value.json.return_value = {
-			"rl": {
-				"report": {
-					"da_key": "da_value"
-				}
-			}
-		}
-
-		file_analysis_mock.return_value.json.return_value = {
-			"rl": {
-				"sample": {
-					"sha1": SHA1,
-					"dynamic_analysis": {
-						"entries": [
-							{"existing_field": "existing_value"}
-						]
-					}
-				}
-			}
-		}
-
-		result = self.adv_actions.enriched_file_analysis(sample_hash=SHA1)
-		assert "entries" in result.get("rl").get("sample").get("dynamic_analysis")
-		assert "report" in result.get("rl").get("sample").get("dynamic_analysis")

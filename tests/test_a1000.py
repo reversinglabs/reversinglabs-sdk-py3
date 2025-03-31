@@ -1,3 +1,4 @@
+import inspect
 import pytest
 from unittest import mock
 from ReversingLabs.SDK import __version__
@@ -42,9 +43,6 @@ def test_a1000_object():
 	with pytest.raises(WrongInputError, match=r"If token is not provided username and password are required."):
 		A1000(host=valid_host)
 
-	user_agent = a1000._headers.get("User-Agent")
-	assert __version__ in user_agent
-
 	authorization = a1000._headers.get("Authorization")
 	assert authorization == f"Token {token}"
 
@@ -69,6 +67,8 @@ class TestA1000:
 					" certificate, document, mobile, media, web, email, strings, interesting_strings," \
 					" classification, indicators, tags, attack, story"
 
+	headers = {"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {token}"}
+
 	@classmethod
 	def setup_class(cls):
 		cls.a1000 = A1000(cls.host, token=cls.token)
@@ -77,12 +77,13 @@ class TestA1000:
 		self.a1000.submit_url_for_analysis(url_string="https://some.url")
 
 		expected_url = f"{self.host}/api/uploads/"
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} submit_url_for_analysis"
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data={"url": "https://some.url", "analysis": "cloud"},
@@ -97,12 +98,13 @@ class TestA1000:
 		self.a1000.file_analysis_status(sample_hashes=[SHA1, SHA1], sample_status="MALICIOUS")
 
 		expected_url = f"{self.host}/api/samples/status/"
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} file_analysis_status"
 
 		requests_mock.post.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params={"status": "MALICIOUS"},
 			json=None,
 			data={"hash_values": [SHA1, SHA1]},
@@ -113,12 +115,13 @@ class TestA1000:
 		self.a1000.check_submitted_url_status(task_id="aaa")
 
 		expected_url = f"{self.host}/api/uploads/v2/url-samples/aaa"
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} check_submitted_url_status"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -134,12 +137,13 @@ class TestA1000:
 		self.a1000.download_sample(sample_hash=SHA1)
 
 		expected_url = f"{self.host}/api/samples/{SHA1}/download/"
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} download_sample"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -153,12 +157,13 @@ class TestA1000:
 		self.a1000.get_classification_v3(sample_hash=SHA1, local_only=True)
 
 		expected_url = f"{self.host}/api/samples/v3/{SHA1}/classification/?localonly=1&av_scanners=0"
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_classification_v3"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -174,11 +179,13 @@ class TestA1000:
 			"rl_cloud_sandbox_platform": None
 		}
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} reanalyze_samples_v2"
+
 		requests_mock.post.assert_called_with(
 			url=f"{self.host}/api/samples/v2/analyze_bulk/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data=data,
@@ -188,22 +195,26 @@ class TestA1000:
 	def test_extracted_files(self, requests_mock):
 		self.a1000.list_extracted_files_v2(SHA1)
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} list_extracted_files_v2"
+
 		requests_mock.get.assert_called_with(
 			url=f"{self.host}/api/samples/v2/{SHA1}/extracted-files/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
 	def test_download_extracted(self, requests_mock):
 		self.a1000.download_extracted_files(SHA1)
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} download_extracted_files"
+
 		requests_mock.get.assert_called_with(
 			url=f"{self.host}/api/samples/{SHA1}/unpacked/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -212,11 +223,13 @@ class TestA1000:
 
 		data = {"hash_values": [SHA1, SHA1]}
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} delete_samples"
+
 		requests_mock.post.assert_called_with(
 			url=f"{self.host}/api/samples/v2/delete_bulk/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data=data,
@@ -226,11 +239,13 @@ class TestA1000:
 	def test_pdf_report(self, requests_mock):
 		self.a1000.create_pdf_report(SHA1)
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __utilize_pdf_endpoint"
+
 		requests_mock.get.assert_called_with(
 			url=f"{self.host}/api/pdf/{SHA1}/create",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -239,11 +254,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/v2/samples/{SHA1}/ticore/?fields={self.ticore_fields}"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_titanium_core_report_v2"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -252,11 +269,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/rl_dynamic_analysis/export/summary/{SHA1}/pdf/create/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __utilize_dynamic_analysis_endpoint"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -276,11 +295,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/samples/{SHA1}/setclassification/local/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} set_classification"
+
 		requests_mock.post.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data=data,
@@ -294,11 +315,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/tag/{SHA1}/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} post_user_tags"
+
 		requests_mock.post.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=post_json,
 			data=None,
@@ -310,11 +333,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/yara/v2/rulesets/?source=all"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_yara_rulesets_on_the_appliance_v2"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -333,11 +358,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/yara/ruleset/enable/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} enable_or_disable_yara_ruleset"
+
 		requests_mock.post.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data=data,
@@ -347,11 +374,13 @@ class TestA1000:
 	def test_start_yara_retro(self, requests_mock):
 		self.a1000.start_or_stop_yara_local_retro_scan("START")
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} start_or_stop_yara_local_retro_scan"
+
 		requests_mock.post.assert_called_with(
 			url=f"{self.host}/api/uploads/local-retro-hunt/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data={"operation": "START"},
@@ -373,11 +402,13 @@ class TestA1000:
 		post_json = {"query": "av-count:5 available:TRUE", "ticloud": False, "page": 2,
 					 "records_per_page": 5, "sort": "sha1 desc"}
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} advanced_search_v3"
+
 		requests_mock.post.assert_called_with(
 			url=f"{self.host}/api/samples/v3/search/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=post_json,
 			data=None,
@@ -389,11 +420,13 @@ class TestA1000:
 
 		data = {"hash_values": [SHA1, SHA1]}
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} list_containers_for_hashes"
+
 		requests_mock.post.assert_called_with(
 			url=f"{self.host}/api/samples/containers/",
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None,
 			json=None,
 			data=data,
@@ -407,11 +440,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/network-threat-intel/domain/{domain}/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} network_domain_report"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=None
 		)
 
@@ -425,11 +460,13 @@ class TestA1000:
 
 		expected_url = f"{self.host}/api/network-threat-intel/ip/1.2.3.4/resolutions/"
 
+		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __ip_addr_endpoints"
+
 		requests_mock.get.assert_called_with(
 			url=expected_url,
 			verify=True,
 			proxies=None,
-			headers={"User-Agent": DEFAULT_USER_AGENT, "Authorization": f"Token {self.token}"},
+			headers=self.headers,
 			params=params
 		)
 
