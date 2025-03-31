@@ -984,6 +984,7 @@ class A1000(object):
 
         self.__raise_on_error(response)
 
+
         return response
 
     def check_sample_removal_status_v2(self, task_id):
@@ -1812,8 +1813,8 @@ class A1000(object):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: query string
-            :type query_string: str
+            :param query_string: search query
+            :type query_string: str or dict
             :param ticloud: show only cloud results
             :type ticloud: bool
             :param start_search_date: the starting date for the search; this parameter represents the later
@@ -1834,9 +1835,6 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        if not isinstance(query_string, str):
-            raise WrongInputError("The search query must be a string.")
-
         if not isinstance(ticloud, bool):
             raise WrongInputError("ticloud parameter must be boolean.")
 
@@ -1888,8 +1886,8 @@ class A1000(object):
             Query string example:
             'av-count:5 available:TRUE'
 
-            :param query_string: query string
-            :type query_string: str
+            :param query_string: search query
+            :type query_string: str or dict
             :param ticloud: show only cloud results
             :type ticloud: bool
             :param start_search_date: the starting date for the search; this parameter represents the later
