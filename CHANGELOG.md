@@ -396,13 +396,32 @@ v2.5.1 (2024-04-02)
 - Added the Spectra Assure badge to the Readme file.
 
 
-### Reversinglabs SDK Cookbook changes
+### ReversingLabs SDK Cookbook changes
 #### Improvements
 - **Scenarios and Workflows** notebooks:
   - Added the `download_advanced_search_matches_a1000.ipynb`, `download_advanced_search_matches_titaniumcloud.ipynb`, `download_yara_retro_matches_a1000.ipynb` and `download_yara_retro_matches_titaniumcloud.ipynb` notebooks.
 
 - **Command line tools and scripts**:
   - Added the `cyber_defense_alliance.py` command line tool.
+
+
+2.9.0 (2025-03-31)
+-------------------
+
+#### Improvements
+- **advanced** module:
+  - Created a new module called `advanced`. This module will hold various actions and scenarios that include multiple platforms and APIs.
+  - The `AdvancedActions` class was moved from the `ticloud` module into `advanced`.
+  - The `SpectraAssureScenarios` and `SpectraAssureClient` enable the user to perform actions that combine the **ReversingLabs Spectra Assure** platform with TitaniumCloud and A1000.
+
+
+### ReversingLabs SDK Cookbook changes
+#### Improvements
+- **TitaniumCloud** notebooks:
+  - The `taxii_ransomware_feed.ipynb` notebook was replaced with `taxii_feed.ipynb`.
+
+- **Scenarios and Workflows** notebooks:
+  - Added the `advanced_search_using_network_indicators.ipynb` notebook.
   
 Starting with ReversingLabs SDK version 2.8.0, the **ReversingLabs SDK Cookbook** project's release cycle and versioning are closely tied to this project.  
 This changelog will also be keeping track of changes made to the ReversingLabs SDK Cookbook project.
