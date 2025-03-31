@@ -6,6 +6,7 @@ A Python module for the ReversingLabs A1000 appliance REST API.
 """
 
 import datetime
+import inspect
 import requests
 import time
 from urllib import parse
@@ -104,7 +105,6 @@ class A1000(object):
             token = self.__get_token(username, password)
 
         self._headers = {
-            "User-Agent": self._user_agent,
             "Authorization": "Token {token}".format(token=token)
         }
         self._fields_v2 = fields_v2
@@ -291,7 +291,7 @@ class A1000(object):
 
         response = self.__post_request(
             url=url,
-            data=data,
+            data=data
         )
 
         self.__raise_on_error(response)
@@ -341,7 +341,7 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__get_request(url=url)
+        response = self.__get_request(url=url, method_name=inspect.currentframe().f_code.co_name)
 
         self.__raise_on_error(response)
 
@@ -489,7 +489,10 @@ class A1000(object):
             "skip_reanalysis": str(skip_reanalysis).lower()
         }
 
-        response = self.__post_request(url=url, data=data)
+        response = self.__post_request(
+            url=url,
+            data=data
+        )
 
         self.__raise_on_error(response)
 
@@ -628,7 +631,10 @@ class A1000(object):
 
             data["include_networkthreatintelligence"] = str(include_networkthreatintelligence).lower()
 
-        response = self.__post_request(url=url, data=data)
+        response = self.__post_request(
+            url=url,
+            data=data
+        )
         self.__raise_on_error(response)
 
         return response
@@ -803,7 +809,10 @@ class A1000(object):
             "rl_cloud_sandbox_platform": rl_cloud_sandbox_platform
         }
 
-        response = self.__post_request(url=url, data=data)
+        response = self.__post_request(
+            url=url,
+            data=data
+        )
 
         self.__raise_on_error(response)
 
@@ -976,14 +985,17 @@ class A1000(object):
 
             data = {"hash_values": hash_input}
 
-            response = self.__post_request(url=url, data=data)
+            response = self.__post_request(
+                url=url,
+                data=data,
+                method_name=f"{self.__class__.__name__} {inspect.currentframe().f_code.co_name}"
+            )
 
         else:
             raise WrongInputError("hash_input parameter must be a single hash string or "
                                   "a list of hash strings of the same type.")
 
         self.__raise_on_error(response)
-
 
         return response
 
@@ -1235,7 +1247,10 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__post_request(url=url, data=data)
+        response = self.__post_request(
+            url=url,
+            data=data
+        )
 
         self.__raise_on_error(response)
 
@@ -2470,6 +2485,9 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.get(
             url=url,
             verify=self._verify,
@@ -2492,6 +2510,9 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; "
+                                       f"{self.__class__.__name__} {inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.post(
             url=url,
             json=post_json,
@@ -2512,6 +2533,9 @@ class A1000(object):
         :return: response
         :rtype: requests.Response
         """
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+
         response = requests.delete(
             url=url,
             json=post_json,
