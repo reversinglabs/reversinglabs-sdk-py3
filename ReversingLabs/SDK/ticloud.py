@@ -6205,7 +6205,7 @@ class TAXIIFeed(TiCloudAPI):
             :return: list of results
             :rtype: list
             :param stix_type: Optional string of STIX type (e.g. ["indicator", "identity", "url", "relationship", "file", "domain-name", "ipv4-addr"])
-            :type stix_type: List[str] or None
+            :type stix_type: str or None
             :param name: Optional exact match on the STIX object's "name" field.
             :type name: str or None
             :param confidence: Optional match on the STIX object's "confidence".
