@@ -12,9 +12,8 @@ import inspect
 import json
 import os
 import requests
-import dateutil.parser
 
-from typing import Optional, List
+from typing import Optional
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
     WrongInputError, validate_hashes
@@ -6051,6 +6050,15 @@ class TAXIIFeed(TiCloudAPI):
     __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
     __API_ROOT_ENDPOINT = "/api/taxii/{api_root}/"
     __COLLECTIONS_ENDPOINT = "/api/taxii/{api_root}/collections/"
+    
+    _FILTER_OPERATORS = ["<=", ">=", "<", ">", "="]
+    OPERATOR_FUNCTIONS = {
+    "<":  lambda a, b: a <  b,
+    "<=": lambda a, b: a <= b,
+    ">":  lambda a, b: a >  b,
+    ">=": lambda a, b: a >= b,
+    "=":  lambda a, b: a == b,
+    }
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -6173,22 +6181,43 @@ class TAXIIFeed(TiCloudAPI):
 
         return response
 
+    @staticmethod
+    def _parse_conf_filter(filter_str: str) -> tuple[str, int]:
+        for op in TAXIIFeed._FILTER_OPERATORS:
+            if filter_str.startswith(op):
+                try:
+                    return op, int(filter_str[len(op):])
+                except ValueError:
+                    raise ValueError("Cannot parse as an integer filter.")
+        raise ValueError("Invalid confidence filter. Must start with one of <=, >=, <, >, =.")
 
-    def get_objects_aggregated(
-        self,
-        api_root,
-        collection_id,
-        result_limit=500,
-        added_after=None,
-        max_results=None,
+    @staticmethod
+    def _match_conf(value: int, op: str, target: int) -> bool:
+        func = TAXIIFeed.OPERATOR_FUNCTIONS.get(op)
+        return func(value, target) if func else False  
 
-        # FILTERS
-        stix_type: Optional[str] = None,
-        name: Optional[str] = None,
-        confidence: Optional[str] = None,
-        created: Optional[str] = None,
-        labels: Optional[List[str]] = None
-    ):
+    @staticmethod
+    def _parse_date_filter(filter_str: str) -> tuple[str, datetime.datetime]:
+        for op in TAXIIFeed._FILTER_OPERATORS:
+            if filter_str.startswith(op):
+                date_part = filter_str[len(op):].rstrip("Z")
+                try:
+                    dt = datetime.datetime.fromisoformat(date_part).replace(tzinfo=datetime.timezone.utc)
+                    return op, dt
+                except Exception:
+                    raise ValueError("Cannot parse as an ISO8601 datetime.")
+        raise ValueError("Invalid filter format. Must start with one of <=, >=, <, >, =.")
+
+    @staticmethod
+    def _match_date(stix_date_str: str, op: str, target_dt: datetime.datetime) -> bool:
+        try:
+            dt_obj = datetime.datetime.fromisoformat(stix_date_str.rstrip("Z")).replace(tzinfo=datetime.timezone.utc)
+        except Exception:
+            return False
+        func = TAXIIFeed.OPERATOR_FUNCTIONS.get(op)
+        return func(dt_obj, target_dt) if func else False
+
+    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, max_results=None, stix_type: Optional[list[str]] = None, name: Optional[str] = None, confidence: Optional[str] = None, created: Optional[str] = None, labels: Optional[list[str]] = None):
         """Returns objects from a TAXII collection.
         This method does the paging automatically and returns a defined number of objects as a list in the end.
             :param api_root: api root name
@@ -6204,8 +6233,8 @@ class TAXIIFeed(TiCloudAPI):
             :type max_results: int or None
             :return: list of results
             :rtype: list
-            :param stix_type: Optional string of STIX type (e.g. ["indicator", "identity", "url", "relationship", "file", "domain-name", "ipv4-addr"])
-            :type stix_type: str or None
+            :param stix_type: Optional list of strings for STIX type (e.g. ["indicator", "identity", "url", "relationship", "file", "domain-name", "ipv4-addr"])
+            :type stix_type: List[str] or None
             :param name: Optional exact match on the STIX object's "name" field.
             :type name: str or None
             :param confidence: Optional match on the STIX object's "confidence".
@@ -6244,68 +6273,22 @@ class TAXIIFeed(TiCloudAPI):
         if not any((stix_type, created, confidence, name, labels)):
             return results
 
-        # Confidence loop
-        def _parse_conf_filter(filter_str: str):
-            """
-            Parse "<N", "<=N", ">N", ">=N", or "=N" into (op, int(N))
-            """
-            ops = ("<=", ">=", "<", ">", "=")
-            for op in sorted(ops, key=len, reverse=True):
-                if filter_str.startswith(op):
-                    val = filter_str[len(op):]
-                    try:
-                        num = int(val)
-                    except ValueError:
-                        raise ValueError(f"Cannot parse as an integer")
-                    return op, num
-            raise ValueError(f"Invalid confidence filter")
-
-        def _match_conf(value: int, op: str, target: int) -> bool:
-            if op == "<":   return value < target
-            if op == "<=":  return value <= target
-            if op == ">":   return value > target
-            if op == ">=":  return value >= target
-            if op == "=":   return value == target
-            return False
+        if isinstance(stix_type, str):
+            stix_type = [stix_type]
 
         parsed_conf = None
         if confidence is not None:
-            parsed_conf = _parse_conf_filter(confidence)
-
-        # Created (datetime range) loop
-        def _parse_date_filter(filter_str: str):
-            ops = ("<=", ">=", "<", ">", "=")
-            for op in sorted(ops, key=len, reverse=True):
-                if filter_str.startswith(op):
-                    date_part = filter_str[len(op):]
-                    try:
-                        dt = dateutil.parser.isoparse(date_part)
-                    except Exception:
-                        raise ValueError(f"Cannot parse as a datetime.")
-                    return op, dt
-            raise ValueError(f"Invalid filter format")
-
-        def _match_date(stix_date_str: str, op: str, target_dt: datetime) -> bool:
-            try:
-                dt_obj = dateutil.parser.isoparse(stix_date_str)
-            except Exception:
-                return False
-            if op == "<":   return dt_obj < target_dt
-            if op == "<=":  return dt_obj <= target_dt
-            if op == ">":   return dt_obj > target_dt
-            if op == ">=":  return dt_obj >= target_dt
-            if op == "=":   return dt_obj == target_dt
-            return False
+            parsed_conf = self._parse_conf_filter(confidence)
 
         parsed_created = None
         if created is not None:
-            parsed_created = _parse_date_filter(created)
+            parsed_created = self._parse_date_filter(created)
 
         labels_set = set(labels) if labels is not None else None
         filtered = []
         for obj in results:
             if stix_type is not None:
-                if obj.get("type") != stix_type:
+                if obj.get("type") not in stix_type:
                     continue
 
             if parsed_conf is not None:
@@ -6313,7 +6296,7 @@ class TAXIIFeed(TiCloudAPI):
                 if obj_conf is None or not isinstance(obj_conf, (int, float)):
                     continue
                 op_c, num_c = parsed_conf
-                if not _match_conf(int(obj_conf), op_c, num_c):
+                if not self._match_conf(int(obj_conf), op_c, num_c):
                     continue
 
             if name is not None:
@@ -6325,7 +6308,7 @@ class TAXIIFeed(TiCloudAPI):
                 if obj_created is None:
                     continue
                 op_d, dt_target = parsed_created
-                if not _match_date(obj_created, op_d, dt_target):
+                if not self._match_date(obj_created, op_d, dt_target):
                     continue
 
             if labels_set is not None:

@@ -11,8 +11,3 @@ __pycache__/
 .pytest_cache
 .coverage
 .idea
-bck
-ticloud_credentials.json
-matched_stix.json
-test_sdk.py
-test_filter.py
