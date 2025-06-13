@@ -11,6 +11,7 @@ import requests
 import time
 from urllib import parse
 from warnings import warn
+import json
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
     MD5, SHA1, SHA256, SHA512, \
@@ -26,6 +27,8 @@ class A1000(object):
 
     __TOKEN_ENDPOINT = "/api-token-auth/"
     __UPLOAD_ENDPOINT = "/api/uploads/"
+    __SUBMIT_FILE_ENDPOINT = "/api/submit/file/"
+    __SUBMIT_URL_ENDPOINT  = "/api/submit/url/"
     __FILE_ANALYSIS_STATUS_ENDPOINT = "/api/samples/status/"
     __URL_ANALYSIS_STATUS_ENDPOINT = "/api/uploads/v2/url-samples/{task_id}"
     __RESULTS_ENDPOINT = "/api/samples/list/"
@@ -294,6 +297,101 @@ class A1000(object):
             data=data
         )
 
+        self.__raise_on_error(response)
+
+        return response
+
+    def submit_file(self, file_path, metadata, analysis, custom_filename=None, archive_password=None,rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
+        """Accepts a file path string for file upload and returns a response.
+        Additional parameters can be provided.
+            :param file_path: path to file
+            :type file_path: str
+            :param metadata: Optiona JSON metadata dictionary to include with the file
+            :type metadata: dict
+            :param analysis: Optional JSON analysis configuration dictionary (e.g. sandbox profiles)
+            :type analysis: dict
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
+            :type rl_cloud_sandbox_platform: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param cloud_analysis: use cloud analysis
+            :type cloud_analysis: bool
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        if not isinstance(file_path, str):
+            raise WrongInputError("file_path must be a string.")
+        try:
+            file_handle = open(file_path, "rb")
+        except IOError as error:
+            raise WrongInputError("Error while opening file")
+
+        url = self._url.format(endpoint=self.__SUBMIT_FILE_ENDPOINT)
+        data = self.__create_post_payload(
+            custom_filename=custom_filename,
+            archive_password=archive_password,
+            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
+            tags=tags,
+            comment=comment,
+            cloud_analysis=cloud_analysis
+        ) or {}
+        data["metadata"] = json.dumps(metadata)
+        data["analysis"] = json.dumps(analysis)
+
+        response = self.__post_request(
+            url=url,
+            files={"file": file_handle},
+            data=data
+        )
+        print(response.status_code, response.text)
+        self.__raise_on_error(response)
+
+        return response
+
+    def submit_url(self, url_to_submit, metadata, analysis, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
+        """Sends a URL for analysis on A1000.
+        Additional parameters can be provided.
+            :param url_to_submit: URL to analyze
+            :type url_to_submit: str
+            :param metadata: Optional JSON metadata dictionary to include with the file
+            :type metadata: dict
+            :param analysis: Optional JSON analysis configuration dictionary (e.g. sandbox profiles)
+            :type analysis: dict
+            :param crawler: crawler method (local or cloud)
+            :type crawler: str
+            :param archive_password: password, if it is a password-protected archive
+            :type archive_password: str
+            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
+            :type rl_cloud_sandbox_platform: str
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        if not isinstance(url_to_submit, str):
+            raise WrongInputError("url_to_submit parameter must be a string.")
+
+        url = self._url.format(endpoint=self.__SUBMIT_URL_ENDPOINT)
+
+        data = self.__create_post_payload(
+            url_string=url_to_submit,
+            crawler=crawler,
+            archive_password=archive_password,
+            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
+        ) or {}
+        data["metadata"] = json.dumps(metadata)
+        data["analysis"] = json.dumps(analysis)
+
+        response = self.__post_request(
+            url=url,
+            data=data
+        )
+
+        print(response.status_code, response.text)
         self.__raise_on_error(response)
 
         return response
