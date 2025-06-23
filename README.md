@@ -40,12 +40,6 @@ If username and password are used instead, a token fetching request will be done
     - Returns the configuration of the instantiated A1000 object
 - `test_connection`
     - Creates a request towards the A1000 Check Status API to test the connection with A1000
-- `upload_sample_from_path`
-    - Accepts a file path string and returns a response containing the analysis task ID
-- `upload_sample_from_file`
-    - Accepts a file open in 'rb' mode and returns a response containing the analysis task ID
-- `submit_url_for_analysis`
-    - Sends a URL for analysis on A1000.
 - `check_submitted_url_status`
     - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
         report if the report is ready
@@ -55,31 +49,14 @@ If username and password are used instead, a token fetching request will be done
     - Accepts a task ID returned by upload_sample_from_url and returns a response
     - This method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
-- `submit_url_for_analysis_and_get_report`
-    - Sends a URL for analysis on A1000.
-    - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
-        out if the analysis results are not ready
 - `get_summary_report_v2`
   - Accepts a single hash or a list of hashes and returns JSON containing a summary report for each of them
   -  This method utilizes the set number of retries and wait time in seconds to time
-        out if the analysis results are not ready
-- `upload_sample_and_get_summary_report_v2`
-  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
-        report response
-  - This method combines uploading a sample and obtaining the summary analysis report
-  - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
         out if the analysis results are not ready
 - `get_detailed_report_v2`
   - Accepts a single hash or a list of hashes and returns a detailed analysis report for the selected samples
   - This method utilizes the set number of retries and wait time in seconds and times out if the
         analysis results are not ready
-- `upload_sample_and_get_detailed_report_v2`
-  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
-        analysis report response.
-  - This method combines uploading a sample and obtaining the detailed analysis report.
-  - Additional fields can be provided.
-  - The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
-        out if the analysis results are not ready.
 - `get_classification_v3`
   - Get classification for one sample
 - `reanalyze_samples_v2`
@@ -203,6 +180,21 @@ If username and password are used instead, a token fetching request will be done
 - `network_files_from_ip_aggregated`
   - Accepts an IP address string and returns a list of hashes and classifications for files found on the requested IP address
   - This method performs the paging automatically and returns a specified maximum number of records
+- `submit_file_from_handle`
+  - Accepts an open file handle for file upload and returns a response.
+- `submit_file_from_path`
+  - Accepts a file path string for file upload and returns a response.
+- `submit_file_and_get_summary_report`
+  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis report response.
+  - This method combines uploading a sample and obtaining the summary analysis report.
+- `submit_file_and_get_detailed_report`
+  - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed analysis report response.
+  - This method combines uploading a sample and obtaining the detailed analysis report.
+- `submit_url`
+  - Sends a URL for analysis on A1000.
+- `submit_url_and_get_report`
+  - Sends a URL for analysis on A1000 and fetches the analysis report.
+  - This method combines submitting a URL for analysis and obtaining the summary analysis report.
 
 ***
 
@@ -860,7 +852,7 @@ _TCA-0408_
 
 #### Class:
 ```python
-class TAXIIRansomwareFeed(TiCloudAPI)
+class TAXIIFeed(TiCloudAPI)
 ````
 #### Methods:
 - `discovery_info`
@@ -876,14 +868,6 @@ class TAXIIRansomwareFeed(TiCloudAPI)
 - `get_objects_aggregated`
     - Returns objects from a TAXII collection. 
     - This method does the paging automatically and returns a defined number of objects as a list in the end.
-
-#### Class:
-```python
-class AdvancedActions(object)
-````
-#### Methods:
-- `enriched_file_analysis`
-  - Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis report.
 
 ***
 
@@ -957,6 +941,62 @@ class FileInspectionEngine(object):
     - Sends a file to the FIE for inspection and returns a more complex analysis report in the submit response.
     - Uses an open file handle as input.
   
+***
+
+## Module: advanced
+A Python module containing advanced and combined actions utilizing various different classes.
+#### Class:
+```python
+class AdvancedActions(object):
+    def __init__(self, host, verify, proxies, user_agent)
+```
+#### Parameters:
+`host` - Spectra Intelligence host
+`username` - Spectra Intelligence username
+`password` - Spectra Intelligence password
+`verify` - verify SSL certificate  
+`proxies` - optional proxies in use  
+`user_agent` - optional user agent string
+
+#### Methods:
+- `enriched_file_analysis`
+  - Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis report.
+
+
+#### Class:
+```python
+class SpectraAssureScenarios(object):
+    def __init__(self, spectra_assure_client, verify_certs)
+```
+A class for using ReversingLabs Spectra Assure scenarios.
+#### Parameters:
+`spectra_assure_client` - class SpectraAssureClient client
+`verify_certs` - verify SSL certificates
+
+### Methods:
+- `a1000_upload_to_assure`
+  - Fetches a list of samples defined in the hash_list from Spectra Analyze and submits them to Spectra Assure for analysis.
+- `ticloud_upload_to_assure`
+  - Fetches a list of samples defined in the hash_list from Spectra Intelligence and submits them to Spectra Assure for analysis.
+
+
+#### Class:
+```python
+class SpectraAssureClient(object):
+    def __init__(self, host, token, organization, group)
+```
+A client class for using the ReversingLabs Spectra Assure API.
+#### Parameters:
+`host` - Spectra Assure host
+`token` - Your Spectra Assure user token  
+`organization` - Your Spectra Assure organization
+`group` - Your Spectra Assure group
+
+### Methods:
+- `submit_package`
+- `get_analysis_status`
+- `get_analysis_report`
+
 ***
 
 ## Examples
