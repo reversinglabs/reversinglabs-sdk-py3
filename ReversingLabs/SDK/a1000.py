@@ -28,7 +28,7 @@ class A1000(object):
     __TOKEN_ENDPOINT = "/api-token-auth/"
     __UPLOAD_ENDPOINT = "/api/uploads/"
     __SUBMIT_FILE_ENDPOINT = "/api/submit/file/"
-    __SUBMIT_URL_ENDPOINT  = "/api/submit/url/"
+    __SUBMIT_URL_ENDPOINT = "/api/submit/url/"
     __FILE_ANALYSIS_STATUS_ENDPOINT = "/api/samples/status/"
     __URL_ANALYSIS_STATUS_ENDPOINT = "/api/uploads/v2/url-samples/{task_id}"
     __RESULTS_ENDPOINT = "/api/samples/list/"
@@ -147,6 +147,7 @@ class A1000(object):
         configuration = """
             Host: {host}
             Report summary fields: {fields}
+            TitaniumCore fields: {ticore_fields}
             Wait time in seconds: {wait_time_seconds}
             Number of retries: {retries}
             User agent: {user_agent}
@@ -154,6 +155,7 @@ class A1000(object):
         """.format(
             host=self._host,
             fields=self._fields_v2,
+            ticore_fields=self._ticore_fields,
             wait_time_seconds=self._wait_time_seconds,
             retries=self._retries,
             user_agent=self._user_agent,
@@ -175,7 +177,8 @@ class A1000(object):
 
     def upload_sample_from_path(self, file_path, custom_filename=None, archive_password=None,
                                 rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
-        """Accepts a file path string for file upload and returns a response.
+        """THIS METHOD IS DEPRECATED. Use submit_file_from_path instead.
+        Accepts a file path string for file upload and returns a response.
         Additional parameters can be provided.
             :param file_path: path to file
             :type file_path: str
@@ -194,6 +197,8 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_file_from_path instead.", DeprecationWarning)
+
         if not isinstance(file_path, str):
             raise WrongInputError("file_path must be a string.")
 
@@ -225,7 +230,8 @@ class A1000(object):
 
     def upload_sample_from_file(self, file_source, custom_filename=None, archive_password=None,
                                 rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
-        """Accepts an open file in 'rb' mode for file upload and returns a response.
+        """THIS METHOD IS DEPRECATED. Use submit_file_from_handle instead.
+        Accepts an open file in 'rb' mode for file upload and returns a response.
         Additional parameters can be provided.
             :param file_source: open file
             :type file_source: file or BinaryIO
@@ -244,6 +250,8 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_file_from_handle instead.", DeprecationWarning)
+
         if not hasattr(file_source, "read"):
             raise WrongInputError("file_source parameter must be a file open in 'rb' mode.")
 
@@ -269,7 +277,8 @@ class A1000(object):
         return response
 
     def submit_url_for_analysis(self, url_string, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
-        """Sends a URL for analysis on A1000.
+        """THIS METHOD IS DEPRECATED. Use submit_url instead.
+        Sends a URL for analysis on A1000.
         Additional parameters can be provided.
             :param url_string: URL to analyze
             :type url_string: str
@@ -282,6 +291,7 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_url instead.", DeprecationWarning)
 
         data = self.__create_post_payload(
             crawler=crawler,
@@ -301,98 +311,309 @@ class A1000(object):
 
         return response
 
-    def submit_file(self, file_path, metadata, analysis, custom_filename=None, archive_password=None,rl_cloud_sandbox_platform=None, tags=None, comment=None, cloud_analysis=True):
-        """Accepts a file path string for file upload and returns a response.
+    def submit_file_from_handle(self, file_handle, metadata=None, analysis=None, custom_filename=None,
+                                archive_password=None, tags=None, comment=None):
+        """Accepts an open file handle for file upload and returns a response.
         Additional parameters can be provided.
-            :param file_path: path to file
-            :type file_path: str
-            :param metadata: Optiona JSON metadata dictionary to include with the file
+            :param file_handle: open file in rb mode
+            :type file_handle: file or BinaryIO
+            :param metadata: optional metadata dictionary to include with the file; see API documentation
+            for available options
             :type metadata: dict
-            :param analysis: Optional JSON analysis configuration dictionary (e.g. sandbox profiles)
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
             :type analysis: dict
             :param custom_filename: custom file name for upload
             :type custom_filename: str
             :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
-            :type rl_cloud_sandbox_platform: str
             :param tags: a string of comma separated tags
             :type tags: str
             :param comment: comment string
             :type comment: str
-            :param cloud_analysis: use cloud analysis
-            :type cloud_analysis: bool
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
-        if not isinstance(file_path, str):
-            raise WrongInputError("file_path must be a string.")
-        try:
-            file_handle = open(file_path, "rb")
-        except IOError as error:
-            raise WrongInputError("Error while opening file")
+        if not hasattr(file_handle, "read"):
+            raise WrongInputError("file_handle parameter must be a file open in 'rb' mode.")
 
         url = self._url.format(endpoint=self.__SUBMIT_FILE_ENDPOINT)
-        data = self.__create_post_payload(
-            custom_filename=custom_filename,
-            archive_password=archive_password,
-            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
-            tags=tags,
-            comment=comment,
-            cloud_analysis=cloud_analysis
-        ) or {}
-        data["metadata"] = json.dumps(metadata)
-        data["analysis"] = json.dumps(analysis)
+
+        data = {
+            "tags": tags,
+            "comment": comment,
+            "archive_password": archive_password,
+            "filename": custom_filename,
+            "analysis": json.dumps(analysis) if analysis else None,
+            "metadata": json.dumps(metadata) if metadata else None
+        }
 
         response = self.__post_request(
             url=url,
             files={"file": file_handle},
             data=data
         )
-        print(response.status_code, response.text)
+
         self.__raise_on_error(response)
 
         return response
 
-    def submit_url(self, url_to_submit, metadata, analysis, crawler=None, archive_password=None, rl_cloud_sandbox_platform=None):
-        """Sends a URL for analysis on A1000.
+    def submit_file_from_path(self, file_path, metadata=None, analysis=None, custom_filename=None,
+                              archive_password=None, tags=None, comment=None):
+        """Accepts a file path string for file upload and returns a response.
         Additional parameters can be provided.
-            :param url_to_submit: URL to analyze
-            :type url_to_submit: str
-            :param metadata: Optional JSON metadata dictionary to include with the file
+            :param file_path: local path to file
+            :type file_path: str
+            :param metadata: optional metadata dictionary to include with the file; see API documentation
+            for available options
             :type metadata: dict
-            :param analysis: Optional JSON analysis configuration dictionary (e.g. sandbox profiles)
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
             :type analysis: dict
-            :param crawler: crawler method (local or cloud)
-            :type crawler: str
-            :param archive_password: password, if it is a password-protected archive
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param archive_password: password, if file is a password-protected archive
             :type archive_password: str
-            :param rl_cloud_sandbox_platform: Cloud Sandbox platform (windows7, windows10 or macos_11)
-            :type rl_cloud_sandbox_platform: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
-        if not isinstance(url_to_submit, str):
+        if not isinstance(file_path, str):
+            raise WrongInputError("file_path parameter must be a string.")
+
+        try:
+            file_handle = open(file_path, "rb")
+        except IOError as error:
+            raise WrongInputError("Error while opening file in 'rb' mode - {error}".format(error=str(error)))
+
+        response = self.submit_file_from_handle(
+            file_handle=file_handle,
+            metadata=metadata,
+            analysis=analysis,
+            custom_filename=custom_filename,
+            archive_password=archive_password,
+            tags=tags,
+            comment=comment
+        )
+
+        return response
+
+    def submit_file_and_get_summary_report(self, file_path=None, file_handle=None, metadata=None, analysis=None,
+                                           custom_filename=None, archive_password=None, tags=None, comment=None,
+                                           retry=True, fields=None, include_networkthreatintelligence=True,
+                                           skip_reanalysis=False):
+        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
+        report response. This method combines uploading a sample and obtaining the summary analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_path: file path
+            :type file_path: str
+            :param file_handle: open file
+            :type file_handle: file or BinaryIO
+            :param metadata: optional metadata dictionary to include with the file; see API documentation
+            for available options
+            :type metadata: dict
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
+            :type analysis: dict
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param include_networkthreatintelligence: include network threat intelligence in the summary report
+            :type include_networkthreatintelligence: bool
+            :param skip_reanalysis: skip sample reanalysis when fetching the summary report
+            :type skip_reanalysis: bool
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        if bool(file_path) == bool(file_handle):
+            raise WrongInputError("Either file_path or file_handle parameter must be provided. "
+                                  "Using both or none of the parameters is not allowed.")
+
+        if file_path:
+            upload_response = self.submit_file_from_path(
+                file_path=file_path,
+                metadata=metadata,
+                analysis=analysis,
+                custom_filename=custom_filename,
+                archive_password=archive_password,
+                tags=tags,
+                comment=comment
+            )
+
+        else:
+            upload_response = self.submit_file_from_handle(
+                file_handle=file_handle,
+                metadata=metadata,
+                analysis=analysis,
+                custom_filename=custom_filename,
+                archive_password=archive_password,
+                tags=tags,
+                comment=comment
+            )
+
+        response_detail = upload_response.json().get("detail")
+        sha1 = response_detail.get("sha1")
+
+        response = self.get_summary_report_v2(
+            sample_hashes=[sha1],
+            retry=retry,
+            fields=fields,
+            include_networkthreatintelligence=include_networkthreatintelligence,
+            skip_reanalysis=skip_reanalysis
+        )
+
+        return response
+
+    def submit_file_and_get_detailed_report(self, file_path=None, file_handle=None, metadata=None, analysis=None,
+                                            custom_filename=None, archive_password=None, tags=None, comment=None,
+                                            retry=True, fields=None, include_networkthreatintelligence=True,
+                                            skip_reanalysis=False):
+        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        analysis report response. This method combines uploading a sample and obtaining the detailed analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param file_path: file path
+            :type file_path: str
+            :param file_handle: open file
+            :type file_handle: file or BinaryIO
+            :param metadata: optional metadata dictionary to include with the file; see API documentation
+            for available options
+            :type metadata: dict
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
+            :type analysis: dict
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param fields: list of A1000 report 'fields' to query
+            :type fields: list[str]
+            :param skip_reanalysis: skip sample reanalysis when fetching the detailed report
+            :type skip_reanalysis: bool
+            :param custom_filename: custom file name for upload
+            :type custom_filename: str
+            :param tags: a string of comma separated tags
+            :type tags: str
+            :param comment: comment string
+            :type comment: str
+            :param archive_password: password, if file is a password-protected archive
+            :type archive_password: str
+            :param include_networkthreatintelligence: include network threat intelligence in the detailed report
+            :type include_networkthreatintelligence: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if bool(file_path) == bool(file_handle):
+            raise WrongInputError("Either file_path or file_handle parameter must be provided. "
+                                  "Using both or none of the parameters is not allowed.")
+
+        if file_path:
+            upload_response = self.submit_file_from_path(
+                file_path=file_path,
+                metadata=metadata,
+                analysis=analysis,
+                custom_filename=custom_filename,
+                archive_password=archive_password,
+                tags=tags,
+                comment=comment
+            )
+        else:
+            upload_response = self.submit_file_from_handle(
+                file_handle=file_handle,
+                metadata=metadata,
+                analysis=analysis,
+                custom_filename=custom_filename,
+                archive_password=archive_password,
+                tags=tags,
+                comment=comment
+            )
+
+        response_detail = upload_response.json().get("detail")
+        sha1 = response_detail.get("sha1")
+
+        response = self.get_detailed_report_v2(
+            sample_hashes=sha1,
+            retry=retry,
+            fields=fields,
+            skip_reanalysis=skip_reanalysis,
+            include_networkthreatintelligence=include_networkthreatintelligence
+        )
+
+        return response
+
+    def submit_url(self, url_string, crawler, analysis=None):
+        """Sends a URL for analysis on A1000. Additional parameters can be provided.
+            :param url_string: URL to analyze
+            :type url_string: str
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
+            :type analysis: dict
+            :param crawler: crawler to crawl the submitted URL (local or cloud)
+            :type crawler: str
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        if not isinstance(url_string, str):
             raise WrongInputError("url_to_submit parameter must be a string.")
 
         url = self._url.format(endpoint=self.__SUBMIT_URL_ENDPOINT)
 
-        data = self.__create_post_payload(
-            url_string=url_to_submit,
-            crawler=crawler,
-            archive_password=archive_password,
-            rl_cloud_sandbox_platform=rl_cloud_sandbox_platform,
-        ) or {}
-        data["metadata"] = json.dumps(metadata)
-        data["analysis"] = json.dumps(analysis)
+        data = {
+            "url": url_string,
+            "crawler": crawler,
+            "analysis": json.dumps(analysis) if analysis else None
+        }
 
         response = self.__post_request(
             url=url,
             data=data
         )
 
-        print(response.status_code, response.text)
         self.__raise_on_error(response)
+
+        return response
+
+    def submit_url_and_get_report(self, url_string, crawler, analysis=None, retry=True):
+        """Sends a URL for analysis on A1000 and fetches the analysis report.
+        This method combines submitting a URL for analysis and obtaining the summary analysis report.
+        Additional fields can be provided.
+        The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
+        out if the analysis results are not ready.
+            :param url_string: URL to analyze
+            :type url_string: str
+            :param retry: if set to False there will only be one try at obtaining the analysis report
+            :type retry: bool
+            :param analysis: optional analysis configuration dictionary (e.g. sandbox profiles); see API documentation
+            for available options
+            :type analysis: dict
+            :param crawler: crawler method (local or cloud)
+            :type crawler: string
+            :return: :class:`Response <Response>` object
+            :rtype: requests.Response
+        """
+        upload_response = self.submit_url(
+            url_string=url_string,
+            crawler=crawler,
+            analysis=analysis
+        )
+
+        response_detail = upload_response.json().get("detail")
+        task_id = str(response_detail.get("id"))
+
+        response = self.get_submitted_url_report(task_id=task_id, retry=retry)
 
         return response
 
@@ -406,6 +627,7 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        data = {"hash_values": sample_hashes}
         data = {"hash_values": sample_hashes}
 
         params = {}
@@ -458,7 +680,6 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-
         if retry not in (True, False):
             raise WrongInputError("retry parameter must be boolean.")
 
@@ -482,7 +703,8 @@ class A1000(object):
 
     def submit_url_for_analysis_and_get_report(self, url_string, retry=True, crawler="local", archive_password=None,
                                                rl_cloud_sandbox_platform=None):
-        """Sends a URL for analysis on A1000.
+        """THIS METHOD IS DEPRECATED. Use submit_url_and_get_report instead.
+        Sends a URL for analysis on A1000.
         This method combines submitting a URL for analysis and obtaining the summary analysis report.
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
@@ -500,6 +722,7 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_url_and_get_report instead.", DeprecationWarning)
 
         upload_response = self.submit_url_for_analysis(url_string=url_string, crawler=crawler,
                                                        archive_password=archive_password,
@@ -600,7 +823,8 @@ class A1000(object):
                                                 include_networkthreatintelligence=True, skip_reanalysis=False,
                                                 custom_filename=None, tags=None, comment=None, cloud_analysis=True,
                                                 archive_password=None, rl_cloud_sandbox_platform=None):
-        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
+        """THIS METHOD IS DEPRECATED. Use submit_file_and_get_summary_report instead.
+        Accepts either a file path string or an open file in 'rb' mode for file upload and returns a summary analysis
         report response. This method combines uploading a sample and obtaining the summary analysis report.
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
@@ -632,6 +856,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_file_and_get_summary_report instead.", DeprecationWarning)
+
         if (file_path and file_source) or (not file_path and not file_source):
             raise WrongInputError("Either file_path or file_source parameter must be provided. "
                                   "Using both or none of the parameters in sot allowed.")
@@ -741,7 +967,8 @@ class A1000(object):
                                                  custom_filename=None, tags=None, comment=None, cloud_analysis=True,
                                                  archive_password=None, rl_cloud_sandbox_platform=None,
                                                  skip_reanalysis=False, include_networkthreatintelligence=True):
-        """Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
+        """THIS METHOD IS DEPRECATED. Use submit_file_and_get_detailed_report instead.
+        Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed
         analysis report response. This method combines uploading a sample and obtaining the detailed analysis report.
         Additional fields can be provided.
         The result fetching action of this method utilizes the set number of retries and wait time in seconds to time
@@ -773,6 +1000,8 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
+        warn("This method is deprecated. Use submit_file_and_get_detailed_report instead.", DeprecationWarning)
+
         if (file_path and file_source) or (not file_path and not file_source):
             raise WrongInputError("Either file_path or file_source parameter must be provided. "
                                   "Using both or none of the parameters in sot allowed.")

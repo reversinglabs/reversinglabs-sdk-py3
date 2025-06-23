@@ -2,7 +2,7 @@ from setuptools import setup
 from ReversingLabs.SDK import __version__
 
 
-requires = ["requests>=2.32.3"]
+requires = ["requests>=2.32.4"]
 
 packages = ["ReversingLabs",
             "ReversingLabs.SDK"]
@@ -35,6 +35,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Security",
         "Topic :: Software Development :: Libraries :: Python Modules"
