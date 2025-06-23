@@ -409,6 +409,9 @@ v2.5.1 (2024-04-02)
 -------------------
 
 #### Improvements
+- **ticloud** module:
+  - Added the `TAXIIFeed` class which will replace the `TAXIIRansomwareFeed` class in all its use cases in the future.
+
 - **advanced** module:
   - Created a new module called `advanced`. This module will hold various actions and scenarios that include multiple platforms and APIs.
   - The `AdvancedActions` class was moved from the `ticloud` module into `advanced`.
@@ -423,7 +426,45 @@ v2.5.1 (2024-04-02)
 
 - **Scenarios and Workflows** notebooks:
   - Added the `advanced_search_using_network_indicators.ipynb` notebook.
-  
+
+
+
+2.10.0 (2025-06-25)
+-------------------
+
+#### Improvements
+- **a1000** module:
+  - Added the `submit_file_from_handle`, `submit_file_from_path`, `submit_file_and_get_summary_report`, `submit_file_and_get_detailed_report`, `submit_url` and `submit_url_and_get_report` methods.
+
+- **ticloud** module:
+  - Added additional result filtering options to the `TAXIIFeed.get_objects_aggregated` method.
+
+#### Deprecations
+- **a1000** module:
+  - Deprecated the `upload_sample_from_path`, `upload_sample_from_file`, `submit_url_for_analysis`, `submit_url_for_analysis_and_get_report`, `upload_sample_and_get_summary_report_v2` and `upload_sample_and_get_detailed_report_v2` methods.
+
+- **ticloud** module:
+  - Deprecated the `TAXIIRansomwareFeed` class.
+
+
+### ReversingLabs SDK Cookbook changes
+### Improvements
+- **Scenarios and Workflows** notebooks:
+  - Added the `TAXII_data_filtering` notebook.
+
+
+
+
+
+-------------------
+### Scheduled removals
+- **December 2025.**:
+  - **a1000** module:
+    - `upload_sample_from_path`, `upload_sample_from_file`, `submit_url_for_analysis`, `submit_url_for_analysis_and_get_report`, `upload_sample_and_get_summary_report_v2` and `upload_sample_and_get_detailed_report_v2` methods.
+  - **ticloud** module:
+    - `TAXIIRansomwareFeed` class.
+
+
 Starting with ReversingLabs SDK version 2.8.0, the **ReversingLabs SDK Cookbook** project's release cycle and versioning are closely tied to this project.  
 This changelog will also be keeping track of changes made to the ReversingLabs SDK Cookbook project.
 
