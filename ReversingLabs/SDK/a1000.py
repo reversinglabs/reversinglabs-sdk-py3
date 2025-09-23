@@ -64,6 +64,7 @@ class A1000(object):
     __GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT = "/api/yara/ticloud/time/"
     __YARA_LOCAL_RETROSCAN_ENDPOINT = "/api/uploads/local-retro-hunt/"
     __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
+    __YARA_REPOSITORIES_ENDPOINT = "/api/yara/repositories/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
     __ADVANCED_SEARCH_ENDPOINT_V3 = "/api/samples/v3/search/"
     __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
@@ -2018,6 +2019,88 @@ class A1000(object):
         self.__raise_on_error(response)
 
         return response
+
+    def get_yara_repositories(self, active_filter=None, page_size=None, page_number=None):
+        """Returns a list of all Yara Online Sources repositories
+        with optional filtering by custom or system repositories.
+            :param active_filter: Filter repositories by type. Possible values: 'all', 'user' and 'system'
+            :type active_filter: str
+            :param page_size: Number of results per page
+            :type page_size: int
+            :param page_number: Page number
+            :type page_number: int
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_REPOSITORIES_ENDPOINT)
+
+        params = {
+            "active_filter": active_filter,
+            "page_size": page_size,
+            "page": page_number
+        }
+
+        response = self.__get_request(url=url, params=params)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_repositories_aggregated(self, active_filter=None, page_size=100, max_results=None):
+        """Returns a list of all Yara Online Sources repositories
+        with optional filtering by custom or system repositories.
+        This method performs automated paging with defining the maximum number of returned results being optional.
+            :param active_filter: Filter repositories by type. Possible values: 'all', 'user' and 'system'
+            :type active_filter: str
+            :param page_size: Number of results per page
+            :type page_size: int
+            :param max_results: Maximum number of results to return; Leave as None to get all results
+            :type max_results: int or None
+            :return: response
+            :rtype: requests.Response
+        """
+        results_list = []
+
+        response = self.get_yara_repositories(
+            active_filter=active_filter,
+            page_size=page_size,
+            page_number=1
+        )
+
+        results = response.json().get("results", [])
+        results_list.append(results)
+
+        if max_results and len(results_list) >= max_results:
+            return results_list[:max_results]
+
+        next_page_url = response.json().get("next")
+
+        while next_page_url:
+            response = self.__get_request(url=next_page_url)
+
+            results = response.json().get("results", [])
+            results_list.append(results)
+
+            next_page_url = response.json().get("next")
+
+            if not max_results:
+                if not next_page_url:
+                    break
+
+            else:
+                if not next_page_url or len(results_list) >= max_results:
+                    return results_list[:max_results]
+
+        return results_list
+
+
+
+
+
+
+
+
+
 
     def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
