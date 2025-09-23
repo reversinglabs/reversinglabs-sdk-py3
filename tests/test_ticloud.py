@@ -22,7 +22,7 @@ HOST = "https://example.com"
 USERNAME = "username"
 PASSWORD = "password"
 
-EXPECTED_PLATFORMS = ("windows7", "windows10", "macos11", "windows11", "linux")
+EXPECTED_PLATFORMS = ("windows7", "windows10", "macos11", "windows11", "linux", "android12")
 EXPECTED_RHA1_TYPES = {
 	"PE": "pe01",
 	"PE+": "pe01",
