@@ -1640,6 +1640,7 @@ class URLThreatIntelligence(TiCloudAPI):
     """TCA-0403 - URL Threat Intelligence"""
 
     __URL_REPORT_ENDPOINT = "/api/networking/url/v1/report/query/json"
+    __URL_BULK_REPORT_ENDPOINT = "/api/networking/url/v1/report/bulk_query/json"
     __DOWNLOADED_FILES_ENDPOINT = "/api/networking/url/v1/downloaded_files/query/json"
     __URL_ANALYSIS_FEED_LATEST = "/api/networking/url/v1/notifications/query/latest"
     __URL_ANALYSIS_FEED_FROM_DATE = "/api/networking/url/v1/notifications/query/from"
@@ -1652,18 +1653,24 @@ class URLThreatIntelligence(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def get_url_report(self, url_input):
-        """Accepts a URL string and returns a URL analysis report.
-            :param url_input: URL string
-            :type url_input: str
+        """Accepts a URL string or a list of URLs and returns a URL analysis report.
+            :param url_input: URL string or list of URLs
+            :type url_input: str or list[str]
             :return: response
             :rtype: requests.Response
         """
-        if not isinstance(url_input, str):
-            raise WrongInputError("The input can only be a URL string.")
+        if isinstance(url_input, str):
+            endpoint = self.__URL_REPORT_ENDPOINT.format(format="json")
 
-        url = self._url.format(endpoint=self.__URL_REPORT_ENDPOINT)
+            post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+        elif isinstance(url_input, list):
+            endpoint = self.__URL_BULK_REPORT_ENDPOINT.format(format="json")
 
-        post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+            post_json = {"rl": {"query": {"urls": url_input, "response_format": "json"}}}
+        else:
+            raise WrongInputError("ip_address_input parameter must be string or list.")
+
+        url = self._url.format(endpoint=endpoint)
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)
@@ -2011,6 +2018,7 @@ class DomainThreatIntelligence(TiCloudAPI):
     """TCA-0405 - Domain Threat Intelligence"""
 
     __DOMAIN_REPORT_ENDPOINT = "/api/networking/domain/report/v1/query/{format}"
+    __DOMAIN_BULK_REPORT_ENDPOINT = "/api/networking/domain/report/v1/bulk_query/{format}"
     __DOWNLOADED_FILES_ENDPOINT = "/api/networking/domain/downloaded_files/v1/query/{format}"
     __URLS_DOMAIN_ENDPOINT = "/api/networking/domain/urls/v1/query/{format}"
     __RESOLUTIONS_ENDPOINT = "/api/networking/domain/resolutions/v1/query/{format}"
@@ -2023,20 +2031,25 @@ class DomainThreatIntelligence(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def get_domain_report(self, domain):
-        """Accepts a domain string and returns threat intelligence data for the submitted domain.
-            :param domain: domain string
-            :type domain: str
+    def get_domain_report(self, domain_input):
+        """Accepts a domain string or a list of domains and returns threat intelligence data.
+            :param domain_input: domain string or list of domains
+            :type domain_input: str or list[str]
             :return: response
             :rtype: requests.Response
         """
-        if not isinstance(domain, str):
-            raise WrongInputError("domain parameter must be string.")
+        if isinstance(domain_input, str):
+            endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(format="json")
 
-        endpoint = self.__DOMAIN_REPORT_ENDPOINT.format(format="json")
+            post_json = {"rl": {"query": {"domain": domain_input, "response_format": "json"}}}
+        elif isinstance(domain_input, list):
+            endpoint = self.__DOMAIN_BULK_REPORT_ENDPOINT.format(format="json")
+
+            post_json = {"rl": {"query": {"domains": domain_input, "response_format": "json"}}}
+        else:
+            raise WrongInputError("ip_address_input parameter must be string or list.")
+
         url = self._url.format(endpoint=endpoint)
-
-        post_json = {"rl": {"query": {"domain": domain, "response_format": "json"}}}
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)
@@ -2354,6 +2367,7 @@ class IPThreatIntelligence(TiCloudAPI):
     """TCA-0406 - IP Threat Intelligence"""
 
     __IP_REPORT_ENDPOINT = "/api/networking/ip/report/v1/query/{format}"
+    __IP_BULK_REPORT_ENDPOINT = "/api/networking/ip/report/v1/bulk_query/{format}"
     __DOWNLOADED_FILES_ENDPOINT = "/api/networking/ip/downloaded_files/v1/query/{format}"
     __URLS_IP_ENDPOINT = "/api/networking/ip/urls/v1/query/{format}"
     __RESOLUTIONS_ENDPOINT = "/api/networking/ip/resolutions/v1/query/{format}"
@@ -2365,21 +2379,26 @@ class IPThreatIntelligence(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def get_ip_report(self, ip_address):
-        """Accepts an IP address as a string and returns threat intelligence
-        data for the submitted IP address.
-            :param ip_address: IP address
-            :type ip_address: str
+    def get_ip_report(self, ip_address_input):
+        """Accepts an IP address as a string or multiple IP addresses as a list and returns threat intelligence
+        data.
+            :param ip_address_input: IP address or list of IP addresses
+            :type ip_address_input: str or list[str]
             :return: response
             :rtype: requests.Response
         """
-        if not isinstance(ip_address, str):
-            raise WrongInputError("ip_address parameter must be string.")
+        if isinstance(ip_address_input, str):
+            endpoint = self.__IP_REPORT_ENDPOINT.format(format="json")
 
-        endpoint = self.__IP_REPORT_ENDPOINT.format(format="json")
+            post_json = {"rl": {"query": {"ip": ip_address_input, "response_format": "json"}}}
+        elif isinstance(ip_address_input, list):
+            endpoint = self.__IP_BULK_REPORT_ENDPOINT.format(format="json")
+
+            post_json = {"rl": {"query": {"ips": ip_address_input, "response_format": "json"}}}
+        else:
+            raise WrongInputError("ip_address_input parameter must be string or list.")
+
         url = self._url.format(endpoint=endpoint)
-
-        post_json = {"rl": {"query": {"ip": ip_address, "response_format": "json"}}}
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)

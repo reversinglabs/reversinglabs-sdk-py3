@@ -625,7 +625,7 @@ class TestURLThreatIntelligence:
 	def setup_class(cls):
 		cls.url_ti = URLThreatIntelligence(HOST, USERNAME, PASSWORD)
 
-	def test_query(self, requests_mock):
+	def test_single_url_query(self, requests_mock):
 		self.url_ti.get_url_report(self.test_url)
 
 		expected_url = f"{HOST}/api/networking/url/v1/report/query/json"
@@ -645,6 +645,27 @@ class TestURLThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_urls_queries(self, requests_mock):
+		list_test_urls = [self.test_url] * 3
+
+		self.url_ti.get_url_report(list_test_urls)
+
+		expected_url = f"{HOST}/api/networking/url/v1/report/bulk_query/json"
+
+		post_json = {"rl": {
+			"query": {"urls": list_test_urls,
+					  "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.url_ti.__class__.__name__} get_url_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestAnalyzeURL:
 	test_url = "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml"
@@ -681,7 +702,7 @@ class TestDomainThreatIntelligence:
 	def setup_class(cls):
 		cls.domain_ti = DomainThreatIntelligence(HOST, USERNAME, PASSWORD)
 
-	def test_query(self, requests_mock):
+	def test_single_domain_query(self, requests_mock):
 		self.domain_ti.get_domain_report(self.domain)
 
 		expected_url = f"{HOST}/api/networking/domain/report/v1/query/json"
@@ -699,6 +720,25 @@ class TestDomainThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_domains_query(self, requests_mock):
+		list_test_domains = [self.domain] * 3
+
+		self.domain_ti.get_domain_report(list_test_domains)
+
+		expected_url = f"{HOST}/api/networking/domain/report/v1/bulk_query/json"
+
+		post_json = {"rl": {"query": {"domains": list_test_domains, "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.domain_ti.__class__.__name__} get_domain_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestIPThreatIntelligence:
 	ip = "1.1.1.1"
@@ -713,8 +753,8 @@ class TestIPThreatIntelligence:
 
 		assert not requests_mock.post.called
 
-	def test_query(self, requests_mock):
-		self.ip_ti.get_ip_report(ip_address=self.ip)
+	def test_single_ip_query(self, requests_mock):
+		self.ip_ti.get_ip_report(ip_address_input=self.ip)
 
 		expected_url = f"{HOST}/api/networking/ip/report/v1/query/json"
 
@@ -731,6 +771,25 @@ class TestIPThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_ips_query(self, requests_mock):
+		list_test_ips = [self.ip] * 3
+
+		self.ip_ti.get_ip_report(ip_address_input=list_test_ips)
+
+		expected_url = f"{HOST}/api/networking/ip/report/v1/bulk_query/json"
+
+		post_json = {"rl": {"query": {"ips": list_test_ips, "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ip_ti.__class__.__name__} get_ip_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestFileUpload:
 	@classmethod
