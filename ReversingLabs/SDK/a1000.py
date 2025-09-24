@@ -67,6 +67,9 @@ class A1000(object):
     __YARA_REPOSITORIES_ENDPOINT = "/api/yara/repositories/"
     __YARA_PUBLISH_ALL_ENDPOINT = "/api/yara/publish/all/"
     __YARA_PUBLISH_RULESET_ENDPOINT = "/api/yara/publish/ruleset/{ruleset_name}/"
+    __YARA_SET_UPDATE_ENDPOINT = "/api/yara/update/set-interval/{value_seconds}/"
+    __YARA_RESET_UPDATE_ENDPOINT = "/api/yara/update/reset-interval/"
+    __YARA_RUN_UPDATE_ENDPOINT = "/api/yara/update/run/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
     __ADVANCED_SEARCH_ENDPOINT_V3 = "/api/samples/v3/search/"
     __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
@@ -2244,18 +2247,52 @@ class A1000(object):
 
         return response
 
+    def set_yara_update_interval(self, seconds):
+        """Configure the interval at which the YARA update job runs automatically.
+            :param seconds: Interval in seconds;
+            Setting to '0' will disable auto-update job (This will introduce a short maintenance downtime)
+            :type seconds: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(seconds, int):
+            raise WrongInputError("seconds should be an integer")
 
+        endpoint = self.__YARA_SET_UPDATE_ENDPOINT.format(value_seconds=seconds)
 
+        url = self._url.format(endpoint=endpoint)
 
+        response = self.__post_request(url=url)
 
+        self.__raise_on_error(response)
 
+        return response
 
+    def reset_yara_update_interval(self):
+        """Reset the YARA update job cadence to its default value.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_RESET_UPDATE_ENDPOINT)
 
+        response = self.__post_request(url=url)
 
+        self.__raise_on_error(response)
 
+        return response
 
+    def run_yara_update(self):
+        """Manually trigger YARA update job execution.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_RUN_UPDATE_ENDPOINT)
 
+        response = self.__post_request(url=url)
 
+        self.__raise_on_error(response)
+
+        return response
 
     def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
