@@ -1,11 +1,12 @@
 import io
 import requests
 
+from datetime import datetime
 from typing import Union
-from time import sleep
+from time import sleep, time
 
 from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError
-from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload
+from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -16,25 +17,23 @@ class AdvancedActions(object):
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
 
-        self._rldata_client = FileAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
+        conf = {
+            "host": host,
+            "username": username,
+            "password": password,
+            "verify": verify,
+            "user_agent": user_agent,
+            "proxies": proxies,
+            "allow_none_return": allow_none_return
+        }
 
-        self._da_client = DynamicAnalysis(
-            host=host,
-            username=username,
-            password=password,
-            verify=verify,
-            user_agent=user_agent,
-            proxies=proxies,
-            allow_none_return=allow_none_return
-        )
+        self._rldata_client = FileAnalysis(**conf)
+
+        self._da_client = DynamicAnalysis(**conf)
+
+        self._yara_client = YARAHunting(**conf)
+
+        self._file_dl_client = FileDownload(**conf)
 
     def enriched_file_analysis(self, sample_hash):
         """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
@@ -64,6 +63,43 @@ class AdvancedActions(object):
             return rldata_report
 
         return {}
+
+    def __get_yara_matches(self, starting_timestamp, current_timestamp):
+        """Private method for aggregating SHA1 hashes of found YARA matches.
+            :param starting_timestamp: Starting time in the integer Unix timestamp format
+            :type starting_timestamp: int
+            :param current_timestamp: Current time in the integer Unix timestamp format
+            :type current_timestamp: int
+            :return: List of SHA1 strings
+            :rtype: list
+        """
+        sha1_list = []
+
+        while starting_timestamp < current_timestamp:
+            resp = self._yara_client.yara_matches_feed("timestamp", starting_timestamp)
+
+            entries = resp.json().get("rl", {}).get("feed", {}).get("entries", [])
+            starting_timestamp = resp.json().get("rl", {}).get("feed", {}).get("last_timestamp")
+
+            for entry in entries:
+                sha1_list.append(entry.get("sha1"))
+
+        return sha1_list
+
+    def download_yara_matches(self, starting_timestamp):
+        """Download all YARA matches from the defined timestamp to the current moment.
+            :param starting_timestamp: Starting time in the integer Unix timestamp format
+            :type starting_timestamp: int
+        """
+        current_timestamp = int(time())
+
+        matches_list = self.__get_yara_matches(starting_timestamp, current_timestamp)
+
+        for sha1 in matches_list:
+            resp = self._file_dl_client.download_sample(sha1)
+
+            with open(sha1, "wb") as file_handle:
+                file_handle.write(resp.content)
 
 
 class SpectraAssureClient(object):
