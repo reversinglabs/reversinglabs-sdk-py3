@@ -2669,7 +2669,7 @@ class FileUpload(TiCloudAPI):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
     def upload_sample_from_path(self, file_path, sample_name=None, sample_domain=None, subscribe=None,
-                                archive_type=None, archive_password=None):
+                                archive_passwords=None):
         """Accepts a file path string and uploads the desired file to the File Upload API.
             :param file_path: file path string
             :type file_path: str
@@ -2680,13 +2680,9 @@ class FileUpload(TiCloudAPI):
             :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
             data change feed subscription list
             :type subscribe: str
-            :param archive_type: use only if the archive is protected;
-            used to define the compression algorithm of the protected archive file;
-            supported values: 'zip'
-            :type archive_type: str
-            :param archive_password: use only if the archive is protected;
-            the password for extracting the content of the archive
-            :type archive_password: str
+            :param archive_passwords: use only if the archive is protected;
+            list of passwords for extracting the content of the archive
+            :type archive_passwords: list[str]
             :return: response
             :rtype: requests.Response
         """
@@ -2709,14 +2705,13 @@ class FileUpload(TiCloudAPI):
             sample_name=sample_name,
             sample_domain=sample_domain,
             subscribe=subscribe,
-            archive_type=archive_type,
-            archive_password=archive_password
+            archive_passwords=archive_passwords
         )
 
         return response
 
     def upload_sample_from_file(self, file_handle, sample_name=None, sample_domain=None, subscribe=None,
-                                archive_type=None, archive_password=None):
+                                archive_passwords=None):
         """Accepts an open file handle and uploads the desired file to the File Upload API.
             :param file_handle: open file
             :type file_handle: file or BinaryIO
@@ -2727,13 +2722,9 @@ class FileUpload(TiCloudAPI):
             :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
             data change feed subscription list
             :type subscribe: str
-            :param archive_type: use only if the archive is protected;
-            used to define the compression algorithm of the protected archive file;
-            supported values: 'zip'
-            :type archive_type: str
-            :param archive_password: use only if the archive is protected;
-            the password for extracting the content of the archive
-            :type archive_password: str
+            :param archive_passwords: use only if the archive is protected;
+            list of passwords for extracting the content of the archive
+            :type archive_passwords: list[str]
             :return: response
             :rtype: requests.Response
         """
@@ -2777,13 +2768,12 @@ class FileUpload(TiCloudAPI):
             sample_name=sample_name,
             sample_domain=sample_domain,
             subscribe=subscribe,
-            archive_type=archive_type,
-            archive_password=archive_password
+            archive_passwords=archive_passwords
         )
 
         return response
 
-    def __upload_meta(self, url, sample_name, sample_domain, subscribe, archive_type, archive_password):
+    def __upload_meta(self, url, sample_name, sample_domain, subscribe, archive_passwords):
         """Private method for setting up and uploading metadata of a sample uploaded to the File Upload API.
             :param url: URL used for sample upload
             :type url: str
@@ -2794,39 +2784,24 @@ class FileUpload(TiCloudAPI):
             :param subscribe: if the value is 'data_change' this parameter adds the sample to the user's
             data change feed subscription list
             :type subscribe: str
-            :param archive_type: used to define the compression algorithm if sending an archive file;
-            supported values: 'zip'
-            :type archive_type: str
-            :param archive_password: the password for extracting the content of the archive
-            :type archive_password: str
+            :param archive_passwords: list of password for extracting the content of the archive
+            :type archive_passwords: list[str]
             :return: response
             :rtype: requests.Response
         """
         base_xml = "<properties><property><name>file_name</name><value>{sample_name}</value></property>" \
                    "</properties><domain>{domain}</domain>".format(domain=sample_domain, sample_name=sample_name)
 
-        if archive_type:
-            if not isinstance(archive_type, str):
-                raise WrongInputError("archive_type parameter must be string.")
+        if archive_passwords:
+            if not isinstance(archive_passwords, list):
+                raise WrongInputError("archive_password parameter must be list of strings.")
 
-            base_xml = "{base}<archive><archive_type>{archive_type}</archive_type>".format(
+            parsed_archive_passwords = self.__parse_list_of_passwords(archive_passwords)
+
+            base_xml = "{base}<archive><archive_passwords>{archive_password}</archive_passwords></archive>".format(
                 base=base_xml,
-                archive_type=archive_type
+                archive_password=parsed_archive_passwords
             )
-
-            if archive_password:
-                if not isinstance(archive_password, str):
-                    raise WrongInputError("archive_password parameter must be string.")
-
-                base_xml = "{base}<archive_password>{archive_password}</archive_password>".format(
-                    base=base_xml,
-                    archive_password=archive_password
-                )
-
-            base_xml = "{base}</archive>".format(base=base_xml)
-
-        elif archive_password and not archive_type:
-            raise WrongInputError("archive_password can not be used without archive_type.")
 
         meta_xml = "<rl>{base}</rl>".format(base=base_xml)
 
@@ -2869,6 +2844,28 @@ class FileUpload(TiCloudAPI):
             sample_name = "sample"
 
         return sample_name
+
+    @staticmethod
+    def __parse_list_of_passwords(password_list):
+        """Private method for parsing list of passwords. Each password is encapsulated in <password> tag field.
+        List is returned in XML format.
+            :param password_list: list of passwords
+            :type password_list: list[str]
+            :return: XML formatted list of passwords
+            :rtype: str
+        """
+        if not isinstance(password_list, list):
+            raise WrongInputError("password_list parameter must be list of strings.")
+
+        parsed_password_list = ""
+
+        for password in password_list:
+            if not isinstance(password, str):
+                raise WrongInputError("All elements in list of passwords must be string.")
+
+            parsed_password_list += "<password>{password}</password>".format(password=password)
+
+        return parsed_password_list
 
 
 class DeleteFile(TiCloudAPI):

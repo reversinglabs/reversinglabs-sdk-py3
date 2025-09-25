@@ -802,8 +802,7 @@ class TestFileUpload:
 			sample_name="test_name",
 			sample_domain="test_domain",
 			subscribe="data_change",
-			archive_type=None,
-			archive_password=None
+			archive_passwords=None
 		)
 
 		expected_url = "https://mock.url/meta"
@@ -826,6 +825,31 @@ class TestFileUpload:
 		with pytest.raises(WrongInputError, match=r"file_handle parameter must be a file open in 'rb' mode"):
 			self.upload.upload_sample_from_file(file_handle="aaa")
 
+	def test_upload_meta_archive(self, requests_mock):
+		self.upload._FileUpload__upload_meta(
+			url="https://mock.url",
+			sample_name="test_name",
+			sample_domain="test_domain",
+			subscribe="data_change",
+			archive_passwords=["password_test", "infected", "1234"]
+		)
+
+		expected_url = "https://mock.url/meta"
+		params = {"subscribe": "data_change"}
+		meta_xml = ("<rl><properties><property><name>file_name</name><value>test_name</value></property></properties>"
+					"<domain>test_domain</domain><archive><archive_passwords><password>password_test</password>"
+					"<password>infected</password><password>1234</password></archive_passwords></archive></rl>")
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.upload.__class__.__name__} __upload_meta"},
+			params=params,
+			json=None,
+			data=meta_xml
+		)
 
 class TestDeleteFile:
 	@classmethod
