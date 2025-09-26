@@ -24,7 +24,7 @@ XML = "xml"
 JSON = "json"
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
-AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux", "android12")
 VERTICAL_FEEDS_CATEGORIES = ("financial", "retail", "ransomware", "apt", "exploit", "configuration")
 IOC_CLASSIFICATION = ["MALICIOUS", "SUSPICIOUS"]
 IOC_VERTICAL_CATEGORIES = ("financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare")

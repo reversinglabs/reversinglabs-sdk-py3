@@ -748,8 +748,8 @@ class TestIPThreatIntelligence:
 		cls.ip_ti = IPThreatIntelligence(HOST, USERNAME, PASSWORD)
 
 	def test_wrong_input(self, requests_mock):
-		with pytest.raises(WrongInputError, match=r"p_address parameter must be string."):
-			self.ip_ti.get_ip_report(ip_address=1.1)
+		with pytest.raises(WrongInputError, match=r"ip_address_input parameter must be string."):
+			self.ip_ti.get_ip_report(ip_address_input=1.1)
 
 		assert not requests_mock.post.called
 
