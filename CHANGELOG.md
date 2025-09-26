@@ -453,7 +453,10 @@ v2.5.1 (2024-04-02)
   - Added the `TAXII_data_filtering` notebook.
 
 
-
+[//]: # (add to change log that Android12 is now supported)
+[//]: # (addded bulk report support for 403 405 406)
+[//]: # (addded archive passwords support for 202/203 / removed archive type parameter)
+[//]: # (addded new ticloud API support for TCA-0330 (all 5 APIs)
 
 
 -------------------
