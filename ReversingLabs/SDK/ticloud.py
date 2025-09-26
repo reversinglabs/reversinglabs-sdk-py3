@@ -12,6 +12,7 @@ import inspect
 import json
 import os
 import requests
+from warnings import warn
 
 from typing import Optional
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
@@ -25,6 +26,17 @@ JSON = "json"
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "KNOWN", "UNKNOWN")
 AVAILABLE_PLATFORMS = ("windows7", "windows10", "windows11", "macos11", "linux")
 VERTICAL_FEEDS_CATEGORIES = ("financial", "retail", "ransomware", "apt", "exploit", "configuration")
+IOC_CLASSIFICATION = ["MALICIOUS", "SUSPICIOUS"]
+IOC_VERTICAL_CATEGORIES = ("financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare")
+IOC_MALWARE_TYPE = ("Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader",
+                    "Keylogger", "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus",
+                    "Hacktool", "Browser", "Network", "Rootkit", "Phishing", "Ransomware", "Coinminer", "Spam")
+IOC_PLATFORMS = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary",
+                 "Blackberry", "Boot", "ByteCode", "Console", "Document", "DOS",
+                 "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS",
+                 "Linux", "MacOS", "Menuet", "Novell", "OS2", "Package",
+                 "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian",
+                 "Text", "Unix", "Video", "WebAssembly", "Win32", "Win64", "WinCE")
 
 RHA1_TYPE_MAP = {
     "PE": "pe01",
@@ -6059,6 +6071,414 @@ class VerticalFeedsSearch(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
+
+
+class IocDataRetrieval(TiCloudAPI):
+    """TCA-0330 - Indicators of Compromise"""
+
+    __TIMERANGE_QUERY_ENDPOINT = "/api/ioc/v1/query/{type}/{time_format}/{time_value}"
+    __LATEST_QUERY_ENDPOINT = "/api/ioc/v1/query/{type}/latest"
+    __SUMMARY_QUERY_ENDPOINT = "/api/ioc/v1/query/{type}/{time_format}/{time_value}/summary"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(IocDataRetrieval, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                     allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def get_ioc_summary(self, ioc_type, time_format, time_value, limit=1000, classification=None, threat_level=None, vertical=None,
+                        malware_family=None, malware_type=None, threat_actor=None, sample_type=None, platform=None):
+        """
+        Retrieves summary statistics for IoC data based on specific time range and filters it based on optional query parameters.
+            param: ioc_type: possible values: 'sample' or 'URL'
+            type: ioc_type: str
+            param: time_format: possible values: 'timestamp' or 'utc'
+            type: time_format: str
+            param: time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            type: time_value: string
+            param: limit: maximum number of results that will be retrieved
+            type: limit: int
+            param: classification: returns only results for a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS'
+            type: classification: str or None
+            param: threat_level: returns only results for a specific threat level; allowed values in the range [1..5]
+            type: threat_level: int or None
+            param: vertical: returns only results for a specific vertical of the IoC. Applicable only for samples.
+            Enum: "financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare"
+            type: vertical: str or None
+            param: malware_family: returns only results for a specific malware family. Accepted value is malware family name or a CVE identifier
+            type: malware_family: str or None
+            param: malware_type: returns only results for a specific malware type. Applies only when type=sample.
+             For type=url, any string value is accepted (e.g., hyperlink).
+            Enum: "Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader", "Keylogger",
+             "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus", "Hacktool", "Browser", "Network", "Rootkit",
+             "Phishing", "Ransomware", "Coinminer", "Spam"
+            type: malware_type: str or None
+            param: threat_actor: returns only results for a specific threat actor. Applicable only for samples.
+            type: threat_actor: str or None
+            param: sample_type: returns only results for a specific sample type. Applicable only for samples.
+            type: sample_type: str or None
+            param: platform: returns only results for a specific platform. Applicable only for samples.
+            Enum: platforms = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary", "Blackberry", "Boot", "ByteCode",
+            "Console", "Document", "DOS", "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS", "Linux", "MacOS", "Menuet",
+             "Novell", "OS2", "Package", "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian", "Text", "Unix", "Video",
+             "WebAssembly", "Win32", "Win64", "WinCE")
+            type: platform: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        [classification, vertical, threat_actor, sample_type, platform] = (
+            self.__check_parameter_validness(ioc_type, limit, classification, threat_level, vertical, malware_type, threat_actor,
+                                             sample_type, platform))
+
+        self.__check_time_parameters_validness(time_format, time_value)
+
+        endpoint = self.__SUMMARY_QUERY_ENDPOINT.format(
+            type=ioc_type,
+            time_format=time_format,
+            time_value=time_value
+        )
+
+        query_params = self.__create_query_params(limit, classification, threat_level, vertical, malware_family, malware_type,
+                                                  threat_actor, sample_type, platform)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_latest_iocs(self, ioc_type, limit=1000, classification=None, threat_level=None, vertical=None,
+                        malware_family=None, malware_type=None, threat_actor=None, sample_type=None, platform=None, page_sha1=None):
+        """
+        Retrieves data for latest IoC data and filters it based on optional query parameters.
+            param: ioc_type: possible values: 'sample' or 'URL'
+            type: ioc_type: str
+            param: limit: maximum number of results that will be retrieved
+            type: limit: int
+            param: classification: returns only results for a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS'
+            type: classification: str or None
+            param: threat_level: returns only results for a specific threat level; allowed values in the range [1..5]
+            type: threat_level: int or None
+            param: vertical: returns only results for a specific vertical of the IoC. Applicable only for samples.
+            Enum: "financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare"
+            type: vertical: str or None
+            param: malware_family: returns only results for a specific malware family. Accepted value is malware family name or a CVE identifier
+            type: malware_family: str or None
+            param: malware_type: returns only results for a specific malware type. Applies only when type=sample.
+             For type=url, any string value is accepted (e.g., hyperlink).
+            Enum: "Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader", "Keylogger",
+             "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus", "Hacktool", "Browser", "Network", "Rootkit",
+             "Phishing", "Ransomware", "Coinminer", "Spam"
+            type: malware_type: str or None
+            param: threat_actor: returns only results for a specific threat actor. Applicable only for samples.
+            type: threat_actor: str or None
+            param: sample_type: returns only results for a specific sample type. Applicable only for samples.
+            type: sample_type: str or None
+            param: platform: returns only results for a specific platform. Applicable only for samples.
+            Enum: platforms = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary", "Blackberry", "Boot", "ByteCode",
+            "Console", "Document", "DOS", "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS", "Linux", "MacOS", "Menuet",
+             "Novell", "OS2", "Package", "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian", "Text", "Unix", "Video",
+             "WebAssembly", "Win32", "Win64", "WinCE")
+            type: platform: str or None
+            param: page_sha1: string of page hash you want to see. Use next_page value to search for the next page
+            type: page_sha1: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        [classification, vertical, threat_actor, sample_type, platform] = (
+            self.__check_parameter_validness(ioc_type, limit, classification, threat_level, vertical, malware_type,
+                                             threat_actor, sample_type, platform))
+
+
+        endpoint_base = self.__LATEST_QUERY_ENDPOINT.format(
+            type=ioc_type,
+        )
+
+        if page_sha1:
+            validate_hashes(
+                hash_input=[page_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+
+            optional_paging = "/page/{page_sha1}".format(
+                page_sha1=page_sha1,
+            )
+
+            endpoint = "{base}{optional_paging}".format(
+                base=endpoint_base,
+                optional_paging=optional_paging
+            )
+
+        else:
+            endpoint = endpoint_base
+
+        query_params = self.__create_query_params(limit, classification, threat_level, vertical, malware_family, malware_type,
+                                                  threat_actor, sample_type, platform)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_iocs_timerange(self, ioc_type, time_format, time_value, limit=1000, classification=None, threat_level=None, vertical=None,
+                        malware_family=None, malware_type=None, threat_actor=None, sample_type=None, platform=None, page_sha1=None):
+        """
+        Retrieves data for IoC data based on specific time range and filters it based on optional query parameters.
+            param: ioc_type: possible values: 'sample' or 'URL'
+            type: ioc_type: str
+            param: time_format: possible values: 'timestamp' or 'utc'
+            type: time_format: str
+            param: time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            type: time_value: string
+            param: limit: maximum number of results that will be retrieved
+            type: limit: int
+            param: classification: returns only results for a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS'
+            type: classification: str or None
+            param: threat_level: returns only results for a specific threat level; allowed values in the range [1..5]
+            type: threat_level: int or None
+            param: vertical: returns only results for a specific vertical of the IoC. Applicable only for samples.
+            Enum: "financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare"
+            type: vertical: str or None
+            param: malware_family: returns only results for a specific malware family. Accepted value is malware family name or a CVE identifier
+            type: malware_family: str or None
+            param: malware_type: returns only results for a specific malware type. Applies only when type=sample.
+             For type=url, any string value is accepted (e.g., hyperlink).
+            Enum: "Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader", "Keylogger",
+             "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus", "Hacktool", "Browser", "Network", "Rootkit",
+             "Phishing", "Ransomware", "Coinminer", "Spam"
+            type: malware_type: str or None
+            param: threat_actor: returns only results for a specific threat actor. Applicable only for samples.
+            type: threat_actor: str or None
+            param: sample_type: returns only results for a specific sample type. Applicable only for samples.
+            type: sample_type: str or None
+            param: platform: returns only results for a specific platform. Applicable only for samples.
+            Enum: platforms = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary", "Blackberry", "Boot", "ByteCode",
+            "Console", "Document", "DOS", "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS", "Linux", "MacOS", "Menuet",
+             "Novell", "OS2", "Package", "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian", "Text", "Unix", "Video",
+             "WebAssembly", "Win32", "Win64", "WinCE")
+            type: platform: str or None
+            param: page_sha1: string of page hash you want to see. Use next_page value to search for the next page
+            type: page_sha1: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        [classification, vertical, threat_actor, sample_type, platform] = (
+            self.__check_parameter_validness(ioc_type, limit, classification, threat_level, vertical, malware_type,
+                                             threat_actor, sample_type, platform))
+
+        self.__check_time_parameters_validness(time_format, time_value)
+
+        endpoint_base = self.__TIMERANGE_QUERY_ENDPOINT.format(
+            type=ioc_type,
+            time_format=time_format,
+            time_value=time_value,
+        )
+
+        if page_sha1:
+            validate_hashes(
+                hash_input=[page_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+
+            optional_paging = "/page/{page_sha1}".format(
+                page_sha1=page_sha1,
+            )
+
+            endpoint = "{base}{optional_paging}".format(
+                base=endpoint_base,
+                optional_paging=optional_paging
+            )
+
+        else:
+            endpoint = endpoint_base
+
+        query_params = self.__create_query_params(limit, classification, threat_level, vertical, malware_family,
+                                                  malware_type,
+                                                  threat_actor, sample_type, platform)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    @staticmethod
+    def __check_time_parameters_validness(time_format, time_value):
+        """
+        Checks if time_format and time_value parameters values are valid for TCA-0330 requests.
+            param: time_format: possible values: 'timestamp' or 'utc'
+            type: time_format: str
+            param: time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            type: time_value: string
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+    @staticmethod
+    def __check_parameter_validness(ioc_type, limit=1000, classification=None, threat_level=None, vertical=None,
+                        malware_type=None, threat_actor=None, sample_type=None, platform=None):
+        """
+        Checks if given parameters values are valid for TCA-0330 requests. Returns changed values for vertical,
+         threat_actor, sample_type and platform variables in case they were edited. Keep in mind that they will be edited only
+         in case they were given as query parameters to 'URL' ioc type as they are not applicable in that case.
+            param: ioc_type: possible values: 'sample' or 'URL'
+            type: ioc_type: str
+                        param: limit: maximum number of results that will be retrieved
+            type: limit: int
+            param: classification: returns only results for a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS'
+            type: classification: str or None
+            param: threat_level: returns only results for a specific threat level; allowed values in the range [1..5]
+            type: threat_level: int or None
+            param: vertical: returns only results for a specific vertical of the IoC. Applicable only for samples.
+            Enum: "financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare"
+            type: vertical: str or None
+            param: malware_type: returns only results for a specific malware type. Applies only when type=sample.
+             For type=url, any string value is accepted (e.g., hyperlink).
+            Enum: "Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader", "Keylogger",
+             "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus", "Hacktool", "Browser", "Network", "Rootkit",
+             "Phishing", "Ransomware", "Coinminer", "Spam"
+            type: malware_type: str or None
+            param: threat_actor: returns only results for a specific threat actor. Applicable only for samples.
+            type: threat_actor: str or None
+            param: sample_type: returns only results for a specific sample type. Applicable only for samples.
+            type: sample_type: str or None
+            param: platform: returns only results for a specific platform. Applicable only for samples.
+            Enum: platforms = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary", "Blackberry", "Boot", "ByteCode",
+            "Console", "Document", "DOS", "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS", "Linux", "MacOS", "Menuet",
+             "Novell", "OS2", "Package", "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian", "Text", "Unix", "Video",
+             "WebAssembly", "Win32", "Win64", "WinCE")
+            :return: returns list of values for vertical, threat_actor, sample_type and platform variables
+            :rtype: requests.Response
+        """
+        if ioc_type == 'URL':
+            if vertical is not None:
+                warn("Query parameter vertical is not applicable when used with 'URL' IoC type")
+                vertical = None
+
+            if threat_actor is not None:
+                warn("Query parameter threat_actor is not applicable when used with 'URL' IoC type")
+                threat_actor = None
+
+            if sample_type is not None:
+                warn("Query parameter sample_type is not applicable when used with 'URL' IoC type")
+                sample_type = None
+
+            if platform is not None:
+                warn("Query parameter platform is not applicable when used with 'URL' IoC type")
+                platform = None
+
+        elif ioc_type == "sample":
+            if malware_type not in IOC_MALWARE_TYPE and malware_type is not None:
+                raise WrongInputError("Only these values {list} are allowed as the malware type value".format(list=IOC_MALWARE_TYPE))
+
+        else:
+            raise WrongInputError("Only the 'sample' and 'URL' are allowed as the IoC type value")
+
+        if not isinstance(limit, int):
+            raise WrongInputError("Limit must be an integer")
+
+        if limit <= 0:
+            raise WrongInputError("Limit must be a positive integer")
+
+        if classification is not None:
+            classification = str(classification).upper()
+
+            if classification not in IOC_CLASSIFICATION:
+                raise WrongInputError("Only these values {list} are allowed as the classification value".format(list=IOC_CLASSIFICATION))
+
+        if not isinstance(threat_level, int) and threat_level is not None:
+            raise WrongInputError("Threat level must be an integer")
+
+        if threat_level not in range(1, 5) and threat_level is not None:
+            raise WrongInputError("Threat level must be an integer value between 1 and 5 ([1..5])")
+
+        if vertical not in IOC_VERTICAL_CATEGORIES and vertical is not None:
+            raise WrongInputError("Only these values {list} are allowed as the vertical value".format(list=IOC_VERTICAL_CATEGORIES))
+
+        if platform not in IOC_PLATFORMS and platform is not None:
+            raise WrongInputError("Only these values {list} are allowed as the platform value".format(list=IOC_PLATFORMS))
+
+        list_of_possibly_not_applicable_values = [classification, vertical, threat_actor, sample_type, platform]
+
+        return list_of_possibly_not_applicable_values
+
+    @staticmethod
+    def __create_query_params(limit=1000, classification=None, threat_level=None, vertical=None,
+                               malware_family=None, malware_type=None, threat_actor=None, sample_type=None,
+                               platform=None):
+        """
+        Creates URL query from given parameters. Removes all parameters that have their default value from query.
+            param: limit: maximum number of results that will be retrieved
+            type: limit: int
+            param: classification: returns only results for a specific classification; allowed values are 'MALICIOUS',
+            'SUSPICIOUS'
+            type: classification: str or None
+            param: threat_level: returns only results for a specific threat level; allowed values in the range [1..5]
+            type: threat_level: int or None
+            param: vertical: returns only results for a specific vertical of the IoC. Applicable only for samples.
+            Enum: "financial", "ransomware", "apt", "exploit", "retail", "bots", "healthcare"
+            type: vertical: str or None
+            param: malware_family: returns only results for a specific malware family. Accepted value is malware family name or a CVE identifier
+            type: malware_family: str or None
+            param: malware_type: returns only results for a specific malware type. Applies only when type=sample.
+             For type=url, any string value is accepted (e.g., hyperlink).
+            Enum: "Infostealer", "Dropper", "Spyware", "Trojan", "Backdoor", "Dialer", "Worm", "Downloader", "Keylogger",
+             "Adware", "Malware", "Rogue", "PUA", "Packed", "Exploit", "Virus", "Hacktool", "Browser", "Network", "Rootkit",
+             "Phishing", "Ransomware", "Coinminer", "Spam"
+            type: malware_type: str or None
+            param: threat_actor: returns only results for a specific threat actor. Applicable only for samples.
+            type: threat_actor: str or None
+            param: sample_type: returns only results for a specific sample type. Applicable only for samples.
+            type: sample_type: str or None
+            param: platform: returns only results for a specific platform. Applicable only for samples.
+            Enum: platforms = ("ABAP", "Android", "AOL", "Archive", "Audio", "Binary", "Blackberry", "Boot", "ByteCode",
+            "Console", "Document", "DOS", "Email", "EPOC", "Firmware", "FreeBSD", "Image", "iOS", "Linux", "MacOS", "Menuet",
+             "Novell", "OS2", "Package", "Palm", "Script", "Shortcut", "Solaris", "SunOS", "Symbian", "Text", "Unix", "Video",
+             "WebAssembly", "Win32", "Win64", "WinCE")
+            type: platform: str or None
+            :return: dictionary containing all query parameters and their values
+            :rtype: dict
+        """
+        parameters = locals()
+
+        query_params = dict()
+
+        if limit != 1000:
+            query_params["limit"] = limit
+        parameters.pop("limit")
+
+        for parameter in parameters:
+            if parameters[parameter] is not None:
+                query_params[parameter] = parameters[parameter]
+
+        return query_params
+
 
 class TAXIIFeed(TiCloudAPI):
     """TCTF-0001"""

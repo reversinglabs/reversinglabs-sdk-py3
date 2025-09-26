@@ -7,7 +7,7 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
 	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, TAXIIFeed, CustomerUsage, \
 	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
-	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
+	VerticalFeedsStatistics, VerticalFeedsSearch, IocDataRetrieval, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
 	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
 	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
@@ -1372,6 +1372,275 @@ class TestVerticalFeedsSearch:
 
 		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
 			self.verticalsearch.feed_query(time_format="utc", time_value="12345678", family_name="aaa")
+
+class TestIocDataRetrieval:
+	@classmethod
+	def setup_class(cls):
+		cls.ioc_data_retrieval = IocDataRetrieval(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="timestamp",
+				time_value="2024-05-15T22:12:32"
+			)
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="utc",
+				time_value="12345678"
+			)
+
+		with pytest.raises(WrongInputError, match=r"time_format parameter must be one of the following: 'timestamp' or 'utc'"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="invalid",
+				time_value="2024-05-15T22:12:32"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only the 'sample' and 'URL' are allowed as the IoC type value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="invalid",
+			)
+
+		with pytest.raises(WrongInputError, match=r"Limit must be a positive integer"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				limit=0
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \['MALICIOUS', 'SUSPICIOUS'\] are allowed as the classification value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				classification="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Threat level must be an integer value between 1 and 5 \(\[1..5\]\)"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				threat_level=0
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('financial', 'ransomware', 'apt', 'exploit', 'retail',"
+												  r" 'bots', 'healthcare'\) are allowed as the vertical value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				vertical="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('Infostealer', 'Dropper', 'Spyware', 'Trojan',"
+												  r" 'Backdoor', 'Dialer', 'Worm', 'Downloader', 'Keylogger', 'Adware', "
+												  r"'Malware', 'Rogue', 'PUA', 'Packed', 'Exploit', 'Virus', 'Hacktool',"
+												  r" 'Browser', 'Network', 'Rootkit', 'Phishing', 'Ransomware', 'Coinminer',"
+												  r" 'Spam'\) are allowed as the malware type value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				malware_type="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('ABAP', 'Android', 'AOL', 'Archive', 'Audio', 'Binary', "
+												  r"'Blackberry', 'Boot', 'ByteCode', 'Console', 'Document', 'DOS', 'Email', "
+												  r"'EPOC', 'Firmware', 'FreeBSD', 'Image', 'iOS', 'Linux', 'MacOS', 'Menuet',"
+												  r" 'Novell', 'OS2', 'Package', 'Palm', 'Script', 'Shortcut', 'Solaris', 'SunOS', "
+												  r"'Symbian', 'Text', 'Unix', 'Video', 'WebAssembly', 'Win32', 'Win64', 'WinCE'\) "
+												  r"are allowed as the platform value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				platform="invalid"
+			)
+
+	def test_summary(self, requests_mock):
+		self.ioc_data_retrieval.get_ioc_summary(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32/summary"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_ioc_summary"},
+			params=expected_params
+		)
+
+	def test_latest(self, requests_mock):
+		self.ioc_data_retrieval.get_latest_iocs(
+			ioc_type="sample",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/latest"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
+			params=expected_params
+		)
+
+	def test_latest_pagination(self, requests_mock):
+		self.ioc_data_retrieval.get_latest_iocs(
+			ioc_type="sample",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32",
+			page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/latest/page/21841b32c6165b27dddbd4d6eb3a672defe54271"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
+			params=expected_params
+		)
+
+	def test_timerange(self, requests_mock):
+		self.ioc_data_retrieval.get_iocs_timerange(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={
+				"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
+			params=expected_params
+		)
+
+	def test_timerange_pagination(self, requests_mock):
+		self.ioc_data_retrieval.get_iocs_timerange(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32",
+			page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32/page/21841b32c6165b27dddbd4d6eb3a672defe54271"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
+			params=expected_params
+		)
 
 
 class TestCertificateAnalytics:
