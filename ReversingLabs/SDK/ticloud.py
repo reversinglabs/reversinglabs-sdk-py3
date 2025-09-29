@@ -6415,7 +6415,7 @@ class IocDataRetrieval(TiCloudAPI):
         if not isinstance(threat_level, int) and threat_level is not None:
             raise WrongInputError("Threat level must be an integer")
 
-        if threat_level not in range(1, 5) and threat_level is not None:
+        if threat_level not in range(1, 6) and threat_level is not None:
             raise WrongInputError("Threat level must be an integer value between 1 and 5 ([1..5])")
 
         if vertical not in IOC_VERTICAL_CATEGORIES and vertical is not None:
