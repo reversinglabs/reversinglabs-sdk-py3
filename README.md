@@ -839,6 +839,19 @@ Service can be used to retrieve information about new malware samples from Rever
 
 #### Class:
 ```python
+class IocDataRetrieval(TiCloudAPI)
+````
+_TCA-0330_
+#### Methods:
+- `get_ioc_summary`
+    - Accepts an IoC type and time range alongside filters and returns data summary for the filtered IoCs.
+- `get_latest_iocs`
+    - Accepts an IoC type alongside filters and returns a data for all the latest IoCs. Results can be paginated.
+- `get_iocs_timerange`
+    - Accepts an IoC type and time range alongside filters and returns data for the filtered IoCs. Results can be paginated
+
+#### Class:
+```python
 class NetworkReputationUserOverride(TiCloudAPI)
 ````
 _TCA-0408_

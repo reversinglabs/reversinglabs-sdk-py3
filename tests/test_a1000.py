@@ -9,7 +9,7 @@ from ReversingLabs.SDK.helper import WrongInputError, DEFAULT_USER_AGENT
 MD5 = "512fca9e83c47fd9c36aa7d50a856396"
 SHA1 = "5377d0ed664246a604363f90a2764aa10fa63ad0"
 SHA256 = "00f8cd09187d311707b52a1c52018e7cfb5f2f78e47bf9200f16281098741422"
-EXPECTED_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux")
+EXPECTED_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux", "android12")
 
 
 def test_classifications():

@@ -7,7 +7,7 @@ from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, Fi
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
 	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, TAXIIFeed, CustomerUsage, \
 	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
-	VerticalFeedsStatistics, VerticalFeedsSearch, CertificateAnalytics, CertificateThumbprintSearch, \
+	VerticalFeedsStatistics, VerticalFeedsSearch, IocDataRetrieval, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
 	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
 	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
@@ -22,7 +22,7 @@ HOST = "https://example.com"
 USERNAME = "username"
 PASSWORD = "password"
 
-EXPECTED_PLATFORMS = ("windows7", "windows10", "macos11", "windows11", "linux")
+EXPECTED_PLATFORMS = ("windows7", "windows10", "macos11", "windows11", "linux", "android12")
 EXPECTED_RHA1_TYPES = {
 	"PE": "pe01",
 	"PE+": "pe01",
@@ -625,7 +625,7 @@ class TestURLThreatIntelligence:
 	def setup_class(cls):
 		cls.url_ti = URLThreatIntelligence(HOST, USERNAME, PASSWORD)
 
-	def test_query(self, requests_mock):
+	def test_single_url_query(self, requests_mock):
 		self.url_ti.get_url_report(self.test_url)
 
 		expected_url = f"{HOST}/api/networking/url/v1/report/query/json"
@@ -645,6 +645,27 @@ class TestURLThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_urls_queries(self, requests_mock):
+		list_test_urls = [self.test_url] * 3
+
+		self.url_ti.get_url_report(list_test_urls)
+
+		expected_url = f"{HOST}/api/networking/url/v1/report/bulk_query/json"
+
+		post_json = {"rl": {
+			"query": {"urls": list_test_urls,
+					  "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.url_ti.__class__.__name__} get_url_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestAnalyzeURL:
 	test_url = "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml"
@@ -681,7 +702,7 @@ class TestDomainThreatIntelligence:
 	def setup_class(cls):
 		cls.domain_ti = DomainThreatIntelligence(HOST, USERNAME, PASSWORD)
 
-	def test_query(self, requests_mock):
+	def test_single_domain_query(self, requests_mock):
 		self.domain_ti.get_domain_report(self.domain)
 
 		expected_url = f"{HOST}/api/networking/domain/report/v1/query/json"
@@ -699,6 +720,25 @@ class TestDomainThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_domains_query(self, requests_mock):
+		list_test_domains = [self.domain] * 3
+
+		self.domain_ti.get_domain_report(list_test_domains)
+
+		expected_url = f"{HOST}/api/networking/domain/report/v1/bulk_query/json"
+
+		post_json = {"rl": {"query": {"domains": list_test_domains, "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.domain_ti.__class__.__name__} get_domain_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestIPThreatIntelligence:
 	ip = "1.1.1.1"
@@ -708,13 +748,13 @@ class TestIPThreatIntelligence:
 		cls.ip_ti = IPThreatIntelligence(HOST, USERNAME, PASSWORD)
 
 	def test_wrong_input(self, requests_mock):
-		with pytest.raises(WrongInputError, match=r"p_address parameter must be string."):
-			self.ip_ti.get_ip_report(ip_address=1.1)
+		with pytest.raises(WrongInputError, match=r"ip_address_input parameter must be string."):
+			self.ip_ti.get_ip_report(ip_address_input=1.1)
 
 		assert not requests_mock.post.called
 
-	def test_query(self, requests_mock):
-		self.ip_ti.get_ip_report(ip_address=self.ip)
+	def test_single_ip_query(self, requests_mock):
+		self.ip_ti.get_ip_report(ip_address_input=self.ip)
 
 		expected_url = f"{HOST}/api/networking/ip/report/v1/query/json"
 
@@ -731,6 +771,25 @@ class TestIPThreatIntelligence:
 			data=None
 		)
 
+	def test_multiple_ips_query(self, requests_mock):
+		list_test_ips = [self.ip] * 3
+
+		self.ip_ti.get_ip_report(ip_address_input=list_test_ips)
+
+		expected_url = f"{HOST}/api/networking/ip/report/v1/bulk_query/json"
+
+		post_json = {"rl": {"query": {"ips": list_test_ips, "response_format": "json"}}}
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ip_ti.__class__.__name__} get_ip_report"},
+			params=None,
+			json=post_json,
+			data=None
+		)
 
 class TestFileUpload:
 	@classmethod
@@ -743,8 +802,7 @@ class TestFileUpload:
 			sample_name="test_name",
 			sample_domain="test_domain",
 			subscribe="data_change",
-			archive_type=None,
-			archive_password=None
+			archive_passwords=None
 		)
 
 		expected_url = "https://mock.url/meta"
@@ -767,6 +825,31 @@ class TestFileUpload:
 		with pytest.raises(WrongInputError, match=r"file_handle parameter must be a file open in 'rb' mode"):
 			self.upload.upload_sample_from_file(file_handle="aaa")
 
+	def test_upload_meta_archive(self, requests_mock):
+		self.upload._FileUpload__upload_meta(
+			url="https://mock.url",
+			sample_name="test_name",
+			sample_domain="test_domain",
+			subscribe="data_change",
+			archive_passwords=["password_test", "infected", "1234"]
+		)
+
+		expected_url = "https://mock.url/meta"
+		params = {"subscribe": "data_change"}
+		meta_xml = ("<rl><properties><property><name>file_name</name><value>test_name</value></property></properties>"
+					"<domain>test_domain</domain><archive><archive_passwords><password>password_test</password>"
+					"<password>infected</password><password>1234</password></archive_passwords></archive></rl>")
+
+		requests_mock.post.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.upload.__class__.__name__} __upload_meta"},
+			params=params,
+			json=None,
+			data=meta_xml
+		)
 
 class TestDeleteFile:
 	@classmethod
@@ -1289,6 +1372,275 @@ class TestVerticalFeedsSearch:
 
 		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
 			self.verticalsearch.feed_query(time_format="utc", time_value="12345678", family_name="aaa")
+
+class TestIocDataRetrieval:
+	@classmethod
+	def setup_class(cls):
+		cls.ioc_data_retrieval = IocDataRetrieval(HOST, USERNAME, PASSWORD)
+
+	def test_wrong_input(self):
+		with pytest.raises(WrongInputError, match=r"if timestamp is used, time_value needs to be a unix timestamp"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="timestamp",
+				time_value="2024-05-15T22:12:32"
+			)
+
+		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="utc",
+				time_value="12345678"
+			)
+
+		with pytest.raises(WrongInputError, match=r"time_format parameter must be one of the following: 'timestamp' or 'utc'"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_time_parameters_validness(
+				time_format="invalid",
+				time_value="2024-05-15T22:12:32"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only the 'sample' and 'URL' are allowed as the IoC type value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="invalid",
+			)
+
+		with pytest.raises(WrongInputError, match=r"Limit must be a positive integer"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				limit=0
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \['MALICIOUS', 'SUSPICIOUS'\] are allowed as the classification value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				classification="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Threat level must be an integer value between 1 and 5 \(\[1..5\]\)"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				threat_level=0
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('financial', 'ransomware', 'apt', 'exploit', 'retail',"
+												  r" 'bots', 'healthcare'\) are allowed as the vertical value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				vertical="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('Infostealer', 'Dropper', 'Spyware', 'Trojan',"
+												  r" 'Backdoor', 'Dialer', 'Worm', 'Downloader', 'Keylogger', 'Adware', "
+												  r"'Malware', 'Rogue', 'PUA', 'Packed', 'Exploit', 'Virus', 'Hacktool',"
+												  r" 'Browser', 'Network', 'Rootkit', 'Phishing', 'Ransomware', 'Coinminer',"
+												  r" 'Spam'\) are allowed as the malware type value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				malware_type="invalid"
+			)
+
+		with pytest.raises(WrongInputError, match=r"Only these values \('ABAP', 'Android', 'AOL', 'Archive', 'Audio', 'Binary', "
+												  r"'Blackberry', 'Boot', 'ByteCode', 'Console', 'Document', 'DOS', 'Email', "
+												  r"'EPOC', 'Firmware', 'FreeBSD', 'Image', 'iOS', 'Linux', 'MacOS', 'Menuet',"
+												  r" 'Novell', 'OS2', 'Package', 'Palm', 'Script', 'Shortcut', 'Solaris', 'SunOS', "
+												  r"'Symbian', 'Text', 'Unix', 'Video', 'WebAssembly', 'Win32', 'Win64', 'WinCE'\) "
+												  r"are allowed as the platform value"):
+			self.ioc_data_retrieval._IocDataRetrieval__check_parameter_validness(
+				ioc_type="sample",
+				platform="invalid"
+			)
+
+	def test_summary(self, requests_mock):
+		self.ioc_data_retrieval.get_ioc_summary(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32/summary"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_ioc_summary"},
+			params=expected_params
+		)
+
+	def test_latest(self, requests_mock):
+		self.ioc_data_retrieval.get_latest_iocs(
+			ioc_type="sample",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/latest"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
+			params=expected_params
+		)
+
+	def test_latest_pagination(self, requests_mock):
+		self.ioc_data_retrieval.get_latest_iocs(
+			ioc_type="sample",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32",
+			page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/latest/page/21841b32c6165b27dddbd4d6eb3a672defe54271"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
+			params=expected_params
+		)
+
+	def test_timerange(self, requests_mock):
+		self.ioc_data_retrieval.get_iocs_timerange(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={
+				"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
+			params=expected_params
+		)
+
+	def test_timerange_pagination(self, requests_mock):
+		self.ioc_data_retrieval.get_iocs_timerange(
+			ioc_type="sample",
+			time_format="utc",
+			time_value="2024-05-15T22:12:32",
+			limit=500,
+			classification="malicious",
+			threat_level=3,
+			vertical="financial",
+			malware_family="Zeus",
+			malware_type="Trojan",
+			threat_actor="APT28",
+			sample_type="executable",
+			platform="Win32",
+			page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271"
+		)
+
+		expected_url = f"{HOST}/api/ioc/v1/query/sample/utc/2024-05-15T22:12:32/page/21841b32c6165b27dddbd4d6eb3a672defe54271"
+
+		expected_params = {
+			"limit": 500,
+			"classification": "MALICIOUS",
+			"threat_level": 3,
+			"vertical": "financial",
+			"malware_family": "Zeus",
+			"malware_type": "Trojan",
+			"threat_actor": "APT28",
+			"sample_type": "executable",
+			"platform": "Win32"
+		}
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
+			params=expected_params
+		)
 
 
 class TestCertificateAnalytics:
