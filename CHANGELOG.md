@@ -454,6 +454,28 @@ v2.5.1 (2024-04-02)
 
 
 
+2.11.0 (2025-10-01)
+-------------------
+
+#### Improvements
+- **a1000** module:
+  - Android12 is now supported ass a dynamic analysis platform.
+  - Added `get_yara_repositories`, `get_yara_repositories_aggregated`, `create_yara_repository`, `update_yara_repository`, `delete_yara_repository`, `publish_all_yara_rulesets`, `publish_single_yara_ruleset`,  `set_yara_update_interval`, `reset_yara_update_interval` and `run_yara_update` functions.
+ 
+- **ticloud** module:
+  - Added bulk report support for `URLThreatIntelligence`, `DomainThreatIntelligence` and `IPThreatIntelligence`.
+  - Added archive passwords support for `FileUpload`.
+  - Added the `IocDataRetrieval` class.
+
+- **advanced** module:
+  - Added the `download_yara_matches` method in the `AdvancedActions` class.
+
+
+### ReversingLabs SDK Cookbook changes
+### Improvements
+- **Scenarios and Workflows** notebooks:
+  - Fixed minor issues in the `advanced_search_using_network_indicators.ipynb` notebook.
+
 
 
 -------------------

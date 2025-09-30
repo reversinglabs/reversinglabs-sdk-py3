@@ -20,7 +20,7 @@ from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_U
 
 
 CLASSIFICATIONS = ("MALICIOUS", "SUSPICIOUS", "GOODWARE", "UNKNOWN")
-AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux")
+AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux", "android12")
 
 
 class A1000(object):
@@ -64,6 +64,12 @@ class A1000(object):
     __GET_OR_SET_YARA_RULESET_SYNCHRONIZATION_TIME_ENDPOINT = "/api/yara/ticloud/time/"
     __YARA_LOCAL_RETROSCAN_ENDPOINT = "/api/uploads/local-retro-hunt/"
     __YARA_CLOUD_RETROSCANS_ENDPOINT = "/api/yara/ruleset/{ruleset_name}/cloud-retro-hunt/"
+    __YARA_REPOSITORIES_ENDPOINT = "/api/yara/repositories/"
+    __YARA_PUBLISH_ALL_ENDPOINT = "/api/yara/publish/all/"
+    __YARA_PUBLISH_RULESET_ENDPOINT = "/api/yara/publish/ruleset/{ruleset_name}/"
+    __YARA_SET_UPDATE_ENDPOINT = "/api/yara/update/set-interval/{value_seconds}/"
+    __YARA_RESET_UPDATE_ENDPOINT = "/api/yara/update/reset-interval/"
+    __YARA_RUN_UPDATE_ENDPOINT = "/api/yara/update/run/"
     __ADVANCED_SEARCH_ENDPOINT_V2 = "/api/samples/v2/search/"
     __ADVANCED_SEARCH_ENDPOINT_V3 = "/api/samples/v3/search/"
     __LIST_CONTAINERS_ENDPOINT = "/api/samples/containers/"
@@ -2019,6 +2025,275 @@ class A1000(object):
 
         return response
 
+    def publish_all_yara_rulesets(self):
+        """Triggers publishing process for all non-core YARA rulesets in the system.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_PUBLISH_ALL_ENDPOINT)
+
+        response = self.__post_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def publish_single_yara_ruleset(self, ruleset_name):
+        """Triggers publishing process for a single YARA ruleset in the system.
+        Only non-core rulesets can be published.
+            :param ruleset_name: Name of the ruleset
+            :type ruleset_name: str
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = self._url.format(endpoint=self.__YARA_PUBLISH_RULESET_ENDPOINT)
+
+        url = endpoint.format(ruleset_name=ruleset_name)
+
+        response = self.__post_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_repositories(self, active_filter=None, page_size=None, page_number=None):
+        """Returns a list of all Yara Online Sources repositories
+        with optional filtering by custom or system repositories.
+            :param active_filter: Filter repositories by type. Possible values: 'all', 'user' and 'system'
+            :type active_filter: str
+            :param page_size: Number of results per page
+            :type page_size: int
+            :param page_number: Page number
+            :type page_number: int
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_REPOSITORIES_ENDPOINT)
+
+        params = {
+            "active_filter": active_filter,
+            "page_size": page_size,
+            "page": page_number
+        }
+
+        response = self.__get_request(url=url, params=params)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def get_yara_repositories_aggregated(self, active_filter=None, page_size=100, max_results=None):
+        """Returns a list of all Yara Online Sources repositories
+        with optional filtering by custom or system repositories.
+        This method performs automated paging with defining the maximum number of returned results being optional.
+            :param active_filter: Filter repositories by type. Possible values: 'all', 'user' and 'system'
+            :type active_filter: str
+            :param page_size: Number of results per page
+            :type page_size: int
+            :param max_results: Maximum number of results to return; Leave as None to get all results
+            :type max_results: int or None
+            :return: list of results
+            :rtype: List
+        """
+        results_list = []
+
+        response = self.get_yara_repositories(
+            active_filter=active_filter,
+            page_size=page_size,
+            page_number=1
+        )
+
+        results = response.json().get("results", [])
+        results_list.append(results)
+
+        if max_results and len(results_list) >= max_results:
+            return results_list[:max_results]
+
+        next_page_url = response.json().get("next")
+
+        while next_page_url:
+            response = self.__get_request(url=next_page_url)
+
+            results = response.json().get("results", [])
+            results_list.append(results)
+
+            next_page_url = response.json().get("next")
+
+            if not max_results:
+                if not next_page_url:
+                    break
+
+            else:
+                if not next_page_url or len(results_list) >= max_results:
+                    return results_list[:max_results]
+
+        return results_list
+
+    def create_yara_repository(self, repository_url, name, source_branch, api_token, import_update_preferences):
+        """Creates a new Yara Online Source repository for fetching and managing YARA rules.
+        The system will verify connectivity to the provided GitHub repository before creation.
+            :param repository_url: URL pointing to the remote ruleset repository.
+            :type repository_url: str
+            :param name: Display name for the repository
+            :type name: str
+            :param source_branch: Git branch to pull rulesets from; Defaults to main or master if omitted
+            :type source_branch: str
+            :param api_token: Token used to authenticate to private remote repositories
+            :type api_token: str
+            :param import_update_preferences: Integer enum representing importing update preferences;
+            Supported values: 0 - Manual, 1 - Auto-Update, 2 - Auto-Update and Auto-Import.
+            :type import_update_preferences: int
+            :return: response
+            :rtype: requests.Response
+        """
+        args = {
+            "repository_url": repository_url,
+            "name": name,
+            "source_branch": source_branch,
+            "api_token": api_token,
+        }
+
+        for arg, value in args.items():
+            if not isinstance(value, str):
+                raise WrongInputError(f"{arg} needs to be a string")
+
+        if not isinstance(import_update_preferences, int):
+            raise WrongInputError(f"import_update_preferences needs to be an integer")
+
+        url = self._url.format(endpoint=self.__YARA_REPOSITORIES_ENDPOINT)
+
+        post_json = {"url": repository_url, "name": name, "source_branch": source_branch, "api_token": api_token,
+                     "import_update_preferences": import_update_preferences}
+
+        response = self.__post_request(url=url, post_json=post_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def update_yara_repository(self, repository_id, repository_url, name, source_branch, api_token,
+                               import_update_preferences):
+        """Updates a Yara Online Source repository.
+        The system will verify connectivity to the provided GitHub repository before updating.
+            :param repository_id: Repository ID
+            :type repository_id: int
+            :param repository_url: URL pointing to the remote ruleset repository.
+            :type repository_url: str
+            :param name: Display name for the repository
+            :type name: str
+            :param source_branch: Git branch to pull rulesets from; Defaults to main or master if omitted
+            :type source_branch: str
+            :param api_token: Token used to authenticate to private remote repositories
+            :type api_token: str
+            :param import_update_preferences: Integer enum representing importing update preferences;
+            Supported values: 0 - Manual, 1 - Auto-Update, 2 - Auto-Update and Auto-Import.
+            :type import_update_preferences: int
+            :return: response
+            :rtype: requests.Response
+        """
+        args = {
+            "repository_url": repository_url,
+            "name": name,
+            "source_branch": source_branch,
+            "api_token": api_token,
+        }
+
+        for arg, value in args.items():
+            if not isinstance(value, str):
+                raise WrongInputError(f"{arg} needs to be a string")
+
+        if not isinstance(import_update_preferences, int):
+            raise WrongInputError(f"import_update_preferences needs to be an integer")
+
+        if not isinstance(repository_id, int):
+            raise WrongInputError("repository_id needs to be an integer")
+
+        endpoint = f"{self.__YARA_REPOSITORIES_ENDPOINT}/{repository_id}/"
+
+        url = self._url.format(endpoint=endpoint)
+
+        put_json = {"url": repository_url, "name": name, "source_branch": source_branch, "api_token": api_token,
+                    "import_update_preferences": import_update_preferences}
+
+        response = self.__put_request(url=url, put_json=put_json)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def delete_yara_repository(self, repository_id, remove_rulesets=False):
+        """Deletes a Yara Online Source repository. Only custom repositories can be deleted,
+        and only by their owner or a superuser. Associated rulesets can optionally be removed as well.
+            :param repository_id: Repository ID
+            :type repository_id: int
+            :param remove_rulesets: Whether to also remove all rulesets associated with this repository;
+            Default is False
+            :type remove_rulesets: bool
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(remove_rulesets, bool):
+            raise WrongInputError("remove_rulesets needs to be boolean")
+
+        endpoint = f"{self.__YARA_REPOSITORIES_ENDPOINT}/{repository_id}/"
+
+        url = self._url.format(endpoint=endpoint)
+
+        params = {"shouldRemoveRulesets": remove_rulesets}
+
+        response = self.__delete_request(url=url, params=params)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def set_yara_update_interval(self, seconds):
+        """Configure the interval at which the YARA update job runs automatically.
+            :param seconds: Interval in seconds;
+            Setting to '0' will disable auto-update job (This will introduce a short maintenance downtime)
+            :type seconds: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(seconds, int):
+            raise WrongInputError("seconds should be an integer")
+
+        endpoint = self.__YARA_SET_UPDATE_ENDPOINT.format(value_seconds=seconds)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self.__post_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def reset_yara_update_interval(self):
+        """Reset the YARA update job cadence to its default value.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_RESET_UPDATE_ENDPOINT)
+
+        response = self.__post_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
+    def run_yara_update(self):
+        """Manually trigger YARA update job execution.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__YARA_RUN_UPDATE_ENDPOINT)
+
+        response = self.__post_request(url=url)
+
+        self.__raise_on_error(response)
+
+        return response
+
     def advanced_search_v2(self, query_string, ticloud=False, page_number=1, records_per_page=20, sorting_criteria=None,
                            sorting_order="desc"):
         """THIS METHOD IS DEPRECATED. Use advanced_search_v3 instead.
@@ -2852,7 +3127,7 @@ class A1000(object):
 
         return response
 
-    def __delete_request(self, url, post_json=None):
+    def __delete_request(self, url, post_json=None, params=None):
         """A generic DELETE request method for all A1000 methods.
         :param url: request URL
         :type url: str
@@ -2865,6 +3140,22 @@ class A1000(object):
         response = requests.delete(
             url=url,
             json=post_json,
+            params=params,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=self._headers
+        )
+
+        return response
+
+    def __put_request(self, url, data=None, put_json=None):
+        self._headers["User-Agent"] = (f"{self._user_agent}; "
+                                       f"{self.__class__.__name__} {inspect.currentframe().f_back.f_code.co_name}")
+
+        response = requests.put(
+            url=url,
+            data=data,
+            json=put_json,
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers
