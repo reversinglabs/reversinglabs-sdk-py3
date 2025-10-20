@@ -13,6 +13,12 @@ import time
 from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
     RequestTimeoutError, WrongInputError
 
+try:
+    from requests_toolbelt import MultipartEncoder
+    _TOOLBELT_INSTALLED = True
+except ImportError:
+    _TOOLBELT_INSTALLED = False
+
 
 class TitaniumScale(object):
 
@@ -81,7 +87,7 @@ class TitaniumScale(object):
 
         return
 
-    def upload_sample_from_path(self, file_path, custom_token=None, user_data=None, custom_data=None):
+    def upload_sample_from_path(self, file_path, custom_token=None, user_data=None, custom_data=None, large_file=False):
         """Accepts a file path string for file upload and returns a response.
             :param file_path: path to file
             :type file_path: str
@@ -93,6 +99,8 @@ class TitaniumScale(object):
             :param custom_data: user-defined data in the form of a JSON string; this data is
             included in file analysis reports
             :type custom_data: str
+            :param large_file: Set to True if file size exceeds 1 GB
+            :type large_file: bool
             :return: response
             :rtype: requests.Response
         """
@@ -104,18 +112,28 @@ class TitaniumScale(object):
         except IOError as error:
             raise WrongInputError("Error while opening file in 'rb' mode - {error}".format(error=str(error)))
 
-        response = self.__upload_files(
-            file_handle=file_handle,
-            custom_token=custom_token,
-            user_data=user_data,
-            custom_data=custom_data
-        )
+        if large_file:
+            response = self.__upload_large_file(
+                file_handle=file_handle,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
+
+        else:
+            response = self.__upload_files(
+                file_handle=file_handle,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
 
         self.__raise_on_error(response)
 
         return response
 
-    def upload_sample_from_file(self, file_source, custom_token=None, user_data=None, custom_data=None):
+    def upload_sample_from_file(self, file_source, custom_token=None, user_data=None, custom_data=None,
+                                large_file=False):
         """Accepts an open file in 'rb' mode for file upload and returns a response.
             :param file_source: open file
             :type file_source: file or BinaryIO
@@ -127,18 +145,29 @@ class TitaniumScale(object):
             :param custom_data: user-defined data in the form of a JSON string; this data is
             included in file analysis reports
             :type custom_data: str
+            :param large_file: Set to True if file size exceeds 1 GB
+            :type large_file: bool
             :return: response
             :rtype: requests.Response
         """
         if not hasattr(file_source, "read"):
             raise WrongInputError("file_source parameter must be a file open in 'rb' mode.")
 
-        response = self.__upload_files(
-            file_handle=file_source,
-            custom_token=custom_token,
-            user_data=user_data,
-            custom_data=custom_data
-        )
+        if large_file:
+            response = self.__upload_large_file(
+                file_handle=file_source,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
+
+        else:
+            response = self.__upload_files(
+                file_handle=file_source,
+                custom_token=custom_token,
+                user_data=user_data,
+                custom_data=custom_data
+            )
 
         self.__raise_on_error(response)
 
@@ -174,7 +203,7 @@ class TitaniumScale(object):
         return None
 
     def upload_sample_and_get_results(self, file_path=None, file_source=None, full_report=False, custom_token=None,
-                                      user_data=None, custom_data=None):
+                                      user_data=None, custom_data=None, large_file=False):
         """Accepts either a file path string or an open file in 'rb' mode for file upload
          and returns an analysis report response.
         This method combines uploading a sample and obtaining the analysis results.
@@ -194,6 +223,8 @@ class TitaniumScale(object):
             :param custom_data: user-defined data in the form of a JSON string; this data is
             included in file analysis reports
             :type custom_data: str
+            :param large_file: Set to True if file size exceeds 1 GB
+            :type large_file: bool
             :return: response
             :rtype: requests.Response
         """
@@ -206,14 +237,16 @@ class TitaniumScale(object):
                 file_path=file_path,
                 custom_token=custom_token,
                 user_data=user_data,
-                custom_data=custom_data
+                custom_data=custom_data,
+                large_file=large_file
             )
         else:
             upload_response = self.upload_sample_from_file(
                 file_source=file_source,
                 custom_token=custom_token,
                 user_data=user_data,
-                custom_data=custom_data
+                custom_data=custom_data,
+                large_file=large_file
             )
 
         task_url = upload_response.json().get("task_url")
@@ -248,6 +281,75 @@ class TitaniumScale(object):
             verify=self._verify,
             proxies=self._proxies,
             headers=self._headers
+        )
+
+        return response
+
+    def __upload_large_file(self, file_handle, custom_token, user_data, custom_data):
+        """A generic POST request method for all TitaniumScale methods,
+        optimized for streaming large files using requests-toolbelt.
+            :param file_handle: files to send
+            :type file_handle: file or BinaryIO
+            :param custom_token: set custom token string for filtering processing tasks (X-TiScale-Token)
+            :type custom_token: str
+            :param user_data: user-defined data in the form of a JSON string; this data is
+            NOT included in file analysis reports
+            :type user_data: str
+            :param custom_data: user-defined data in the form of a JSON string; this data is
+            included in file analysis reports
+            :type custom_data: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not _TOOLBELT_INSTALLED:
+            raise ImportError("To use large file upload, you need to run "
+                              "'pip install reversinglabs-sdk-py3[large_files]' because additional dependencies "
+                              "are required.")
+
+        request_headers = self._headers.copy()
+
+        if custom_token is not None:
+            if not isinstance(custom_token, str):
+                raise WrongInputError("custom_token parameter must be string.")
+
+            request_headers["X-TiScale-Token"] = "Token {custom_token}".format(custom_token=custom_token)
+
+        fields = {}
+
+        if user_data is not None:
+            try:
+                json.loads(user_data)
+                fields["user_data"] = user_data
+
+            except (TypeError, json.decoder.JSONDecodeError):
+                raise WrongInputError("user_data parameter must be a valid JSON string.")
+
+        if custom_data is not None:
+            try:
+                json.loads(custom_data)
+                fields["custom_data"] = custom_data
+
+            except (TypeError, json.decoder.JSONDecodeError):
+                raise WrongInputError("custom_data parameter must be a valid JSON string.")
+
+        filename = "file"
+
+        fields["file"] = (filename, file_handle, "application/octet-stream")
+
+        multipart_encoder = MultipartEncoder(fields=fields)
+
+        url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
+
+        request_headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                         f"{inspect.currentframe().f_back.f_code.co_name}")
+        request_headers["Content-Type"] = multipart_encoder.content_type
+
+        response = requests.post(
+            url=url,
+            data=multipart_encoder,
+            verify=self._verify,
+            proxies=self._proxies,
+            headers=request_headers
         )
 
         return response
