@@ -477,6 +477,14 @@ v2.5.1 (2024-04-02)
   - Fixed minor issues in the `advanced_search_using_network_indicators.ipynb` notebook.
 
 
+2.11.1 (2025-10-21)
+-------------------
+#### Improvements
+- **tiscale** module:
+  - Added the `large_file` argument to upload methods. If this argument is set to `True`, the method will use the `MultipartEncoder` from `requests-toolbelt` to upload a large file to Spectra Detect in order not to run out of memory.
+
+- `requests-toolbelt` added as an optional dependency under the `large_files` key.
+
 
 -------------------
 ### Scheduled removals
