@@ -4,11 +4,6 @@ from ReversingLabs.SDK import __version__
 
 requires = ["requests>=2.32.4"]
 
-extras_require = {
-    "test": ["pytest"],
-    "large_files": ["requests-toolbelt"]
-}
-
 packages = ["ReversingLabs",
             "ReversingLabs.SDK"]
 
@@ -27,7 +22,7 @@ setup(
     packages=packages,
     python_requires=">=3.9",
     install_requires=requires,
-    extras_require=extras_require,
+    extras_require={"test": ["pytest"], "large_files": ["requests-toolbelt"]},
     license="MIT",
     zip_safe=False,
     classifiers=[

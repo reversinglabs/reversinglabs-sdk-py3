@@ -477,7 +477,7 @@ v2.5.1 (2024-04-02)
   - Fixed minor issues in the `advanced_search_using_network_indicators.ipynb` notebook.
 
 
-2.11.2 (2025-10-21)
+2.11.3 (2025-10-21)
 -------------------
 #### Improvements
 - **tiscale** module:
