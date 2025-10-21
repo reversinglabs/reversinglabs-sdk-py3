@@ -303,7 +303,7 @@ class TitaniumScale(object):
         """
         if not _TOOLBELT_INSTALLED:
             raise ImportError("To use large file upload, you need to run "
-                              "'pip install reversinglabs-sdk-py3[large_files]' because additional dependencies "
+                              "'pip install reversinglabs-sdk-py3[largeFiles]' because additional dependencies "
                               "are required.")
 
         request_headers = self._headers.copy()
