@@ -4,14 +4,26 @@ The official Python SDK for using ReversingLabs services.
 
 The idea behind this SDK is to enable easier out-of-the-box development of software integrations and automation services that need to interact with ReversingLabs.
 
-The SDK consists of several modules, where each module represents either one ReversingLabs service, ReversingLabs appliance or the ReversingLabs TitaniumCloud.
+The SDK consists of several modules, where each module represents either one ReversingLabs service, ReversingLabs appliance or the ReversingLabs Spectra Intelligence APIs.
 
 > **ReversingLabs SDK Cookbook**  
 For a simple and comprehensive guide on how to start using the ReversingLabs SDK, visit the [ReversingLabs SDK Cookbook](https://github.com/reversinglabs/reversinglabs-sdk-cookbook) 
 > and explore the provided steps and examples.
 
-## Module: a1000
-A Python module representing the ReversingLabs A1000 malware analysis platform.
+## Table of contents
+- [Spectra Analyze](#spectra-analyze)
+- [Spectra Intelligence](#spectra-intelligence)
+- [Spectra Detect](#spectra-detect)
+- [File Inspection Engine](#file-inspection-engine)
+- [Advanced](#advanced-actions-and-clients-for-other-services)
+
+
+
+## Spectra Analyze
+#### [API documentation](https://docs.reversinglabs.com/SpectraAnalyze/)
+
+### Module: a1000
+A Python module representing the ReversingLabs Spectra Analyze malware analysis platform.
 #### Class:
 ```python
 class A1000(object):
@@ -19,12 +31,12 @@ class A1000(object):
 ```
 
 #### Parameters:
-`host` - A1000 address  
-`username` - A1000 username  
-`password` - A1000 password  
-`token` - A1000 user token for the REST API  
+`host` - Spectra Analyze address  
+`username` - Spectra Analyze username  
+`password` - Spectra Analyze password  
+`token` - Spectra Analyze user token for the REST API  
 `fields_v2` - optional fields that will be returned in the analysis report  
-`ticore_fields` - optional fields that will be returned in the report from the TitaniumScale endpoint  
+`ticore_fields` - optional fields that will be returned in the report from the Spectra Detect endpoint  
 `wait_time_seconds` - wait time between each report fetching retry  
 `retries` - number of report fetching retries  
 `verify` - verify SSL certificate  
@@ -32,14 +44,14 @@ class A1000(object):
 `user_agent` - optional user agent string  
 
 > *NOTE!*  
-The default means of authorization on the ReversingLabs A1000 REST API is the token.  
+The default means of authorization on the ReversingLabs Spectra Analyze REST API is the token.  
 If username and password are used instead, a token fetching request will be done so the token can be used in further actions without the user explicitly providing the token. 
 
 #### Class methods:
 - `configuration_dump`
     - Returns the configuration of the instantiated A1000 object
 - `test_connection`
-    - Creates a request towards the A1000 Check Status API to test the connection with A1000
+    - Creates a request towards the Spectra Analyze Check Status API to test the connection with Spectra Analyze
 - `check_submitted_url_status`
     - Accepts a task id returned by upload_sample_from_url and returns a response containing processing status and 
         report if the report is ready
@@ -73,7 +85,7 @@ If username and password are used instead, a token fetching request will be done
 - `download_sample`
     - Accepts a single hash string and returns a downloadable sample
 - `delete_samples`
-    - Accepts a single hash string or a list of hashes and deletes the corresponding samples from A1000
+    - Accepts a single hash string or a list of hashes and deletes the corresponding samples from A100Spectra Analyze0
 - `check_sample_removal_status_v2`
   - "Accepts the task ID returned by the bulk sample removal endpoint and returns a response that
         indicates if the removal request was finished successfully and if all samples have been deleted
@@ -105,11 +117,11 @@ If username and password are used instead, a token fetching request will be done
   - Accepts a single hash string and report format parameters that should correspond to the parameters used in
         the request with create_dynamic_analysis_report method
 - `set_classification`
-  - Accepts a single hash string, allows the user to set the classification of a sample, either in TitaniumCloud
-        or locally on the A1000. Returns a response containing a new classification
+  - Accepts a single hash string, allows the user to set the classification of a sample, either in Spectra Intelligence
+        or locally on the Spectra Analyze. Returns a response containing a new classification
 - `delete_classification`
   - Accepts a single hash string, allows the user to delete the classification of a sample, either in
-        TitaniumCloud or locally on the A1000
+        Spectra Intelligence or locally on the Spectra Analyze
 - `get_user_tags`
   - Accepts a single hash string and returns lists of existing user tags for the requested sample
 - `post_user_tags`
@@ -117,7 +129,7 @@ If username and password are used instead, a token fetching request will be done
 - `delete_user_tags`
   - Accepts a single hash string and removes one or more user tags from the requested sample
 - `get_yara_rulesets_on_the_appliance_v2`
-  - Retrieves a list of YARA rulesets that are on the A1000 appliance
+  - Retrieves a list of YARA rulesets that are on the Spectra Analyze appliance
   - The list can be filtered by several criteria (ruleset status, source, and owner) using optional parameters
 - `get_yara_ruleset_contents`
   - Retrieves the full contents of the requested ruleset in raw text/plain format
@@ -133,26 +145,26 @@ If username and password are used instead, a token fetching request will be done
   - Deletes the specified YARA ruleset and its matches from the appliance
 - `enable_or_disable_yara_ruleset`
   - Enables/disables ruleset on the appliance
-  - Administrators can manage any ruleset while regular A1000 users can only manage their own rulesets
+  - Administrators can manage any ruleset while regular Spectra Analyze users can only manage their own rulesets
 - `get_yara_ruleset_synchronization_time`
-  - Gets information about the current synchronization status for TitaniumCloud-enabled rulesets
+  - Gets information about the current synchronization status for Spectra Intelligence-enabled rulesets
 - `update_yara_ruleset_synchronization_time`
-  - Updates the TitaniumCloud synchronization time for TitaniumCloud-enabled YARA rulesets
+  - Updates the Spectra Intelligence synchronization time for Spectra Intelligence-enabled YARA rulesets
 - `start_or_stop_yara_local_retro_scan`
-  - Allows users to initiate the Local Retro scan on the A1000 appliance, and stop the Local Retro scan that is
+  - Allows users to initiate the Local Retro scan on the Spectra Analyze appliance, and stop the Local Retro scan that is
         in progress on the appliance
 - `get_yara_local_retro_scan_status`
-  - Gets the status of Local Retro scan on the A1000 appliance
+  - Gets the status of Local Retro scan on the Spectra Analyze appliance
 - `start_or_stop_yara_cloud_retro_scan`
-  - Allows users to start and stop a Cloud Retro scan for a specified ruleset on the A1000 appliance, as well as
+  - Allows users to start and stop a Cloud Retro scan for a specified ruleset on the Spectra Analyze appliance, as well as
         to clear all Cloud Retro results for the ruleset
 - `get_yara_cloud_retro_scan_status`
   - Gets the status of Cloud Retro for the specified YARA ruleset. The response indicates the
         current state of Cloud Retro       
 - `advanced_search_v3`
-  - Sends a query string to the A1000 Advanced Search API v3
+  - Sends a query string to the Spectra Analyze Advanced Search API v3
 - `advanced_search_v3_aggregated`
-  - Sends a query string to the A1000 Advanced Search API v3
+  - Sends a query string to the Spectra Analyze Advanced Search API v3
   - Paging is done automatically and results from individual
         responses aggregated into one list and returned
 - `list_containers_for_hashes`
@@ -191,25 +203,27 @@ If username and password are used instead, a token fetching request will be done
   - Accepts either a file path string or an open file in 'rb' mode for file upload and returns a detailed analysis report response.
   - This method combines uploading a sample and obtaining the detailed analysis report.
 - `submit_url`
-  - Sends a URL for analysis on A1000.
+  - Sends a URL for analysis on Spectra Analyze.
 - `submit_url_and_get_report`
-  - Sends a URL for analysis on A1000 and fetches the analysis report.
+  - Sends a URL for analysis on Spectra Analyze and fetches the analysis report.
   - This method combines submitting a URL for analysis and obtaining the summary analysis report.
 
 ***
 
+## Spectra Intelligence
+#### [API documentation](https://docs.reversinglabs.com/SpectraIntelligence/)
 
-## Module: ticloud
-A Python module representing the ReversingLabs TitaniumCloud API-s.
+### Module: ticloud
+A Python module representing the ReversingLabs Spectra Intelligence API-s.
 
-Each class in this module represents one TitaniumCloud API and can be instantiated using the same set of parameters:
+Each class in this module represents one Spectra Intelligence API and can be instantiated using the same set of parameters:
 ```python
 def __init__(self, host, username, password, verify, proxies, user_agent, allow_none_return)
 ```
 #### Parameters:
-`host` - TitaniumCloud address  
-`username` - TitaniumCloud username  
-`password` - TitaniumCloud password  
+`host` - Spectra Intelligence address  
+`username` - Spectra Intelligence username  
+`password` - Spectra Intelligence password  
 `verify` - verify SSL certificate  
 `proxies` - optional proxies in use  
 `user_agent` - optional user agent string  
@@ -327,9 +341,9 @@ _TCA-0306_
 - `get_latest_expression`
     - Provdes samples for yesterday’s date tha match the requested criteria.
 - `statistics_search`
-    - Returns statistics about new samples in ReversingLabs TitaniumCloud on the requested date that match the used search criteria.
+    - Returns statistics about new samples in ReversingLabs Spectra Intelligence on the requested date that match the used search criteria.
 - `get_latest_statistics`
-    - Returns statistics about new samples in ReversingLabs TitaniumCloud from yesterday's date.
+    - Returns statistics about new samples in ReversingLabs Spectra Intelligence from yesterday's date.
     
 #### Class:
 ```python
@@ -340,7 +354,7 @@ _TCA-0201_
 - `get_download_status`
     - Accepts a hash string and returns the sample's availability for download
 - `download_sample`
-    - Accepts a hash string and downloads the related sample from TitaniumCloud
+    - Accepts a hash string and downloads the related sample from Spectra Intelligence
     
 #### Class:
 ```python
@@ -415,7 +429,7 @@ _TCA-0207 and TCA-0106_
 #### Methods:
 - `detonate_sample`
     - Submits a sample available in the cloud for dynamic analysis and returns processing info
-    - The sample needs to be available in TitaniumCloud beforehand
+    - The sample needs to be available in Spectra Intelligence beforehand
 - `detonate_url`
     - Submits a URL for dynamic analysis and returns processing info
 - `get_dynamic_analysis_results`
@@ -509,7 +523,7 @@ _TCF-0107_
 #### Methods:
 - `feed_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
-    - Returns a list of hashes for samples collected from various sources and scanned for the frist time in TitaniumCloud system
+    - Returns a list of hashes for samples collected from various sources and scanned for the frist time in Spectra Intelligence system
 - `start_query`
     - Accepts a time format definition and a time value
     - Sets the starting timestamp for the pull_query
@@ -524,7 +538,7 @@ _TCF-0108_
 #### Methods:
 - `feed_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
-    - Returns a continuous list of samples in the TitaniumCloud system which have been scanned for the frist time or rescanned
+    - Returns a continuous list of samples in the Spectra Intelligence system which have been scanned for the frist time or rescanned
 - `start_query`
     - Accepts a time format definition and a time value
     - Sets the starting timestamp for the pull_query
@@ -566,7 +580,7 @@ _TCF-0203_
 #### Methods:
 - `hourly_exploit_list_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
-    - Returns a list of new file hashes that contain CVE or exploit identification and that are detected within the requested one-hour period in the TitaniumCloud system
+    - Returns a list of new file hashes that contain CVE or exploit identification and that are detected within the requested one-hour period in the Spectra Intelligence system
 - `latest_hourly_exploit_list_query`
     - Returns the results from latest hour for which we have data
 
@@ -578,7 +592,7 @@ _TCF-0204_
 #### Methods:
 - `daily_exploit_list_query`
     - Accepts a time format definition and a time value. Optional arguments are available sample and result limit
-    - Returns a list of ne file hashes that contain CVE or exploit identification and that are detected per day period in th TitaniumCloud system
+    - Returns a list of ne file hashes that contain CVE or exploit identification and that are detected per day period in th Spectra Intelligence system
 - `latest_daily_exploit_list_query`
     - Returns the results from latest day for which we have data
 
@@ -645,7 +659,7 @@ class YARARetroHunting(TiCloudAPI)
 _TCA-0319_
 #### Methods:
 - `enable_retro_hunt`
-    - Enables the retro hunt for the specified ruleset that has been submitted to TitaniumCloud prior to deployment of YARA retro
+    - Enables the retro hunt for the specified ruleset that has been submitted to Spectra Intelligence prior to deployment of YARA retro
 - `start_retro_hunt`
     - Starts the retro hunt for the specified ruleset
 - `check_status`
@@ -762,15 +776,15 @@ class CustomerUsage(TiCloudAPI)
 _TCA-9999_
 #### Methods:
 - `daily_usage`
-    - Returns information about daily service usage for the TitaniumCloud account that sent the
+    - Returns information about daily service usage for the Spectra Intelligence account that sent the
         request.
 - `monthly_usage`
-    - Returns information about monthly service usage for the TitaniumCloud account that sent the
+    - Returns information about monthly service usage for the Spectra Intelligence account that sent the
         request.
 - `date_range_usage`
     - This method returns total usage for all product licenses with a fixed quota over a single date range.
 - `active_yara_rulesets`
-    - This method returns information about the number of active YARA rulesets for the TitaniumCloud
+    - This method returns information about the number of active YARA rulesets for the Spectra Intelligence
         account that sent the request.
 - `quota_limits`
     - This method returns current quota limits for API-s accessible to the authenticated user.
@@ -798,7 +812,7 @@ _TCA-0305_
 class VerticalFeedsStatistics(TiCloudAPI)
 ```
 
-Vertical Feed Statistics API provides information about new malware samples detection in the ReversingLabs TitaniumCloud system, filtered by category (industry). Categories and API codes correspond to the ReversingLabs Targeted and Industry-Specific File Indicator Feeds (e.g., Financial, Retail, Exploits...).
+Vertical Feed Statistics API provides information about new malware samples detection in the ReversingLabs Spectra Intelligence system, filtered by category (industry). Categories and API codes correspond to the ReversingLabs Targeted and Industry-Specific File Indicator Feeds (e.g., Financial, Retail, Exploits...).
 
 | Codes     | Feed Name                                     |
 | --------- |:---------------------------------------------:|
@@ -812,7 +826,7 @@ Vertical Feed Statistics API provides information about new malware samples dete
 
 #### Methods:
 - `feed_query`
-    - Returns information about new malware samples detected in TitaniumCloud, filtered by category
+    - Returns information about new malware samples detected in Spectra Intelligence, filtered by category
 
 #### Class:
 ```python
@@ -884,16 +898,19 @@ class TAXIIFeed(TiCloudAPI)
 
 ***
 
-## Module: tiscale
-A Python module representing the ReversingLabs TitaniumScale malware analysis appliance.
+## Spectra Detect
+#### [API documentation](https://docs.reversinglabs.com/SpectraDetect/)
+
+### Module: tiscale
+A Python module representing the ReversingLabs Spectra Detect malware analysis appliance.
 #### Class:
 ```python
 class TitaniumScale(object):
     def __init__(self, host, token, wait_time_seconds, retries, verify, proxies, user_agent)
 ```
 #### Parameters:
-`host` - TitaniumScale address  
-`token` - TitaniumScale user token for the REST API  
+`host` - Spectra Detect address  
+`token` - Spectra Detect user token for the REST API  
 `wait_time_seconds` - wait time between each report fetching retry  
 `retries` - number of report fetching retries  
 `verify` - verify SSL certificate  
@@ -921,11 +938,14 @@ class TitaniumScale(object):
 - `delete_multiple_tasks`
   - Deletes multiple task records from the system based on the time when they were submitted.
 - `get_yara_id`
-  - Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance.
+  - Retrieves the identifier of the current set of YARA rules on the Spectra Detect Worker instance.
 
 ***
 
-## Module: fie
+## File Inspection Engine
+#### [API documentation](https://docs.reversinglabs.com/FileInspectionEngine/)
+
+### Module: fie
 A Python module representing the ReversingLabs File Inspection Engine platform.
 #### Class:
 ```python
@@ -956,7 +976,8 @@ class FileInspectionEngine(object):
   
 ***
 
-## Module: advanced
+## Advanced actions and clients for other services
+### Module: advanced
 A Python module containing advanced and combined actions utilizing various different classes.
 #### Class:
 ```python
@@ -1013,7 +1034,7 @@ A client class for using the ReversingLabs Spectra Assure API.
 ***
 
 ## Examples
-#### A1000
+#### Spectra Analyze
 ```python
 from ReversingLabs.SDK.a1000 import A1000
 
@@ -1057,7 +1078,7 @@ response = a1000.list_extracted_files_v2(
 json_report = response.json()
 ```
 
-#### TitaniumCloud
+#### Spectra Intelligence
 ```python
 from ReversingLabs.SDK.ticloud import FileReputation, URIStatistics, FileDownload, FileUpload
 
@@ -1127,7 +1148,7 @@ upload = file_upload.upload_sample_from_path(
 )
 ```
 
-#### TitaniumScale
+#### Spectra Detect
 ```python
 from ReversingLabs.SDK.tiscale import TitaniumScale
 
@@ -1185,4 +1206,4 @@ except Exception as e:
     else:
         raise 
 ```
-Same approach can also be used for A1000 and TitaniumScale. 
+Same approach can also be used for Spectra Analyze and Spectra Detect. 
