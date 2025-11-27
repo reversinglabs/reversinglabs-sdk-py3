@@ -6757,13 +6757,6 @@ class TAXIIFeed(TiCloudAPI):
         return filtered
 
 
-class TAXIIRansomwareFeed(TAXIIFeed):
-    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
-                 allow_none_return=False):
-        super(TAXIIRansomwareFeed, self).__init__(host, username, password, verify, proxies,
-                                                  user_agent=user_agent, allow_none_return=allow_none_return)
-
-
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
