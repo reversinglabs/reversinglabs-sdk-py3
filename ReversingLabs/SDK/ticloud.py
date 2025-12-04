@@ -14,7 +14,6 @@ import requests
 from datetime import datetime, timedelta, timezone
 from warnings import warn
 
-from typing import Optional
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, HASH_LENGTH_MAP, \
     RESPONSE_CODE_ERROR_MAP, MD5, SHA1, SHA256, SHA512, NoFileTypeError, NotFoundError, \
     WrongInputError, validate_hashes
