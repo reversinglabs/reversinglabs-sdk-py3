@@ -6,12 +6,12 @@ A Python module for the ReversingLabs TitaniumCloud REST API-s.
 """
 
 import base64
-import datetime
 import hashlib
 import inspect
 import json
 import os
 import requests
+from datetime import datetime, timedelta, timezone
 from warnings import warn
 
 from typing import Optional
@@ -174,10 +174,12 @@ class TiCloudAPI(object):
 
         return response
 
-    def _put_request(self, url):
+    def _put_request(self, url, payload_json=None):
         """A generic PUT request method for all ticloud module classes.
             :param url: request URL
             :type url: str
+            :param payload_json: JSON body
+            :type payload_json: dict
             :return: response
             :rtype: requests.Response
         """
@@ -189,7 +191,8 @@ class TiCloudAPI(object):
             auth=self._credentials,
             verify=self._verify,
             proxies=self._proxies,
-            headers=self._headers
+            headers=self._headers,
+            json=payload_json
         )
 
         return response
@@ -2856,7 +2859,7 @@ class DataChangeSubscription(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
@@ -2904,7 +2907,7 @@ class DynamicAnalysis(TiCloudAPI):
             platform=platform,
             optional_parameters=optional_parameters
         )
-        
+
         return response
 
     def detonate_sample(self, sample_hash=None, platform=None, is_archive=False, **optional_parameters):
@@ -2942,7 +2945,7 @@ class DynamicAnalysis(TiCloudAPI):
         return response
 
     def __detonate(self, platform, sample_hash=None, url_string=None, is_archive=False, optional_parameters=None):
-        """Submits a sample, a file archive available in the cloud or a URL for 
+        """Submits a sample, a file archive available in the cloud or a URL for
         dynamic analysis and returns processing info.
         This is a private method for all dynamic analysis submission methods.
             :param sample_hash: SHA1, MD5 or SHA256 hash of the sample or archive
@@ -3462,7 +3465,7 @@ class ContinuousFeed(TiCloudAPI):
 
         elif time_format.lower() == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
@@ -3533,7 +3536,7 @@ class ContinuousFeed(TiCloudAPI):
 
         elif time_format.lower() == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
@@ -3662,7 +3665,7 @@ class NewFilesFirstScan(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -3714,7 +3717,7 @@ class NewFilesFirstScan(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -3803,7 +3806,7 @@ class NewFilesFirstAndRescan(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -3855,7 +3858,7 @@ class NewFilesFirstAndRescan(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -3945,7 +3948,7 @@ class FilesWithDetectionChanges(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4146,7 +4149,7 @@ class CvesExploitedInTheWild(TiCloudAPI):
 
         elif time_format == "date":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%d")
+                datetime.strptime(time_value, "%Y-%m-%d")
 
             except ValueError:
                 raise WrongInputError("If the date format is used, time_value must be provided as 'YYY-MM-DD'")
@@ -4217,7 +4220,7 @@ class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4230,7 +4233,7 @@ class NewExploitOrCveSamplesFoundInWildHourly(TiCloudAPI):
 
         if not isinstance(active_cve, bool):
             raise WrongInputError("active_cve parameter must be boolean")
-        
+
         endpoint = self.__HOURLY_NEW_EXPLOIT_ENDPOINT.format(
             time_format=time_format,
             time_value=time_value
@@ -4310,14 +4313,14 @@ class NewExploitAndCveSamplesFoundInWildDaily(TiCloudAPI):
         """
         if time_format == "date":
             try:
-                datetime.datetime.strptime(time_value, "%YYYY-MM-DD")
+                datetime.strptime(time_value, "%YYYY-MM-DD")
 
             except ValueError:
                 raise WrongInputError("if date is used, time_value needs to be in format 'YYYY-MM-DD'")
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4408,7 +4411,7 @@ class NewMalwareURIFeed(TiCloudAPI):
 
         elif time_format.lower() == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("If the utc time_format is used, time_value parameter must be written in the "
@@ -4476,7 +4479,7 @@ class NewWhitelistedFiles(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4528,7 +4531,7 @@ class NewWhitelistedFiles(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4550,7 +4553,7 @@ class NewWhitelistedFiles(TiCloudAPI):
         return response
 
     def pull_query(self, sample_available=False, limit=1000):
-        """Returns the list of newly whitelisted samples, with the 
+        """Returns the list of newly whitelisted samples, with the
         timestamp defined with the start_query
             :param sample_available: return only samples available for download
             :type sample_available: bool
@@ -4612,7 +4615,7 @@ class ChangesWhitelistedFiles(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -4652,7 +4655,8 @@ class ChangesWhitelistedFiles(TiCloudAPI):
 class ImpHashSimilarity(TiCloudAPI):
     """TCA-0302"""
 
-    __SINGLE_QUERY_ENDPOINT = "/api/imphash_index/v1/query/{hash_value}"
+    __IMPHASH_ENDPOINT = "/api/imphash_index/v1/query/{hash_value}"
+    __SAMPLE_ENDPOINT = "/api/imphash_index/v1/query/sample/{sha1}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -4673,7 +4677,7 @@ class ImpHashSimilarity(TiCloudAPI):
         if not isinstance(imphash, str):
             raise WrongInputError("imphash parameter must be string.")
 
-        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(hash_value=imphash)
+        endpoint = self.__IMPHASH_ENDPOINT.format(hash_value=imphash)
 
         if next_page_sha1:
             validate_hashes(
@@ -4730,6 +4734,56 @@ class ImpHashSimilarity(TiCloudAPI):
             else:
                 if not next_page_sha1 or len(results) >= max_results:
                     return results[:max_results]
+
+    def get_hash_index(self, sample_sha1, extended_results=True, results_per_page=1000, page_sha1=None):
+        """This query returns a response containing SHA1 hashes for the requested sample SHA1 value.
+            :param sample_sha1: sample SHA1
+            :type sample_sha1: str
+            :param extended_results: return extended results
+            :type extended_results: bool
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :param page_sha1: SHA1 string of the desired page
+            :type page_sha1: str or None
+            :return: response
+            :rtype: requests.Response
+        """
+        validate_hashes(
+            hash_input=[sample_sha1],
+            allowed_hash_types=(SHA1,)
+        )
+
+        endpoint = self.__SAMPLE_ENDPOINT.format(sha1=sample_sha1)
+
+        if page_sha1:
+            validate_hashes(
+                hash_input=[page_sha1],
+                allowed_hash_types=(SHA1,)
+            )
+
+            endpoint = f"{endpoint}/page/{page_sha1}"
+
+        if extended_results:
+            if not isinstance(extended_results, bool):
+                raise WrongInputError("extended_results must be a boolan")
+
+        if results_per_page is not None:
+            if not isinstance(results_per_page, int) or not (1 <= results_per_page <= 1000):
+                raise WrongInputError("results_per_page must be an integer between 1 and 1000")
+
+        query_params = {
+            "extended": extended_results,
+            "limit": results_per_page,
+            "format": "json"
+        }
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
 
 
 class YARAHunting(TiCloudAPI):
@@ -5170,6 +5224,12 @@ class CustomerUsage(TiCloudAPI):
     __USAGE_COMPANY = "/api/customer_usage/v1/usage/company"
     __LIMITS = "/api/customer_usage/v1/limits"
     __LIMITS_COMPANY = "/api/customer_usage/v1/limits/company"
+    __COMPANY_MANAGEMENT = "/api/customer_usage/v1/management/companies"
+    __USER_MANAGEMENT = "/api/customer_usage/v1/management/users"
+    __LICENSES_MANAGEMENT = "/api/customer_usage/v1/management/licenses"
+    __LIMITS_MANAGEMENT = "/api/customer_usage/v1/management/limits"
+    __ALERTS = "/api/customer_usage/v1/alerts"
+    __ALERT = "/api/customer_usage/v1/alert"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
@@ -5339,6 +5399,348 @@ class CustomerUsage(TiCloudAPI):
         url = self._url.format(endpoint=endpoint)
 
         response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def get_company_information(self):
+        """Returns the number of users and the company name for the company the authenticated user belongs to.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__COMPANY_MANAGEMENT)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def create_user(self, payload):
+        """Creates a new user. Make sure to store the returned password.
+            :param payload: a dictionary containing new user information; the username is the final part of the full
+            username (without the u/company/ part);
+            example:
+            {
+                "username": "newuser",
+                "email_addresses": ["example@company.com"],
+                "description": "User description.",
+                "enabled" : True
+            }
+            :type payload: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(payload, dict):
+            raise WrongInputError("payload must be a dictionary")
+
+        url = self._url.format(endpoint=self.__USER_MANAGEMENT)
+
+        response = self._post_request(url=url, post_json=payload)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_users(self, page=None, results_per_page=500):
+        """Returns a list of all users in the company.
+            :param page: page number
+            :type page: int
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if page is not None:
+            if not isinstance(page, int):
+                raise WrongInputError("page must be an integer")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page must be an integer")
+
+        query_params = {
+            "page": page,
+            "size": results_per_page
+        }
+
+        url = self._url.format(endpoint=self.__USER_MANAGEMENT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def retrieve_user(self, username):
+        """Retrieve the information of one user.
+            :param username: full username (including the /u/company part); must be Base64-encoded
+            :type username: str
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = f"{self.__USER_MANAGEMENT}/{username}"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def update_user(self, username, payload):
+        """Updates an existing user. All payload fields are optional.
+        Any of the fields from the Retrieve User response can be updated.
+            :param username: full username (including the /u/company part); must be Base64-encoded
+            :type username: str
+            :param payload: a dictionary containing the user fields you want to update;
+            example:
+            {
+                "description": "Updated user for integration testing",
+                "email_addresses": [
+                    "self.service@test.com",
+                    "secondary.contact@test.com"
+                ],
+                "enabled": False
+            }
+            :type payload: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(payload, dict):
+            raise WrongInputError("payload must be a dictionary")
+
+        endpoint = f"{self.__USER_MANAGEMENT}/{username}"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url, payload_json=payload)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def reset_password(self, username, old_password_expiration_date=None):
+        """Resets the user's password.
+            :param username: full username (including the /u/company part); must be Base64-encoded
+            :type username: str
+            :param old_password_expiration_date: if not provided, the password rotation grace period defaults to
+            1 hour from the time of the request; format is 'YYYY-MM-DDThh:mm:ssZ'
+            :type old_password_expiration_date: str
+            :return: response
+            :rtype: requests.Response
+        """
+        payload_json = None
+
+        if old_password_expiration_date:
+            payload_json = {"old_password_expiration_date": old_password_expiration_date}
+
+        endpoint = f"{self.__USER_MANAGEMENT}/{username}/password-reset"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url, payload_json=payload_json)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_licenses(self, page=None, results_per_page=500):
+        """Returns a list of all licenses for the company.
+            :param page: page number
+            :type page: int
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if page is not None:
+            if not isinstance(page, int):
+                raise WrongInputError("page must be an integer")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page must be an integer")
+
+        query_params = {
+            "page": page,
+            "size": results_per_page
+        }
+
+        url = self._url.format(endpoint=self.__LICENSES_MANAGEMENT)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def create_limit(self, payload):
+        """Creates a new limit.
+            :param payload: a dict containing license options; is_unlimited and limit are mutually exclusive;
+            example:
+            {
+                "license_id": 6427,
+                "is_unlimited": False,
+                "limit": 10000,
+                "usernames" : ["u/company/user"]
+            }
+            :type payload: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(payload, dict):
+            raise WrongInputError("payload must be a dictionary")
+
+        url = self._url.format(endpoint=self.__LIMITS_MANAGEMENT)
+
+        response = self._post_request(url=url, post_json=payload)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def read_license_limits(self, license_id, strain, page=None, results_per_page=500):
+        """Returns a list of limits created for a specific license.
+            :param license_id: the ID of the license; must be considered in combination with strain
+            :type license_id: str
+            :param strain: license strain; can be either 'PRODUCTS' or 'BUNDLE'
+            :type strain: str
+            :param page: page number
+            :type page: int
+            :param results_per_page: number of results per page
+            :type results_per_page: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if page is not None:
+            if not isinstance(page, int):
+                raise WrongInputError("page must be an integer")
+
+        if not isinstance(results_per_page, int):
+            raise WrongInputError("results_per_page must be an integer")
+
+        if not isinstance(license_id, str):
+            raise WrongInputError("license_id must be a string")
+
+        if not isinstance(strain, str):
+            raise WrongInputError("strain must be a string")
+
+        query_params = {
+            "page": page,
+            "size": results_per_page
+        }
+
+        endpoint = f"{self.__LICENSES_MANAGEMENT}/{strain}/{license_id}/limits"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def read_user_limits(self, username):
+        """Returns a list of limits created for a specific user.
+            :param username: full username (including the /u/company part); must be Base64-encoded
+            :type username: str
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = f"{self.__USER_MANAGEMENT}/{username}/limits"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def update_limit(self, limit_id, payload):
+        """Updates an existing limit.
+            :param limit_id: ID of the requested limit
+            :type limit_id: str
+            :param payload: a dict containing limit options;
+            example:
+            {
+                "is_unlimited": false,
+                "limit": 1000,
+                "usernames": ["u/company/user", "u/company/user2"]
+            }
+            :type payload: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(payload, dict):
+            raise WrongInputError("payload must be a dictionary")
+
+        endpoint = f"{self.__LIMITS_MANAGEMENT}/{limit_id}"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url, payload_json=payload)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def delete_limit(self, limit_id):
+        """Deletes an existing limit.
+            :param limit_id: ID of the requested limit
+            :type limit_id: str
+            :return: response
+            :rtype: requests.Response
+        """
+        endpoint = f"{self.__LIMITS_MANAGEMENT}/{limit_id}"
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._delete_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def list_email_alerts(self):
+        """Returns a list of currently stored email alert configurations.
+            :return: response
+            :rtype: requests.Response
+        """
+        url = self._url.format(endpoint=self.__ALERTS)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def create_or_update_alert(self, payload):
+        """This query creates a new alert configuration or updates
+        an existing one for the same product ID.
+            :param payload: a dict containing alert options;
+            example:
+            {
+                "rl": {
+                    "alert": {
+                        "product_id": "TCA-0101",
+                        "emails": ["user@example.com"],
+                        "thresholds": [50, 100],
+                        "enabled": true
+                    }
+                }
+            }
+            :type payload: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(payload, dict):
+            raise WrongInputError("payload must be a dictionary")
+
+        url = self._url.format(endpoint=self.__ALERT)
+
+        response = self._post_request(url=url)
 
         self._raise_on_error(response)
 
@@ -5540,7 +5942,7 @@ class MalwareFamilyDetection(TiCloudAPI):
 
         if is_bulk:
             post_json = {"rl": {"query": {"hash_type": hash_type.lower(), "hashes": hash_value}}}
-               
+
             endpoint = self.__BULK_QUERY_ENDPOINT.format(post_format="json")
 
             url = self._url.format(endpoint=endpoint)
@@ -5552,7 +5954,7 @@ class MalwareFamilyDetection(TiCloudAPI):
                 hash_type=hash_type.lower(),
                 hash_value=hash_value
             )
-            
+
             url = self._url.format(endpoint=endpoint)
 
             response = self._get_request(url=url)
@@ -5560,14 +5962,14 @@ class MalwareFamilyDetection(TiCloudAPI):
         self._raise_on_error(response)
 
         return response
-    
+
 
 class VerticalFeedsStatistics(TiCloudAPI):
     """
     TCA-0307 - APT Tool and Actor Statistics
     TCA-0308 - Financial Services Malware Statistics
     TCA-0309 - Retail Sector Malware Statistics
-    TCA-0310 - Ransomware Statistics 
+    TCA-0310 - Ransomware Statistics
     TCA-0311 - CVE Statistics
     TCA-0317 - Malware Configuration Statistics
     """
@@ -5710,7 +6112,7 @@ class VerticalFeedsSearch(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -5723,7 +6125,7 @@ class VerticalFeedsSearch(TiCloudAPI):
 
         if not isinstance(family_name, str):
             raise WrongInputError("Provide a malware family name or a CVE identifier. Case-sensitive argument.")
-        
+
         query_params = {
             "count": count,
             "format": "json"
@@ -6002,7 +6404,7 @@ class IocDataRetrieval(TiCloudAPI):
 
         elif time_format == "utc":
             try:
-                datetime.datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
 
             except ValueError:
                 raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
@@ -6157,7 +6559,7 @@ class TAXIIFeed(TiCloudAPI):
     __DISCOVERY_ENDPOINT = "/api/taxii/taxii2/"
     __API_ROOT_ENDPOINT = "/api/taxii/{api_root}/"
     __COLLECTIONS_ENDPOINT = "/api/taxii/{api_root}/collections/"
-    
+
     __FILTER_OPERATORS = ("<=", ">=", "<", ">", "=")
     __OPERATOR_FUNCTIONS = {
     "<":  lambda a, b: a <  b,
@@ -6301,30 +6703,30 @@ class TAXIIFeed(TiCloudAPI):
     @staticmethod
     def _match_conf(value: int, op: str, target: int) -> bool:
         func = TAXIIFeed.__OPERATOR_FUNCTIONS.get(op)
-        return func(value, target) if func else False  
+        return func(value, target) if func else False
 
     @staticmethod
-    def _parse_date_filter(filter_str: str) -> tuple[str, datetime.datetime]:
+    def _parse_date_filter(filter_str: str) -> tuple[str, datetime]:
         for op in TAXIIFeed.__FILTER_OPERATORS:
             if filter_str.startswith(op):
                 date_part = filter_str[len(op):].rstrip("Z")
                 try:
-                    dt = datetime.datetime.fromisoformat(date_part).replace(tzinfo=datetime.timezone.utc)
+                    dt = datetime.fromisoformat(date_part).replace(tzinfo=timezone.utc)
                     return op, dt
                 except Exception:
                     raise ValueError("Cannot parse as an ISO8601 datetime.")
         raise ValueError("Invalid filter format. Must start with one of <=, >=, <, >, =.")
 
     @staticmethod
-    def _match_date(stix_date_str: str, op: str, target_dt: datetime.datetime) -> bool:
+    def _match_date(stix_date_str: str, op: str, target_dt: datetime) -> bool:
         try:
-            dt_obj = datetime.datetime.fromisoformat(stix_date_str.rstrip("Z")).replace(tzinfo=datetime.timezone.utc)
+            dt_obj = datetime.fromisoformat(stix_date_str.rstrip("Z")).replace(tzinfo=timezone.utc)
         except Exception:
             return False
         func = TAXIIFeed.__OPERATOR_FUNCTIONS.get(op)
         return func(dt_obj, target_dt) if func else False
 
-    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None, 
+    def get_objects_aggregated(self, api_root, collection_id, result_limit=500, added_after=None,
     max_results=None, stix_types = None, name = None, confidence = None, created = None, labels = None):
         """Returns objects from a TAXII collection.
         This method does the paging automatically and returns a defined number of objects as a list in the end.
@@ -6426,6 +6828,216 @@ class TAXIIFeed(TiCloudAPI):
             filtered.append(obj)
 
         return filtered
+
+
+class SupplyChainIoCFeed(TiCloudAPI):
+    """TCF-0701 - Supply Chain IoC Feed"""
+
+    __SET_CURSOR = "/api/feed/supply_chain/ioc/v1/start/{time_format}/{time_value}"
+    __PULL = "/api/feed/supply_chain/ioc/v1/pull"
+    __SPECIFIC_TIME = "/api/feed/supply_chain/ioc/v1/get/{time_format}/{time_value}"
+
+    def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(SupplyChainIoCFeed, self).__init__(host, username, password, verify, proxies, user_agent=user_agent,
+                                                 allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+
+    def set_start_time(self, time_format, time_value):
+        """Set starting time cursor for pulling indicators.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        endpoint = self.__SET_CURSOR.format(time_format=time_format, time_value=time_value)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._put_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_from_feed(self, record_limit=1000):
+        """Retrieve latest feed data, starting from the set start time.
+            :param record_limit: number of records per page
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if record_limit is not None:
+            if not isinstance(record_limit, int) or not (1 <= record_limit <= 1000):
+                raise WrongInputError("record_limit must be an integer between 1 and 1000")
+
+        query_params = {
+            "limit": record_limit,
+            "response_format": "json"
+        }
+
+        url = self._url.format(endpoint=self.__PULL)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_with_timestamp(self, time_format, time_value, record_limit=1000):
+        """Retrieve feed data starting from a time specified in this request.
+            :param time_format: possible values: 'utc' or 'timestamp'
+            :type time_format: str
+            :param time_value: results will be retrieved from the specified time up until the current moment;
+            accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param record_limit: number of records per page
+            :type record_limit: int
+            :return: response
+            :rtype: requests.Response
+        """
+        if time_format == "timestamp":
+            try:
+                int(time_value)
+
+            except ValueError:
+                raise WrongInputError("if timestamp is used, time_value needs to be a unix timestamp")
+
+        elif time_format == "utc":
+            try:
+                datetime.strptime(time_value, "%Y-%m-%dT%H:%M:%S")
+
+            except ValueError:
+                raise WrongInputError("if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'")
+
+        else:
+            raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
+
+        if record_limit is not None:
+            if not isinstance(record_limit, int) or not (1 <= record_limit <= 1000):
+                raise WrongInputError("record_limit must be an integer between 1 and 1000")
+
+        query_params = {
+            "limit": record_limit,
+            "response_format": "json"
+        }
+
+        endpoint = self.__SPECIFIC_TIME.format(time_format=time_format, time_value=time_value)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url, params=query_params)
+
+        self._raise_on_error(response)
+
+        return response
+
+    def pull_with_timeframe(self, time_format, from_time, to_time, record_limit=1000):
+        """Accepts a time format definition and a start and end time written in the defined format.
+        Returns a Python list of indicators for the selected time period.
+            :param time_format: value can be 'timestamp' or 'utc'; defines the format for both from_time and to_time;
+            :type time_format: str
+            :param from_time: defines the start datetime; formats are Unix timestamp string for 'timestamp' and
+            'YYYY-MM-DDThh:mm:ss' for 'utc'
+            :type from_time: str
+            :param to_time: defines the end datetime; formats are Unix timestamp string for 'timestamp' and
+            'YYYY-MM-DDThh:mm:ss' for 'utc'
+            :type to_time: str
+            :param record_limit: number of records per page
+            :type record_limit: int
+            :return: list of results
+            :rtype: list
+        """
+        results = []
+
+        if time_format == "timestamp":
+            to_datetime = datetime.fromtimestamp(int(to_time))
+
+        else:
+            to_datetime = datetime.strptime(to_time, "%Y-%m-%dT%H:%M:%S")
+
+        while True:
+            resp = self.pull_with_timestamp(
+                time_format=time_format,
+                time_value=from_time,
+                record_limit=record_limit
+            )
+
+            resp_json = resp.json()
+
+            entries = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("entries", {})
+            latest_time = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("time_range", {}).get("to")
+
+            results.append(entries)
+            latest_datetime = datetime.strptime(latest_time, "%Y-%m-%dT%H:%M:%S")
+
+            if latest_datetime >= to_datetime:
+                break
+
+            if time_format == "timestamp":
+                from_time = str(int(latest_datetime.timestamp()))
+
+            else:
+                from_time = latest_time
+
+        return results
+
+    def pull_with_relative_time(self, unit, amount, record_limit=1000):
+        """Pulls the indicators from the last <amount> <unit>.
+        e.g. Last 5 days worth of indicators.
+            :param unit: 'minutes', 'hours' or 'days'
+            :type unit: str
+            :param amount: amount of defined unit
+            :type amount: int
+            :param record_limit: number of records per page
+            :type record_limit: int
+            :return: list of results
+            :rtype: list
+        """
+        if not isinstance(amount, int):
+            raise WrongInputError("amount must be an integer")
+
+        units_minutes = {
+            "minutes": amount,
+            "hours": amount * 60,
+            "days": amount * 1440
+        }
+
+        if unit not in units_minutes:
+            raise WrongInputError("unit needs to be 'minutes', 'hours' or 'days'")
+
+        delta_minutes = units_minutes[unit]
+        subtracted = datetime.now() - timedelta(minutes=delta_minutes)
+        subtracted_str = subtracted.strftime("%Y-%m-%dT%H:%M:%S")
+
+        response = self.pull_with_timestamp(
+            time_format="utc",
+            time_value=subtracted_str,
+            record_limit=record_limit
+        )
+
+        return response
 
 
 def _update_hash_object(input_source, hash_object):

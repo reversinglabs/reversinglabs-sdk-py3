@@ -486,13 +486,28 @@ v2.5.1 (2024-04-02)
 - `requests-toolbelt` added as an optional dependency under the `large_files` key.
 
 
+2.12.0 (2025-12-30)
 -------------------
-### Scheduled removals
-- **December 2025.**:
-  - **a1000** module:
-    - `upload_sample_from_path`, `upload_sample_from_file`, `submit_url_for_analysis`, `submit_url_for_analysis_and_get_report`, `upload_sample_and_get_summary_report_v2` and `upload_sample_and_get_detailed_report_v2` methods.
-  - **ticloud** module:
-    - `TAXIIRansomwareFeed` class.
+#### Improvements
+- **ticloud** module:
+  - Added the `SupplyChainIoCFeed` class.
+  - Added the `get_hash_index` method to the `ImpHashSimilarity` class.
+  - Added the `get_company_information`, `create_user`, `list_users`, `retrieve_user`, `update_user`, `reset_password`, `list_licenses`, `create_limit`, `read_license_limits`, `read_user_limits`, `update_limit`, `delete_limit`, `list_email_alerts` and `create_or_update_alert` methods to the `CustomerUsage` class.
+
+#### Removals
+- **ticloud** module:
+  - Removed the `TAXIIRansomwareFeed` and `ExpressionSearch` classes.
+    - Use `TAXIIFeed` instead of `TAXIIRansomwareFeed`.
+- **a1000** module:
+  - Removed the `upload_sample_from_path`, `upload_sample_from_file`, `submit_url_for_analysis`, `submit_url_for_analysis_and_get_report`, `upload_sample_and_get_summary_report_v2`, `upload_sample_and_get_detailed_report_v2`, `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
+
+### ReversingLabs SDK Cookbook changes
+### Improvements
+...
+
+
+-------------------
+
 
 
 Starting with ReversingLabs SDK version 2.8.0, the **ReversingLabs SDK Cookbook** project's release cycle and versioning are closely tied to this project.  

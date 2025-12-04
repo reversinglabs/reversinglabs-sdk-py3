@@ -1,16 +1,17 @@
 import pytest
 import requests
+from datetime import datetime, timedelta
 from unittest import mock
 from ReversingLabs.SDK.ticloud import TiCloudAPI, FileReputation, AVScanners, FileAnalysis, FileAnalysisNonMalicious, \
-	AdvancedSearch, ExpressionSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
+	AdvancedSearch, RHA1FunctionalSimilarity, RHA1Analytics, URIStatistics, URIIndex, FileDownload, \
 	URLThreatIntelligence, AnalyzeURL, DomainThreatIntelligence, IPThreatIntelligence, FileUpload, DeleteFile, \
 	ReanalyzeFile, DataChangeSubscription, DynamicAnalysis, CertificateIndex, RansomwareIndicators, NewMalwareFilesFeed, \
-	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIRansomwareFeed, TAXIIFeed, CustomerUsage, \
+	NewMalwareURIFeed, ImpHashSimilarity, YARAHunting, YARARetroHunting, TAXIIFeed, CustomerUsage, \
 	NetworkReputation, FileReputationUserOverride, NetworkReputationUserOverride, MalwareFamilyDetection, \
 	VerticalFeedsStatistics, VerticalFeedsSearch, IocDataRetrieval, CertificateAnalytics, CertificateThumbprintSearch, \
 	NewMalwarePlatformFiltered, NewFilesFirstScan, NewFilesFirstAndRescan, FilesWithDetectionChanges, \
 	MWPChangeEventsFeed, CvesExploitedInTheWild, NewExploitOrCveSamplesFoundInWildHourly, \
-	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, \
+	NewExploitAndCveSamplesFoundInWildDaily, NewWhitelistedFiles, ChangesWhitelistedFiles, SupplyChainIoCFeed, \
 	CLASSIFICATIONS, AVAILABLE_PLATFORMS, RHA1_TYPE_MAP, \
 	resolve_hash_type, calculate_hash, NotFoundError
 from ReversingLabs.SDK.helper import WrongInputError, BadGatewayError, DEFAULT_USER_AGENT
@@ -539,40 +540,6 @@ class TestAdvancedSearch:
 			params=None,
 			json=post_json,
 			data=None
-		)
-
-
-class TestExpressionSearch:
-	@classmethod
-	def setup_class(cls):
-		cls.exp_search = ExpressionSearch(HOST, USERNAME, PASSWORD)
-
-	def test_wrong_input(self, requests_mock):
-		with pytest.raises(WrongInputError, match=r"query parameter must be a list of strings."):
-			self.exp_search.search(query="av-count:5 available:TRUE")
-
-		with pytest.raises(WrongInputError, match=r"query list must have at least 2 expressions."):
-			self.exp_search.search(query=["status=MALICIOUS"])
-
-		with pytest.raises(WrongInputError, match=r"All expressions in the query list must be strings."):
-			self.exp_search.search(query=["status=MALICIOUS", 123])
-
-		assert not requests_mock.get.called
-
-	def test_single_query(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
-
-		self.exp_search.search(query=["one=1", "two=2"], date="2024-07-03", page_number=2)
-
-		expected_url = f"{HOST}/api/sample/search/download/v1/query/date/2024-07-03?format=json&page=2&one=1&two=2"
-
-		requests_mock.get.assert_called_with(
-			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
-			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.exp_search.__class__.__name__} search"},
-			params=None
 		)
 
 
@@ -1147,60 +1114,6 @@ class TestYARARetroHunting:
 			params=None,
 			json=post_json,
 			data=None
-		)
-
-
-class TestTAXIIRansomwareFeed:
-	@classmethod
-	def setup_class(cls):
-		cls.taxii = TAXIIRansomwareFeed(HOST, USERNAME, PASSWORD)
-
-	def test_get_objects_lite(self, requests_mock):
-		self.taxii.get_objects(
-			api_root="lite-root",
-			collection_id="123456"
-		)
-
-		query_params = {
-			"limit": 500,
-			"added_after": None,
-			"match[id]": None,
-			"next": None
-		}
-
-		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
-
-		requests_mock.get.assert_called_with(
-			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
-			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
-			params=query_params
-		)
-
-	def test_get_objects_regular(self, requests_mock):
-		self.taxii.get_objects(
-			api_root="regular-root",
-			collection_id="654321"
-		)
-
-		query_params = {
-			"limit": 500,
-			"added_after": None,
-			"match[id]": None,
-			"next": None
-		}
-
-		expected_url = f"{HOST}/api/taxii/regular-root/collections/654321/objects/"
-
-		requests_mock.get.assert_called_with(
-			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
-			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
-			params=query_params
 		)
 
 
@@ -1832,5 +1745,32 @@ class TestChangesWhitelistedFiles:
 
 		with pytest.raises(WrongInputError, match=r"if utc is used, time_value needs to be in format 'YYYY-MM-DDThh:mm:ss'"):
 			self.changes.feed_query(time_format="utc", time_value="12345678")
+
+
+class TestSupplyChainFeed:
+	@classmethod
+	def setup_class(cls):
+		cls.supply = SupplyChainIoCFeed(HOST, USERNAME, PASSWORD)
+
+	def test_query(self, requests_mock):
+		amount = 5
+		self.supply.pull_with_relative_time(unit="days", amount=amount)
+
+		minute_amount = amount * 1440
+		subtracted = datetime.now() - timedelta(minutes=minute_amount)
+		subtracted_str = subtracted.strftime("%Y-%m-%dT%H:%M:%S")
+		expected_url = f"{HOST}/api/feed/supply_chain/ioc/v1/get/utc/{subtracted_str}"
+
+		requests_mock.get.assert_called_with(
+			url=expected_url,
+			auth=(USERNAME, PASSWORD),
+			verify=True,
+			proxies=None,
+			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.supply.__class__.__name__} pull_with_timestamp"},
+			params={
+				"limit": 1000,
+				"response_format": "json"
+			}
+		)
 
 

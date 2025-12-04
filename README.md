@@ -329,24 +329,6 @@ _TCA-0320_
 
 #### Class:
 ```python
-class ExpressionSearch(TiCloudAPI)
-```
-_TCA-0306_
-#### Methods:
-- `search`
-    - Provides samples first seen on a particular date, filtered by search criteria.
-- `search_aggregated`
-    - Provides samples first seen on a particular date, filtered by search criteria.
-    - This method performs the paging automatically.
-- `get_latest_expression`
-    - Provdes samples for yesterday’s date tha match the requested criteria.
-- `statistics_search`
-    - Returns statistics about new samples in ReversingLabs Spectra Intelligence on the requested date that match the used search criteria.
-- `get_latest_statistics`
-    - Returns statistics about new samples in ReversingLabs Spectra Intelligence from yesterday's date.
-    
-#### Class:
-```python
 class FileDownload(TiCloudAPI)
 ````
 _TCA-0201_
@@ -633,6 +615,8 @@ _TCA-0302_
 - `get_imphash_index_aggregated`
     - Accepts an imphash and returns a list of SHA-1 hashes of files sharing that imphash
     - This method automatically handles paging and returns a list of results instead of a Response object
+- `get_hash_index`
+  - This query returns a response containing SHA1 hashes for the requested sample SHA1 value
 
 #### Class:
 ```python
@@ -788,6 +772,35 @@ _TCA-9999_
         account that sent the request.
 - `quota_limits`
     - This method returns current quota limits for API-s accessible to the authenticated user.
+- `get_company_information`
+  - Returns the number of users and the company name for the company the authenticated user belongs to
+- `create_user`
+  - Creates a new user. Make sure to store the returned password
+- `list_users`
+  - Returns a list of all users in the company
+- `retrieve_user`
+  - Retrieve the information of one user
+- `update_user`
+  - Updates an existing user
+  - Any of the fields from the Retrieve User response can be updated
+- `reset_password`
+  - Resets the user's password
+- `list_licenses`
+  - Returns a list of all licenses for the company
+- `create_limit`
+  - Creates a new limit
+- `read_license_limits`
+  - Returns a list of limits created for a specific license
+- `read_user_limits`
+  - Returns a list of limits created for a specific user
+- `update_limit`
+  - Updates an existing limit
+- `delete_limit`
+  - Deletes an existing limit
+- `list_email_alerts`
+  - Returns a list of currently stored email alert configurations
+- `create_or_update_alert`
+  - This query creates a new alert configuration or updates an existing one for the same product ID
 
 #### Class:
 ```python
@@ -895,6 +908,24 @@ class TAXIIFeed(TiCloudAPI)
 - `get_objects_aggregated`
     - Returns objects from a TAXII collection. 
     - This method does the paging automatically and returns a defined number of objects as a list in the end.
+
+#### Class:
+```python
+class SupplyChainIoCFeed(TiCloudAPI)
+````
+#### Methods:
+- `set_start_time`
+  - Set starting time cursor for pulling indicators.
+- `pull_from_feed`
+  - Retrieve latest feed data, starting from the set start time.
+- `pull_with_timestamp`
+  - Retrieve feed data starting from a time specified in this request.
+- `pull_with_timeframe`
+  - Accepts a time format definition and a start and end time written in the defined format.
+  - Returns a Python list of indicators for the selected time period.
+- `pull_with_relative_time`
+  - Pulls the indicators from the last <amount> <unit>.
+  - e.g. Last 5 days worth of indicators.
 
 ***
 
@@ -1048,7 +1079,7 @@ a1000 = A1000(
     retries=10
 )
 
-response = a1000.upload_sample_and_get_summary_report_v2(
+response = a1000.submit_file_and_get_detailed_report(
     file_path="/path/to/file.exe",
     retry=True,
     custom_filename="CustomName",
@@ -1080,7 +1111,8 @@ json_report = response.json()
 
 #### Spectra Intelligence
 ```python
-from ReversingLabs.SDK.ticloud import FileReputation, URIStatistics, FileDownload, FileUpload
+import base64
+from ReversingLabs.SDK.ticloud import FileReputation, URIStatistics, FileDownload, FileUpload, CustomerUsage
 
 
 host = "https://data.reversinglabs.com"
@@ -1146,6 +1178,25 @@ upload = file_upload.upload_sample_from_path(
     sample_name="Custom Sample Name",
     sample_domain="webdomain.com"
 )
+
+
+customer_usage = CustomerUsage(
+    host=host,
+    username=username,
+    password=password,
+    user_agent=user_agent
+)
+
+# Encode username string in Base64
+plain_username = "u/company/username"
+plain_username_bytes = plain_username.encode("ascii")
+base64_bytes = base64.b64encode(plain_username_bytes)
+encoded_username = base64_bytes.decode("ascii")
+
+reset_response = customer_usage.reset_password(
+    username=encoded_username
+)
+
 ```
 
 #### Spectra Detect
