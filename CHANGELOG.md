@@ -236,7 +236,7 @@ v2.5.1 (2024-04-02)
 - Updated the README with an example of error handling.
 
 
-2.5.2 (2024-04-30)
+v2.5.2 (2024-04-30)
 -------------------
 
 #### Improvements
@@ -244,7 +244,7 @@ v2.5.1 (2024-04-02)
   - The function for checking file analysis status is now public. It is called `file_analysis_status`.
 
 
-2.5.3 (2024-05-08)
+v2.5.3 (2024-05-08)
 -------------------
 
 #### Bugfixes
@@ -256,7 +256,7 @@ v2.5.1 (2024-04-02)
   - Dropped support for the clouddeepscan module. As of this version, the module is removed from the SDK.
 
 
-2.5.4 (2024-05-09)
+v2.5.4 (2024-05-09)
 -------------------
 
 #### Improvements
@@ -265,7 +265,7 @@ v2.5.1 (2024-04-02)
   - `urllib3>=2.0.7`
 
 
-2.5.5 (2024-05-15)
+v2.5.5 (2024-05-15)
 -------------------
 
 #### Bugfixes
@@ -273,7 +273,7 @@ v2.5.1 (2024-04-02)
   - Changed the `risk_score` parameter's type hint from `str` to `int` in `set_classification` method's docstring.
 
 
-2.5.6 (2024-05-23)
+v2.5.6 (2024-05-23)
 -------------------
 
 #### Improvements
@@ -281,7 +281,7 @@ v2.5.1 (2024-04-02)
   - Reintroduced the `a1000.A1000.advanced_search_v2` method. This method will remain in the DEPRECATED state until its permanent removal from the SDK. The permanent removal date will be announced in the CHANGELOG's "Scheduled removals" section. In the meantime, the use of `a1000.A1000.advanced_search_v3` is highly advised.
 
 
-2.6.0 (2024-06-28)
+v2.6.0 (2024-06-28)
 -------------------
 
 #### Improvements
@@ -302,21 +302,21 @@ v2.5.1 (2024-04-02)
   - The `sample_sha1` parameter of the `ticloud.DynamicAnalysis.detonate_sample` method is deprecated and will be removed in 6 months. Use the `sample_hash` parameter instead.
 
 
-2.6.1 (2024-07-03)
+v2.6.1 (2024-07-03)
 -------------------
 
 #### Improvements
 - Added more unit tests for all currently available modules.
 
 
-2.6.2 (2024-07-10)
+v2.6.2 (2024-07-10)
 -------------------
 
 #### Improvements
 - Added more unit tests for all currently available modules.
 
 
-2.6.3 (2024-07-17)
+v2.6.3 (2024-07-17)
 -------------------
 
 #### Bugfixes
@@ -324,7 +324,7 @@ v2.5.1 (2024-04-02)
   - Changed the `upload_sample_from_url` method's name to `submit_url_for_analysis`.
 
 
-2.6.4 (2024-07-24)
+v2.6.4 (2024-07-24)
 -------------------
 
 #### Bugfixes
@@ -332,7 +332,7 @@ v2.5.1 (2024-04-02)
   - Implemented the default user agent string in embedded `FileAnalysis` calls.
 
 
-2.7.0 (2024-09-25)
+v2.7.0 (2024-09-25)
 -------------------
 
 #### Improvements
@@ -346,7 +346,7 @@ v2.5.1 (2024-04-02)
   - Parameters `internet_simulation` and `sample_name` of the `DynamicAnalysis.detonate_sample` method are now deprecated. Use `**optional_parameters` instead.
 
 
-2.7.1 (2024-10-09)
+v2.7.1 (2024-10-09)
 -------------------
 
 #### Improvements
@@ -355,7 +355,7 @@ v2.5.1 (2024-04-02)
   - The module currently has one class with four methods for sending files to FIE for analysis and fetching the short classification or more detailed analysis reports.
 
 
-2.7.2 (2024-12-06)
+v2.7.2 (2024-12-06)
 -------------------
 
 #### Improvements
@@ -363,7 +363,7 @@ v2.5.1 (2024-04-02)
   - Corrected a typo in the docstrings and the README.
 
 
-2.8.0 (2024-12-24)
+v2.8.0 (2024-12-24)
 -------------------
 
 #### Removals
@@ -375,21 +375,21 @@ v2.5.1 (2024-04-02)
   - Parameters `internet_simulation` and `sample_name` from the `ticloud.DynamicAnalysis.detonate_sample` method are now used through the `**optiona_parameters` key-value parameter instead of as individual named parameters.
 
 
-2.8.1 (2025-02-17) - [YANKED]
+v2.8.1 (2025-02-17) - [YANKED]
 -------------------
 
 #### Improvements
 - Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
 - Python 3.9 is now defined as the oldest version of Python supported by this project.
 
-2.8.2 (2025-02-17)
+v2.8.2 (2025-02-17)
 -------------------
 
 #### Improvements
 - Defined the latest version (2.32.3) of the requests library as a dependency. urllib3 was removed as an explicit dependency for this project.
 - Python 3.9 is now defined as the oldest version of Python supported by this project.
 
-2.8.3 (2025-02-21)
+v2.8.3 (2025-02-21)
 -------------------
 
 #### Improvements
@@ -405,7 +405,7 @@ v2.5.1 (2024-04-02)
   - Added the `cyber_defense_alliance.py` command line tool.
 
 
-2.9.0 (2025-03-31)
+v2.9.0 (2025-03-31)
 -------------------
 
 #### Improvements
@@ -429,7 +429,7 @@ v2.5.1 (2024-04-02)
 
 
 
-2.10.0 (2025-06-24)
+v2.10.0 (2025-06-24)
 -------------------
 
 #### Improvements
@@ -454,7 +454,7 @@ v2.5.1 (2024-04-02)
 
 
 
-2.11.0 (2025-10-01)
+v2.11.0 (2025-10-01)
 -------------------
 
 #### Improvements
@@ -477,7 +477,7 @@ v2.5.1 (2024-04-02)
   - Fixed minor issues in the `advanced_search_using_network_indicators.ipynb` notebook.
 
 
-2.11.4 (2025-10-21)
+v2.11.4 (2025-10-21)
 -------------------
 #### Improvements
 - **tiscale** module:
@@ -486,7 +486,7 @@ v2.5.1 (2024-04-02)
 - `requests-toolbelt` added as an optional dependency under the `large_files` key.
 
 
-2.12.0 (2025-12-30)
+v2.12.0 (2025-12-30)
 -------------------
 #### Improvements
 - **ticloud** module:
