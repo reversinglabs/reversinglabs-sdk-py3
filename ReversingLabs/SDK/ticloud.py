@@ -6871,7 +6871,6 @@ class SupplyChainIoCFeed(TiCloudAPI):
             raise WrongInputError("time_format parameter must be one of the following: 'timestamp' or 'utc'")
 
         endpoint = self.__SET_CURSOR.format(time_format=time_format, time_value=time_value)
-
         url = self._url.format(endpoint=endpoint)
 
         response = self._put_request(url=url)
@@ -6893,7 +6892,7 @@ class SupplyChainIoCFeed(TiCloudAPI):
 
         query_params = {
             "limit": record_limit,
-            "response_format": "json"
+            "format": "json"
         }
 
         url = self._url.format(endpoint=self.__PULL)
@@ -6939,7 +6938,7 @@ class SupplyChainIoCFeed(TiCloudAPI):
 
         query_params = {
             "limit": record_limit,
-            "response_format": "json"
+            "format": "json"
         }
 
         endpoint = self.__SPECIFIC_TIME.format(time_format=time_format, time_value=time_value)
@@ -6977,15 +6976,15 @@ class SupplyChainIoCFeed(TiCloudAPI):
             to_datetime = datetime.strptime(to_time, "%Y-%m-%dT%H:%M:%S")
 
         while True:
-            resp = self.pull_with_timestamp(
+            response = self.pull_with_timestamp(
                 time_format=time_format,
                 time_value=from_time,
                 record_limit=record_limit
             )
 
-            resp_json = resp.json()
+            resp_json = response.json()
 
-            entries = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("entries", {})
+            entries = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("entries", [])
             latest_time = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("time_range", {}).get("to")
 
             results.append(entries)
@@ -7014,6 +7013,9 @@ class SupplyChainIoCFeed(TiCloudAPI):
             :return: list of results
             :rtype: list
         """
+        if unit not in ("minutes", "hours", "days"):
+            raise WrongInputError("unit needs to be 'minutes', 'hours' or 'days'")
+
         if not isinstance(amount, int):
             raise WrongInputError("amount must be an integer")
 
@@ -7023,20 +7025,33 @@ class SupplyChainIoCFeed(TiCloudAPI):
             "days": amount * 1440
         }
 
-        if unit not in units_minutes:
-            raise WrongInputError("unit needs to be 'minutes', 'hours' or 'days'")
-
         delta_minutes = units_minutes[unit]
-        subtracted = datetime.now() - timedelta(minutes=delta_minutes)
-        subtracted_str = subtracted.strftime("%Y-%m-%dT%H:%M:%S")
+        subtracted_datetime = datetime.now() - timedelta(minutes=delta_minutes)
+        starting_str = subtracted_datetime.strftime("%Y-%m-%dT%H:%M:%S")
 
-        response = self.pull_with_timestamp(
-            time_format="utc",
-            time_value=subtracted_str,
-            record_limit=record_limit
-        )
+        results = []
 
-        return response
+        while True:
+            response = self.pull_with_timestamp(
+                time_format="utc",
+                time_value=starting_str,
+                record_limit=record_limit
+            )
+
+            resp_json = response.json()
+
+            entries = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("entries", [])
+            from_str = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("time_range", {}).get("from")
+            latest_str = resp_json.get("rl", {}).get("supply_chain_ioc_feed", {}).get("time_range", {}).get("to")
+
+            results.append(entries)
+
+            if from_str == latest_str:
+                break
+
+            starting_str = latest_str
+
+        return results
 
 
 def _update_hash_object(input_source, hash_object):
