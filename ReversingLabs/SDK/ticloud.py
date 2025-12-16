@@ -6832,9 +6832,9 @@ class TAXIIFeed(TiCloudAPI):
 class SupplyChainIoCFeed(TiCloudAPI):
     """TCF-0701 - Supply Chain IoC Feed"""
 
-    __SET_CURSOR = "/api/feed/supply_chain/ioc/v1/start/{time_format}/{time_value}"
-    __PULL = "/api/feed/supply_chain/ioc/v1/pull"
-    __SPECIFIC_TIME = "/api/feed/supply_chain/ioc/v1/get/{time_format}/{time_value}"
+    __SET_CURSOR = "/api/feed/supply_chain/ioc/v1/query/start/{time_format}/{time_value}"
+    __PULL = "/api/feed/supply_chain/ioc/v1/query/pull"
+    __SPECIFIC_TIME = "/api/feed/supply_chain/ioc/v1/query/{time_format}/{time_value}"
 
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
