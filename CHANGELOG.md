@@ -501,15 +501,24 @@ v2.12.0 (2025-12-30)
 - **a1000** module:
   - Removed the `upload_sample_from_path`, `upload_sample_from_file`, `submit_url_for_analysis`, `submit_url_for_analysis_and_get_report`, `upload_sample_and_get_summary_report_v2`, `upload_sample_and_get_detailed_report_v2`, `advanced_search_v2` and `advanced_search_v2_aggregated` methods.
 
+
 ### ReversingLabs SDK Cookbook changes
 ### Improvements
-...
+- **Spectra Intelligence** notebooks:
+  - Added the `indicators_of_compromise.ipynb` notebook.
+
+- **Scenarios and Workflows** notebooks:
+  - Added the `yara_extended_threat_hunting.ipynb` notebook.
+
+### Removals
+- **Spectra Intelligence** notebooks:
+  - Removed The `ExpressionSearch` example from the `search.ipynb` notebook.
 
 
 -------------------
 
 
 
-Starting with ReversingLabs SDK version 2.8.0, the **ReversingLabs SDK Cookbook** project's release cycle and versioning are closely tied to this project.  
+Starting with ReversingLabs SDK version 2.8.0, the [ReversingLabs SDK Cookbook](https://github.com/reversinglabs/reversinglabs-sdk-cookbook) project's release cycle and versioning are closely tied to this project.  
 This changelog will also be keeping track of changes made to the ReversingLabs SDK Cookbook project.
 
