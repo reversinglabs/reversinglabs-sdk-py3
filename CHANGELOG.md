@@ -486,7 +486,7 @@ v2.11.4 (2025-10-21)
 - `requests-toolbelt` added as an optional dependency under the `large_files` key.
 
 
-v2.12.0 (2025-12-30)
+v2.12.0 (2025-12-23)
 -------------------
 #### Improvements
 - **ticloud** module:
@@ -506,6 +506,7 @@ v2.12.0 (2025-12-30)
 ### Improvements
 - **Spectra Intelligence** notebooks:
   - Added the `indicators_of_compromise.ipynb` notebook.
+  - Added the `supply_chain_ioc_feed.ipynb` notebook.
 
 - **Scenarios and Workflows** notebooks:
   - Added the `yara_extended_threat_hunting.ipynb` notebook.
