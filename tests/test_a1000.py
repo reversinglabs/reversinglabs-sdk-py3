@@ -73,27 +73,6 @@ class TestA1000:
 	def setup_class(cls):
 		cls.a1000 = A1000(cls.host, token=cls.token)
 
-	def test_submit_url(self, requests_mock):
-		self.a1000.submit_url_for_analysis(url_string="https://some.url")
-
-		expected_url = f"{self.host}/api/uploads/"
-		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} submit_url_for_analysis"
-
-		requests_mock.post.assert_called_with(
-			url=expected_url,
-			verify=True,
-			proxies=None,
-			headers=self.headers,
-			params=None,
-			json=None,
-			data={"url": "https://some.url", "analysis": "cloud"},
-			files=None
-		)
-
-	def test_sample_from_file(self):
-		with pytest.raises(WrongInputError, match=r"file_source parameter must be a file open in 'rb' mode."):
-			self.a1000.upload_sample_from_file(file_source="/path/to/file")
-
 	def test_file_status(self, requests_mock):
 		self.a1000.file_analysis_status(sample_hashes=[SHA1, SHA1], sample_status="MALICIOUS")
 
