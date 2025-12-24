@@ -1759,7 +1759,7 @@ class TestSupplyChainFeed:
 		minute_amount = amount * 1440
 		subtracted = datetime.now() - timedelta(minutes=minute_amount)
 		subtracted_str = subtracted.strftime("%Y-%m-%dT%H:%M:%S")
-		expected_url = f"{HOST}/api/feed/supply_chain/ioc/v1/get/utc/{subtracted_str}"
+		expected_url = f"{HOST}/api/feed/supply_chain/ioc/v1/query/utc/{subtracted_str}"
 
 		requests_mock.get.assert_called_with(
 			url=expected_url,
@@ -1769,7 +1769,7 @@ class TestSupplyChainFeed:
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.supply.__class__.__name__} pull_with_timestamp"},
 			params={
 				"limit": 1000,
-				"response_format": "json"
+				"format": "json"
 			}
 		)
 
