@@ -486,7 +486,7 @@ v2.11.4 (2025-10-21)
 - `requests-toolbelt` added as an optional dependency under the `large_files` key.
 
 
-v2.12.0 (2025-12-23)
+v2.12.0 (2025-12-24)
 -------------------
 #### Improvements
 - **ticloud** module:
