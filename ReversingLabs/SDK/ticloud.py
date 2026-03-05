@@ -7059,6 +7059,61 @@ class SupplyChainIoCFeed(TiCloudAPI):
         return results
 
 
+class FileReportVT(TiCloudAPI):
+    """File Report VT compatibility API"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/xref/cm/v3/query/{file_hash}"
+
+    def __init__(self, host, api_key, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileReportVT, self).__init__(host=host, username=None, password=None, verify=verify, proxies=proxies,
+                                           user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["x-apikey"] = api_key
+
+    def get_file_report(self, file_hash):
+        if not isinstance(file_hash, str):
+            raise WrongInputError("file_hash parameter must be a string.")
+
+        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(file_hash=file_hash)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class URLReportVT(TiCloudAPI):
+    """URL Report VT compatibility API"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/url_report/cm/v3/query/{url_id}"
+
+    def __init__(self, host, api_key, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(URLReportVT, self).__init__(host=host, username=None, password=None, verify=verify, proxies=proxies,
+                                           user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["x-apikey"] = api_key
+
+    def get_url_report(self, url_identifier):
+        if not isinstance(url_identifier, str):
+            raise WrongInputError("url_identifier parameter must be a SHA1 or Base64 string.")
+
+        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(url_id=url_identifier)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and
     returns an updated hashlib hash object.
