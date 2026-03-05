@@ -1678,11 +1678,13 @@ class AnalyzeURL(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def submit_url(self, url_input):
+    def submit_url(self, url_input, analysis_type=None):
         """Accepts a URL string for analysis and returns an analysis ID in a response.
         The analysis ID can be used as parameter in TCA-0403 URL Threat Intelligence.
             :param url_input: URL string
             :type url_input: str
+            :param analysis_type: Define the analysis type; See official documentation for available options
+            :type analysis_type: str
             :return: response
             :rtype: requests.Response
         """
@@ -1692,6 +1694,9 @@ class AnalyzeURL(TiCloudAPI):
         url = self._url.format(endpoint=self.__SUBMIT_URL_ENDPOINT)
 
         post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+
+        if analysis_type in ("light", "fileless"):
+            post_json["rl"]["query"]["analysis_type"] = analysis_type
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)
