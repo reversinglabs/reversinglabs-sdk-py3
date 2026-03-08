@@ -7073,6 +7073,13 @@ class FileReportVT(TiCloudAPI):
         self._headers["x-apikey"] = api_key
 
     def get_file_report(self, file_hash):
+        """Get a VT-format file report.
+        Accepts a SHA1 or SHA256 file hash.
+            :param file_hash: SHA1 or SHA256 file hash
+            :type file_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
         if not isinstance(file_hash, str):
             raise WrongInputError("file_hash parameter must be a string.")
 
@@ -7101,6 +7108,13 @@ class URLReportVT(TiCloudAPI):
         self._headers["x-apikey"] = api_key
 
     def get_url_report(self, url_identifier):
+        """Get a VT-format URL report.
+        Accepts a Base64 or SHA1 encoded URL.
+            :param url_identifier: Base64 or SHA1 encoded URL
+            :type url_identifier: str
+            :return: response
+            :rtype: requests.Response
+        """
         if not isinstance(url_identifier, str):
             raise WrongInputError("url_identifier parameter must be a SHA1 or Base64 string.")
 
