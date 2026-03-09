@@ -108,9 +108,23 @@ def test_hash_resolving():
 
 
 @pytest.fixture
-def requests_mock():
-	with mock.patch('ReversingLabs.SDK.ticloud.requests', autospec=True) as requests_mock:
-		yield requests_mock
+def requests_mock(request):
+	with mock.patch('ReversingLabs.SDK.ticloud.requests', autospec=True) as requests_module_mock:
+		session_mock = mock.Mock()
+		requests_module_mock.Session.return_value = session_mock
+
+		if request.instance:
+			for name in dir(request.instance):
+				if name.startswith("__"):
+					continue
+				try:
+					attr = getattr(request.instance, name)
+					if isinstance(attr, TiCloudAPI):
+						attr._session = session_mock
+				except Exception:
+					pass
+
+		yield requests_module_mock
 
 
 @pytest.fixture
@@ -133,26 +147,23 @@ class TestFileReputation:
 		with pytest.raises(WrongInputError, match=r"The given hash input string is not a valid hexadecimal value."):
 			self.file_reputation.get_file_reputation([123, 456])
 
-		assert not requests_mock.get.called
+		assert not requests_mock.Session.return_value.get.called
 
 	def test_request_single_hash(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 		self.file_reputation.get_file_reputation(SHA1)
 
 		expected_url = (f"{HOST}/api/databrowser/malware_presence/query/sha1/{SHA1}?extended=true&"
 						f"show_hashes=true&format=json")
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.file_reputation.__class__.__name__} get_file_reputation"},
 			params=None
 		)
 
 	def test_request_multiple_hashes(self, requests_mock):
-		requests_mock.post.return_value.status_code = 200
+		requests_mock.Session.return_value.post.return_value.status_code = 200
 		hashes = [SHA1] * 3
 
 		self.file_reputation.get_file_reputation(hashes)
@@ -161,19 +172,16 @@ class TestFileReputation:
 
 		expected_payload = {"rl": {"query": {"hash_type": "sha1", "hashes": hashes}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
 			json=expected_payload,
 			data=None,
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.file_reputation.__class__.__name__} get_file_reputation"},
 			params=None
 		)
 
 	def test_error_status_code(self, requests_mock):
-		requests_mock.get.return_value.status_code = 404
+		requests_mock.Session.return_value.get.return_value.status_code = 404
 
 		with pytest.raises(NotFoundError):
 			self.file_reputation.get_file_reputation(SHA1)
@@ -192,11 +200,8 @@ class TestFileReputationUserOverride:
 
 		expected_url = f"{HOST}/api/databrowser/malware_presence/user_override/list_hashes/{hash_type}?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} list_active_overrides"},
 			params=None
 		)
@@ -227,13 +232,10 @@ class TestFileReputationUserOverride:
 		expected_url = f"{HOST}/api/databrowser/malware_presence/user_override/json"
 		post_json = {"rl": {"query": {"override_samples": override_samples, "remove_override": remove_override}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
 			json=post_json,
 			data=None,
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} override_classification"},
 			params=None
 		)
@@ -249,11 +251,8 @@ class TestNetworkReputationUserOverride:
 
 		expected_url = f"{HOST}/api/networking/user_override/v1/query/list_overrides"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} list_overrides"},
 			params={"format": "json", "next_network_location": None}
 		)
@@ -282,13 +281,10 @@ class TestNetworkReputationUserOverride:
 										  {"override_network_locations": override_list,
 										   "remove_overrides": remove_list}, "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
 			json=post_json,
 			data=None,
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.override.__class__.__name__} reputation_override"},
 			params=None
 		)
@@ -309,17 +305,14 @@ class TestAVScanners:
 		assert not requests_mock.get.called
 
 	def test_single_hash(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 
 		self.av_scanners.get_scan_results(SHA1, historical_results=True)
 
 		expected_url = f"{HOST}/api/xref/v2/query/sha1/{SHA1}?format=json&history=true"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.av_scanners.__class__.__name__} get_scan_results"},
 			params=None
 		)
@@ -337,7 +330,7 @@ class TestFileAnalysis:
 		assert not requests_mock.get.called
 
 	def test_bulk_query(self, requests_mock):
-		requests_mock.post.return_value.status_code = 200
+		requests_mock.Session.return_value.post.return_value.status_code = 200
 
 		self.rldata.get_analysis_results([SHA256, SHA256])
 
@@ -345,11 +338,8 @@ class TestFileAnalysis:
 
 		post_json = {"rl": {"query": {"hash_type": "sha256", "hashes": [SHA256, SHA256]}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rldata.__class__.__name__} get_analysis_results"},
 			params=None,
 			json=post_json,
@@ -369,17 +359,14 @@ class TestFileAnalysisNonMalicious:
 		assert not requests_mock.get.called
 
 	def test_single_query(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 
 		self.rldata_nonmal.get_analysis_results(SHA1)
 
 		expected_url = f"{HOST}/api/databrowser/rldata/goodware/query/sha1/{SHA1}"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rldata_nonmal.__class__.__name__} get_analysis_results"},
 			params={"format": "json"}
 		)
@@ -400,18 +387,15 @@ class TestRHA1FunctionalSimilarity:
 		assert not requests_mock.get.called
 
 	def test_single_query(self, requests_mock, file_type_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 		file_type_mock.return_value = "pe01"
 
 		self.rha1.get_similar_hashes(self.hash, extended_results=True)
 
 		expected_url = f"{HOST}/api/group_by_rha1/v1/query/pe01/{self.hash}?format=json&limit=1000&extended=true"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rha1.__class__.__name__} get_similar_hashes"},
 			params=None
 		)
@@ -432,18 +416,15 @@ class TestRHA1Analytics:
 		assert not requests_mock.get.called
 
 	def test_single_query(self, requests_mock, file_type_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 		file_type_mock.return_value = "pe01"
 
 		self.rha1.get_rha1_analytics(self.hash, extended_results=True)
 
 		expected_url = f"{HOST}/api/rha1/analytics/v1/query/pe01/{self.hash}?format=json&extended=true"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rha1.__class__.__name__} get_rha1_analytics"},
 			params=None
 		)
@@ -457,17 +438,14 @@ class TestURIStatistics:
 		cls.uristats = URIStatistics(HOST, USERNAME, PASSWORD)
 
 	def test_query(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 
 		self.uristats.get_uri_statistics(self.test_url)
 
 		expected_url = f"{HOST}/api/uri/statistics/uri_state/sha1/0164af1f2e83a7411a3c8cfd02b1424156a21b6b?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.uristats.__class__.__name__} get_uri_statistics"},
 			params=None
 		)
@@ -486,7 +464,7 @@ class TestURIIndex:
 			self.uri_index.get_uri_index(123)
 
 	def test_single_query(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 
 		self.uri_index.get_uri_index(self.test_url, classification="MALICIOUS",
 									 page_sha1="21841b32c6165b27dddbd4d6eb3a672defe54271")
@@ -495,11 +473,8 @@ class TestURIIndex:
 			f"{HOST}/api/uri_index/v1/query/0164af1f2e83a7411a3c8cfd02b1424156a21b6b/21841b32c6165b27dddbd4d6eb3a672defe54271?"
 			f"format=json&classification=MALICIOUS")
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.uri_index.__class__.__name__} get_uri_index"},
 			params=None
 		)
@@ -521,7 +496,7 @@ class TestAdvancedSearch:
 		assert not requests_mock.post.called
 
 	def test_single_query(self, requests_mock):
-		requests_mock.post.return_value.status_code = 200
+		requests_mock.Session.return_value.post.return_value.status_code = 200
 
 		self.adv_search.search(query_string="av-count:5 available:TRUE", sorting_criteria="sha1", sorting_order="desc",
 							   page_number=2, records_per_page=5)
@@ -531,11 +506,8 @@ class TestAdvancedSearch:
 		post_json = {"query": "av-count:5 available:TRUE", "page": 2, "records_per_page": 5, "format": "json",
 					 "sort": "sha1 desc"}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.adv_search.__class__.__name__} search"},
 			params=None,
 			json=post_json,
@@ -549,7 +521,7 @@ class TestFileDownload:
 		cls.download = FileDownload(HOST, USERNAME, PASSWORD)
 
 	def test_status(self, requests_mock):
-		requests_mock.post.return_value.status_code = 200
+		requests_mock.Session.return_value.post.return_value.status_code = 200
 
 		self.download.get_download_status(SHA1)
 
@@ -557,11 +529,8 @@ class TestFileDownload:
 
 		post_json = {"rl": {"query": {"hash_type": "sha1", "hashes": [SHA1]}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.download.__class__.__name__} get_download_status"},
 			params=None,
 			json=post_json,
@@ -569,17 +538,14 @@ class TestFileDownload:
 		)
 
 	def test_download(self, requests_mock):
-		requests_mock.get.return_value.status_code = 200
+		requests_mock.Session.return_value.get.return_value.status_code = 200
 
 		self.download.download_sample(SHA1)
 
 		expected_url = f"{HOST}/api/spex/download/v2/query/sha1/{SHA1}"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.download.__class__.__name__} download_sample"},
 			params=None
 		)
@@ -601,11 +567,8 @@ class TestURLThreatIntelligence:
 			"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml",
 					  "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.url_ti.__class__.__name__} get_url_report"},
 			params=None,
 			json=post_json,
@@ -623,11 +586,8 @@ class TestURLThreatIntelligence:
 			"query": {"urls": list_test_urls,
 					  "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.url_ti.__class__.__name__} get_url_report"},
 			params=None,
 			json=post_json,
@@ -650,11 +610,8 @@ class TestAnalyzeURL:
 			"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml",
 					  "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.analyze_url.__class__.__name__} submit_url"},
 			params=None,
 			json=post_json,
@@ -676,11 +633,8 @@ class TestDomainThreatIntelligence:
 
 		post_json = {"rl": {"query": {"domain": "some.test.domain", "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.domain_ti.__class__.__name__} get_domain_report"},
 			params=None,
 			json=post_json,
@@ -696,11 +650,8 @@ class TestDomainThreatIntelligence:
 
 		post_json = {"rl": {"query": {"domains": list_test_domains, "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.domain_ti.__class__.__name__} get_domain_report"},
 			params=None,
 			json=post_json,
@@ -727,11 +678,8 @@ class TestIPThreatIntelligence:
 
 		post_json = {"rl": {"query": {"ip": "1.1.1.1", "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ip_ti.__class__.__name__} get_ip_report"},
 			params=None,
 			json=post_json,
@@ -747,11 +695,8 @@ class TestIPThreatIntelligence:
 
 		post_json = {"rl": {"query": {"ips": list_test_ips, "response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ip_ti.__class__.__name__} get_ip_report"},
 			params=None,
 			json=post_json,
@@ -777,11 +722,8 @@ class TestFileUpload:
 		meta_xml = ("<rl><properties><property><name>file_name</name><value>test_name</value></property></properties>"
 					"<domain>test_domain</domain></rl>")
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.upload.__class__.__name__} __upload_meta"},
 			params=params,
 			json=None,
@@ -807,11 +749,8 @@ class TestFileUpload:
 					"<domain>test_domain</domain><archive><archive_passwords><password>password_test</password>"
 					"<password>infected</password><password>1234</password></archive_passwords></archive></rl>")
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.upload.__class__.__name__} __upload_meta"},
 			params=params,
 			json=None,
@@ -828,11 +767,8 @@ class TestDeleteFile:
 
 		expected_url = f"{HOST}/api/delete/sample/v1/query/sha1/{SHA1}?delete_on=1234567"
 
-		requests_mock.delete.assert_called_with(
+		requests_mock.Session.return_value.delete.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.delete_file.__class__.__name__} delete_samples"},
 			json=None
 		)
@@ -848,11 +784,8 @@ class TestReanalyzeFile:
 
 		expected_url = f"{HOST}/api/rescan/v1/query/sha1/{SHA1}"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.reanalyze.__class__.__name__} reanalyze_samples"},
 			params=None
 		)
@@ -870,11 +803,8 @@ class TestDataChangeSubscription:
 
 		post_json = {"rl": {"query": {"hash_type": "sha1", "hashes": [SHA1, SHA1]}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.data_change.__class__.__name__} __subscription_action"},
 			params=None,
 			json=post_json,
@@ -915,11 +845,8 @@ class TestDynamicAnalysis:
 		post_json = {"rl": {"platform": "windows10", "response_format": "json", "sha1": SHA1,
 							"optional_parameters": "internet_simulation=true, sample_name=sample_name"}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.da.__class__.__name__} __detonate"},
 			params=None,
 			json=post_json,
@@ -931,11 +858,8 @@ class TestDynamicAnalysis:
 
 		expected_url = f"{HOST}/api/dynamic/analysis/report/v1/query/sha1/{SHA1}/latest?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.da.__class__.__name__} get_dynamic_analysis_results"},
 			params=None
 		)
@@ -956,11 +880,8 @@ class TestCertificateIndex:
 		expected_url = (f"{HOST}/api/certificate/index/v1/query/thumbprint/{SHA1}/page/{SHA1}"
 						f"?format=json&extended=true&limit=100&classification=MALICIOUS")
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ci.__class__.__name__} get_certificate_information"},
 			params=None
 		)
@@ -980,11 +901,8 @@ class TestRansomwareIndicators:
 		expected_url = f"{HOST}/api/public/v1/ransomware/indicators?withHealth=0&tagFormat=dict&" \
 					   "hours=3&indicatorTypes=ipv4,hash,domain,uri&onlyFreemium=0"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.rf.__class__.__name__} get_indicators"},
 			params=None
 		)
@@ -1003,11 +921,8 @@ class TestNewMalwareFilesFeed:
 
 		expected_url = f"{HOST}/api/feed/malware/detection/v1/query/timestamp/1234567?format=json&sample_available=false&limit=1000"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.feed.__class__.__name__} _pull_with_timestamp"},
 			params=None
 		)
@@ -1023,11 +938,8 @@ class TestNewMalwareURIFeed:
 
 		expected_url = f"{HOST}/api/feed/malware_uri/v1/query/latest?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.feed.__class__.__name__} pull_latest"},
 			params=None
 		)
@@ -1045,11 +957,8 @@ class TestImpHashSimilarity:
 
 		expected_url = f"{HOST}/api/imphash_index/v1/query/{imphash}/start_sha1/{SHA1}?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.imphash.__class__.__name__} get_imphash_index"},
 			params=None
 		)
@@ -1073,11 +982,8 @@ class TestYARAHunting:
 
 		expected_url = f"{HOST}/api/yara/admin/v1/ruleset"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.yara.__class__.__name__} create_ruleset"},
 			params=None,
 			json=post_json,
@@ -1088,7 +994,7 @@ class TestYARAHunting:
 		with pytest.raises(WrongInputError, match=r"ruleset_text parameter must be unicode string."):
 			self.yara.create_ruleset(ruleset_name="name", ruleset_text=123)
 
-		assert not requests_mock.post.called
+		assert not requests_mock.Session.return_value.post.called
 
 
 class TestYARARetroHunting:
@@ -1105,11 +1011,8 @@ class TestYARARetroHunting:
 
 		post_json = {"ruleset_name": ruleset_name}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.yara.__class__.__name__} __retro_hunt_action"},
 			params=None,
 			json=post_json,
@@ -1137,11 +1040,8 @@ class TestTAXIIFeed:
 
 		expected_url = f"{HOST}/api/taxii/lite-root/collections/123456/objects/"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
 			params=query_params
 		)
@@ -1161,11 +1061,8 @@ class TestTAXIIFeed:
 
 		expected_url = f"{HOST}/api/taxii/regular-root/collections/654321/objects/"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.taxii.__class__.__name__} get_objects", "Accept": "application/taxii+json;version=2.1"},
 			params=query_params
 		)
@@ -1180,11 +1077,8 @@ class TestCustomerUsage:
 
 		expected_url = f"{HOST}/api/customer_usage/v1/usage/daily"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.usage.__class__.__name__} daily_usage"},
 			params={"date": "2024-07-03", "format": "json", "from": None, "to": None}
 		)
@@ -1208,11 +1102,8 @@ class TestNetworkReputation:
 			"network_locations": [{"network_location": "some.domain"}, {"network_location": "another.domain"}],
 			"response_format": "json"}}}
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.net_rep.__class__.__name__} get_network_reputation"},
 			params=None,
 			json=post_json,
@@ -1230,11 +1121,8 @@ class TestMalwareFamilyDetection:
 
 		expected_url = f"{HOST}/api/malware/family/detection/v1/query/sha1/{SHA1}"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.malware_family.__class__.__name__} get_malware_family"},
 			params=None
 		)
@@ -1264,11 +1152,8 @@ class TestVerticalFeedsStatistics:
 
 		expected_url = f"{HOST}/api/feed/malware/detection/family/v2/statistics/category/financial/counts"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.verticalstats.__class__.__name__} feed_query"},
 			params={"format": "json", "weeks": 5}
 		)
@@ -1391,11 +1276,8 @@ class TestIocDataRetrieval:
 			"platform": "Win32"
 		}
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_ioc_summary"},
 			params=expected_params
 		)
@@ -1428,11 +1310,8 @@ class TestIocDataRetrieval:
 			"platform": "Win32"
 		}
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
 			params=expected_params
 		)
@@ -1466,11 +1345,8 @@ class TestIocDataRetrieval:
 			"platform": "Win32"
 		}
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_latest_iocs"},
 			params=expected_params
 		)
@@ -1505,11 +1381,8 @@ class TestIocDataRetrieval:
 			"platform": "Win32"
 		}
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={
 				"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
 			params=expected_params
@@ -1546,11 +1419,8 @@ class TestIocDataRetrieval:
 			"platform": "Win32"
 		}
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.ioc_data_retrieval.__class__.__name__} get_iocs_timerange"},
 			params=expected_params
 		)
@@ -1566,11 +1436,8 @@ class TestCertificateAnalytics:
 
 		expected_url = f"{HOST}/api/certificate/analytics/v1/query/thumbprint/{SHA1}?format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.analytics.__class__.__name__} get_certificate_analytics"},
 			params=None
 		)
@@ -1599,11 +1466,8 @@ class TestNewMalwarePlatformFiltered:
 
 		expected_url = f"{HOST}/api/feed/malware/detection/platform/v1/query/timestamp/12345678?sample_available=false&limit=1000&format=json"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.new_malware.__class__.__name__} feed_query"},
 			params=None
 		)
@@ -1684,11 +1548,8 @@ class TestNewExploitOrCveSamplesFoundInWildHourly:
 
 		expected_url = f"{HOST}/api/feed/malware/detection/exploit/hourly/v2/query/latest"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.hourly.__class__.__name__} latest_hourly_exploit_list_query"},
 			params={
 				"sample_available": "true",
@@ -1708,11 +1569,8 @@ class TestNewExploitAndCveSamplesFoundInWildDaily:
 
 		expected_url = f"{HOST}/api/feed/malware/exploit/daily/v1/query/latest"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.daily.__class__.__name__} latest_daily_exploit_list_query"},
 			params={
 				"sample_available": "true",
@@ -1754,23 +1612,22 @@ class TestSupplyChainFeed:
 
 	def test_query(self, requests_mock):
 		amount = 5
-		self.supply.pull_with_relative_time(unit="days", amount=amount)
+		fixed_now = datetime(2023, 1, 1, 12, 0, 0)
+		
+		with mock.patch('ReversingLabs.SDK.ticloud.datetime') as mock_datetime:
+			mock_datetime.now.return_value = fixed_now
+			self.supply.pull_with_relative_time(unit="days", amount=amount)
 
 		minute_amount = amount * 1440
-		subtracted = datetime.now() - timedelta(minutes=minute_amount)
+		subtracted = fixed_now - timedelta(minutes=minute_amount)
 		subtracted_str = subtracted.strftime("%Y-%m-%dT%H:%M:%S")
 		expected_url = f"{HOST}/api/feed/supply_chain/ioc/v1/query/utc/{subtracted_str}"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			auth=(USERNAME, PASSWORD),
-			verify=True,
-			proxies=None,
 			headers={"User-Agent": f"{DEFAULT_USER_AGENT}; {self.supply.__class__.__name__} pull_with_timestamp"},
 			params={
 				"limit": 1000,
 				"format": "json"
 			}
 		)
-
-
