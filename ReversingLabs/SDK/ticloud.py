@@ -77,6 +77,16 @@ class TiCloudAPI(object):
         self._headers = {}
         self._allow_none_return = allow_none_return
 
+        self._session = requests.Session()
+        self._session.auth = self._credentials
+        self._session.verify = self._verify
+        self._session.proxies = self._proxies if self._proxies else {}
+
+    def __del__(self):
+        """Ensure the session is closed when the object is deleted."""
+        if hasattr(self, "_session"):
+            self._session.close()
+
     @staticmethod
     def __validate_host(host):
         """Returns a formatted host URL including the protocol prefix.
@@ -99,6 +109,12 @@ class TiCloudAPI(object):
 
         return host
 
+    def _update_headers(self):
+        """Helper to update headers with dynamic caller info."""
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_back.f_code.co_name}")
+        self._session.headers.update(self._headers)
+
     def _get_request(self, url, params=None):
         """A generic GET request method for all ticloud module classes.
             :param url: request URL
@@ -108,19 +124,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+        self._update_headers()
 
-        response = requests.get(
-            url=url,
-            auth=self._credentials,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            params=params
-        )
-
-        return response
+        return self._session.get(url=url, params=params)
 
     def _post_request(self, url, post_json=None, data=None, params=None):
         """A generic POST request method for all ticloud module classes.
@@ -134,21 +140,9 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.post(
-            url=url,
-            auth=self._credentials,
-            json=post_json,
-            data=data,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            params=params
-        )
-
-        return response
+        self._update_headers()
+        # Use session instead of requests.post
+        return self._session.post(url=url, json=post_json, data=data, params=params)
 
     def _delete_request(self, url, payload_json=None):
         """A generic DELETE request method for all ticloud module classes.
@@ -159,19 +153,8 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.delete(
-            url=url,
-            auth=self._credentials,
-            json=payload_json,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers
-        )
-
-        return response
+        self._update_headers()
+        return self._session.delete(url=url, json=payload_json)
 
     def _put_request(self, url, payload_json=None):
         """A generic PUT request method for all ticloud module classes.
@@ -182,19 +165,8 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.put(
-            url=url,
-            auth=self._credentials,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            json=payload_json
-        )
-
-        return response
+        self._update_headers()
+        return self._session.put(url=url, json=payload_json)
 
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
