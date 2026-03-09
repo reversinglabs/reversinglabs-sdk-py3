@@ -10,7 +10,6 @@ import inspect
 import requests
 import time
 from urllib import parse
-from warnings import warn
 import json
 
 from ReversingLabs.SDK.helper import ADVANCED_SEARCH_SORTING_CRITERIA, DEFAULT_USER_AGENT, RESPONSE_CODE_ERROR_MAP, \
