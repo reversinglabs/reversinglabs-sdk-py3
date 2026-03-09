@@ -113,7 +113,6 @@ class TiCloudAPI(object):
         """Helper to update headers with dynamic caller info."""
         self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
                                        f"{inspect.currentframe().f_back.f_back.f_code.co_name}")
-        self._session.headers.update(self._headers)
 
     def _get_request(self, url, params=None):
         """A generic GET request method for all ticloud module classes.
@@ -126,7 +125,7 @@ class TiCloudAPI(object):
         """
         self._update_headers()
 
-        return self._session.get(url=url, params=params)
+        return self._session.get(url=url, params=params, headers=self._headers)
 
     def _post_request(self, url, post_json=None, data=None, params=None):
         """A generic POST request method for all ticloud module classes.
@@ -142,7 +141,7 @@ class TiCloudAPI(object):
         """
         self._update_headers()
         # Use session instead of requests.post
-        return self._session.post(url=url, json=post_json, data=data, params=params)
+        return self._session.post(url=url, json=post_json, data=data, params=params, headers=self._headers)
 
     def _delete_request(self, url, payload_json=None):
         """A generic DELETE request method for all ticloud module classes.
@@ -154,7 +153,7 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-        return self._session.delete(url=url, json=payload_json)
+        return self._session.delete(url=url, json=payload_json, headers=self._headers)
 
     def _put_request(self, url, payload_json=None):
         """A generic PUT request method for all ticloud module classes.
@@ -166,7 +165,7 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-        return self._session.put(url=url, json=payload_json)
+        return self._session.put(url=url, json=payload_json, headers=self._headers)
 
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
