@@ -124,8 +124,11 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-
-        return self._session.get(url=url, params=params, headers=self._headers)
+        return self._session.get(
+            url=url,
+            params=params,
+            headers=self._headers
+        )
 
     def _post_request(self, url, post_json=None, data=None, params=None):
         """A generic POST request method for all ticloud module classes.
@@ -140,8 +143,13 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-        # Use session instead of requests.post
-        return self._session.post(url=url, json=post_json, data=data, params=params, headers=self._headers)
+        return self._session.post(
+            url=url,
+            json=post_json,
+            data=data,
+            params=params,
+            headers=self._headers
+        )
 
     def _delete_request(self, url, payload_json=None):
         """A generic DELETE request method for all ticloud module classes.
@@ -153,7 +161,11 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-        return self._session.delete(url=url, json=payload_json, headers=self._headers)
+        return self._session.delete(
+            url=url,
+            json=payload_json,
+            headers=self._headers
+        )
 
     def _put_request(self, url, payload_json=None):
         """A generic PUT request method for all ticloud module classes.
@@ -165,7 +177,11 @@ class TiCloudAPI(object):
             :rtype: requests.Response
         """
         self._update_headers()
-        return self._session.put(url=url, json=payload_json, headers=self._headers)
+        return self._session.put(
+            url=url,
+            json=payload_json,
+            headers=self._headers
+        )
 
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
