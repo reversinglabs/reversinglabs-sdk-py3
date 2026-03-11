@@ -34,11 +34,9 @@ class TitaniumScale(object):
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
         self._user_agent = user_agent
-        self._headers = {}
+        self._headers = {"User-Agent": user_agent}
         if token:
             self._headers["Authorization"] = "Token {token}".format(token=token)
-
-        self._verify = verify
 
         if not isinstance(wait_time_seconds, int):
             raise WrongInputError("wait_time_seconds must be an integer.")
@@ -53,7 +51,15 @@ class TitaniumScale(object):
                 raise WrongInputError("proxies parameter must be a dictionary.")
             if len(proxies) == 0:
                 raise WrongInputError("proxies parameter can not be an empty dictionary.")
-        self._proxies = proxies
+
+        self._session = requests.Session()
+        self._session.verify = verify
+        self._session.proxies = proxies
+
+    def __del__(self):
+        """Closes the requests session when the object is destroyed."""
+        if hasattr(self, '_session'):
+            self._session.close()
 
     @staticmethod
     def __validate_host(host):
@@ -273,14 +279,13 @@ class TitaniumScale(object):
             full_report=full_report
         )
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_back.f_code.co_name}")
 
-        response = requests.get(
+        response = self._session.get(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers
+            headers=headers
         )
 
         return response
@@ -344,11 +349,9 @@ class TitaniumScale(object):
                                          f"{inspect.currentframe().f_back.f_code.co_name}")
         request_headers["Content-Type"] = multipart_encoder.content_type
 
-        response = requests.post(
+        response = self._session.post(
             url=url,
             data=multipart_encoder,
-            verify=self._verify,
-            proxies=self._proxies,
             headers=request_headers
         )
 
@@ -369,11 +372,13 @@ class TitaniumScale(object):
             :return: response
             :rtype: requests.Response
         """
+        request_headers = self._headers.copy()
+
         if custom_token is not None:
             if not isinstance(custom_token, str):
                 raise WrongInputError("custom_token parameter must be string.")
 
-            self._headers["X-TiScale-Token"] = "Token {custom_token}".format(custom_token=custom_token)
+            request_headers["X-TiScale-Token"] = "Token {custom_token}".format(custom_token=custom_token)
 
         form_data = {}
 
@@ -397,15 +402,13 @@ class TitaniumScale(object):
 
         url = self._url.format(endpoint=self.__UPLOAD_ENDPOINT)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
+        request_headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                         f"{inspect.currentframe().f_back.f_code.co_name}")
 
-        response = requests.post(
+        response = self._session.post(
             url=url,
             files=files,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
+            headers=request_headers,
             data=form_data
         )
 
@@ -436,14 +439,13 @@ class TitaniumScale(object):
 
         url = self._url.format(endpoint=self.__MULTIPLE_TASKS_ENDPOINT)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_code.co_name}")
 
-        response = requests.get(
+        response = self._session.get(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
+            headers=headers,
             params=query_params
         )
 
@@ -487,14 +489,13 @@ class TitaniumScale(object):
         endpoint = self.__SINGLE_TASK_ENDPOINT.format(task_id=task_id)
         url = self._url.format(endpoint=endpoint)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_code.co_name}")
 
-        response = requests.get(
+        response = self._session.get(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
+            headers=headers,
             params=query_params
         )
 
@@ -515,14 +516,13 @@ class TitaniumScale(object):
         endpoint = self.__SINGLE_TASK_ENDPOINT.format(task_id=task_id)
         url = self._url.format(endpoint=endpoint)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_code.co_name}")
 
-        response = requests.delete(
+        response = self._session.delete(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers
+            headers=headers
         )
 
         self.__raise_on_error(response)
@@ -543,14 +543,13 @@ class TitaniumScale(object):
 
         url = self._url.format(endpoint=self.__MULTIPLE_TASKS_ENDPOINT)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_code.co_name}")
 
-        response = requests.delete(
+        response = self._session.delete(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
+            headers=headers,
             params=query_params
         )
 
@@ -562,14 +561,13 @@ class TitaniumScale(object):
         """Retrieves the identifier of the current set of YARA rules on the TitaniumScale Worker instance."""
         url = self._url.format(endpoint=self.__YARA_ID_ENDPOINT)
 
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_code.co_name}")
+        headers = self._headers.copy()
+        headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                 f"{inspect.currentframe().f_code.co_name}")
 
-        response = requests.get(
+        response = self._session.get(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers
+            headers=headers
         )
 
         self.__raise_on_error(response)
