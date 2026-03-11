@@ -20,16 +20,23 @@ class FileInspectionEngine(object):
 	def __init__(self, host, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT):
 		self._host = self.__validate_host(host)
 		self._url = "{host}{{endpoint}}".format(host=self._host)
-		self._verify = verify
 		self._user_agent = user_agent
-		self._headers = {}
+		self._headers = {"User-Agent": user_agent}
 
 		if proxies:
 			if not isinstance(proxies, dict):
 				raise WrongInputError("proxies parameter must be a dictionary.")
 			if len(proxies) == 0:
 				raise WrongInputError("proxies parameter can not be an empty dictionary.")
-		self._proxies = proxies
+
+		self._session = requests.Session()
+		self._session.verify = verify
+		self._session.proxies = proxies
+
+	def __del__(self):
+		"""Closes the requests session when the object is destroyed."""
+		if hasattr(self, '_session'):
+			self._session.close()
 
 	@staticmethod
 	def __validate_host(host):
@@ -152,15 +159,14 @@ class FileInspectionEngine(object):
 
 		url = self._url.format(endpoint=endpoint)
 
-		self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-									   f"{inspect.currentframe().f_back.f_code.co_name}")
+		headers = self._headers.copy()
+		headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+								  f"{inspect.currentframe().f_back.f_code.co_name}")
 
-		response = requests.post(
+		response = self._session.post(
 			url=url,
 			data=file_source,
-			verify=self._verify,
-			proxies=self._proxies,
-			headers=self._headers
+			headers=headers
 		)
 
 		self.__raise_on_error(response)
