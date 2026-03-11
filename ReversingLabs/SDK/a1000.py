@@ -126,6 +126,21 @@ class A1000(object):
             raise WrongInputError("retries must be an integer.")
         self._retries = retries
 
+        self._session = requests.Session()
+        self._session.verify = self._verify
+        self._session.proxies = self._proxies if self._proxies else {}
+        self._session.headers.update(self._headers)
+
+    def __del__(self):
+        """Ensure the session is closed when the object is deleted."""
+        if hasattr(self, "_session"):
+            self._session.close()
+
+    def _update_headers(self):
+        """Helper to update headers with dynamic caller info."""
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_back.f_code.co_name}")
+
     @staticmethod
     def __validate_host(host):
         """Returns a formatted host URL including the protocol prefix.
@@ -496,7 +511,6 @@ class A1000(object):
             :return: :class:`Response <Response>` object
             :rtype: requests.Response
         """
-        data = {"hash_values": sample_hashes}
         data = {"hash_values": sample_hashes}
 
         params = {}
@@ -1399,7 +1413,7 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__delete_request(url=url, post_json=post_json)
+        response = self.__delete_request(url=url, json_body=post_json)
 
         self.__raise_on_error(response)
 
@@ -1565,7 +1579,7 @@ class A1000(object):
 
         url = self._url.format(endpoint=endpoint)
 
-        response = self.__delete_request(url=url, post_json=post_json)
+        response = self.__delete_request(url=url, json_body=post_json)
 
         self.__raise_on_error(response)
 
@@ -1915,7 +1929,7 @@ class A1000(object):
         put_json = {"url": repository_url, "name": name, "source_branch": source_branch, "api_token": api_token,
                     "import_update_preferences": import_update_preferences}
 
-        response = self.__put_request(url=url, put_json=put_json)
+        response = self.__put_request(url=url, json_body=put_json)
 
         self.__raise_on_error(response)
 
@@ -2661,18 +2675,12 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.get(
+        self._update_headers()
+        return self._session.get(
             url=url,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            params=params
+            params=params,
+            headers=self._headers
         )
-
-        return response
 
     def __post_request(self, url, post_json=None, files=None, data=None, params=None):
         """A generic POST request method for all A1000 methods.
@@ -2686,57 +2694,51 @@ class A1000(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; "
-                                       f"{self.__class__.__name__} {inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.post(
+        self._update_headers()
+        return self._session.post(
             url=url,
             json=post_json,
             files=files,
             data=data,
             params=params,
-            verify=self._verify,
-            proxies=self._proxies,
             headers=self._headers
         )
 
-        return response
-
-    def __delete_request(self, url, post_json=None, params=None):
+    def __delete_request(self, url, json_body=None, params=None):
         """A generic DELETE request method for all A1000 methods.
-        :param url: request URL
-        :type url: str
-        :return: response
-        :rtype: requests.Response
+            :param url: request URL
+            :type url: str
+            :param json_body: JSON body
+            :type json_body: dict
+            :param params: additional params to send
+            :return: response
+            :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.delete(
+        self._update_headers()
+        return self._session.delete(
             url=url,
-            json=post_json,
+            json=json_body,
             params=params,
-            verify=self._verify,
-            proxies=self._proxies,
             headers=self._headers
         )
 
-        return response
-
-    def __put_request(self, url, data=None, put_json=None):
-        self._headers["User-Agent"] = (f"{self._user_agent}; "
-                                       f"{self.__class__.__name__} {inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.put(
+    def __put_request(self, url, data=None, json_body=None):
+        """A generic PUT request method for all A1000 methods.
+            :param url: request URL
+            :type url: str
+            :param data: data to send
+            :param json_body: JSON body
+            :type json_body: dict
+            :return: response
+            :rtype: requests.Response
+        """
+        self._update_headers()
+        return self._session.put(
             url=url,
             data=data,
-            json=put_json,
-            verify=self._verify,
-            proxies=self._proxies,
+            json=json_body,
             headers=self._headers
         )
-
-        return response
 
     @staticmethod
     def __raise_on_error(response):
