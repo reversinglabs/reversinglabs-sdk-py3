@@ -1,12 +1,11 @@
 import io
 import requests
 
-from datetime import datetime
 from typing import Union
 from time import sleep, time
 
-from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError
-from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting
+from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError, NotFoundError
+from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -17,7 +16,7 @@ class AdvancedActions(object):
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
 
-        conf = {
+        self._conf = {
             "host": host,
             "username": username,
             "password": password,
@@ -27,29 +26,35 @@ class AdvancedActions(object):
             "allow_none_return": allow_none_return
         }
 
-        self._rldata_client = FileAnalysis(**conf)
-
-        self._da_client = DynamicAnalysis(**conf)
-
-        self._yara_client = YARAHunting(**conf)
-
-        self._file_dl_client = FileDownload(**conf)
-
     def enriched_file_analysis(self, sample_hash):
         """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
         report.
+        If a dynamic analysis report does not exist for the given hash,
+        the method returns a regular file analysis report.
+        If not even a file analysis report exists for the given hash, the method returns an empty dict.
             :param sample_hash: sample hash
             :type sample_hash: str
             :return: file analysis report enriched with dynamic analysis
             :rtype: dict
         """
-        da_response = self._da_client.get_dynamic_analysis_results(
-            sample_hash=sample_hash
-        )
+        rldata_client = FileAnalysis(**self._conf)
+        da_client = DynamicAnalysis(**self._conf)
 
-        rldata_response = self._rldata_client.get_analysis_results(
-            hash_input=sample_hash
-        )
+        try:
+            rldata_response = rldata_client.get_analysis_results(
+                hash_input=sample_hash
+            )
+
+        except NotFoundError:
+            return {}
+
+        try:
+            da_response = da_client.get_dynamic_analysis_results(
+                sample_hash=sample_hash
+            )
+
+        except NotFoundError:
+            return rldata_response.json()
 
         da_report = da_response.json().get("rl", {}).get("report")
         if da_report:
@@ -62,9 +67,10 @@ class AdvancedActions(object):
 
             return rldata_report
 
-        return {}
+        return rldata_response.json()
 
-    def __get_yara_matches(self, starting_timestamp, current_timestamp):
+    @staticmethod
+    def __get_yara_matches(starting_timestamp, current_timestamp, yara_client):
         """Private method for aggregating SHA1 hashes of found YARA matches.
             :param starting_timestamp: Starting time in the integer Unix timestamp format
             :type starting_timestamp: int
@@ -76,7 +82,7 @@ class AdvancedActions(object):
         sha1_list = []
 
         while starting_timestamp < current_timestamp:
-            resp = self._yara_client.yara_matches_feed("timestamp", starting_timestamp)
+            resp = yara_client.yara_matches_feed("timestamp", starting_timestamp)
 
             entries = resp.json().get("rl", {}).get("feed", {}).get("entries", [])
             starting_timestamp = resp.json().get("rl", {}).get("feed", {}).get("last_timestamp")
@@ -91,15 +97,88 @@ class AdvancedActions(object):
             :param starting_timestamp: Starting time in the integer Unix timestamp format
             :type starting_timestamp: int
         """
+        yara_client = YARAHunting(**self._conf)
+        file_dl_client = FileDownload(**self._conf)
+
         current_timestamp = int(time())
 
-        matches_list = self.__get_yara_matches(starting_timestamp, current_timestamp)
+        matches_list = self.__get_yara_matches(starting_timestamp, current_timestamp, yara_client)
 
         for sha1 in matches_list:
-            resp = self._file_dl_client.download_sample(sha1)
+            resp = file_dl_client.download_sample(sha1)
 
             with open(sha1, "wb") as file_handle:
                 file_handle.write(resp.content)
+
+    def file_analysis_propagate_classification(self, sample_hash):
+        """This method performs network reputation analysis on every URL IoC found in the 'computer_vision_analysis'
+        section of the file analysis report.
+        If any of the found IoCs are classified as malicious or suspicious, the method propagates the classification
+        to the parent sample in the file analysis report. If at least one IoC is malicious the propagated classification
+        will be malicious.
+        The propagation can be found in the 'propagated_classification' section of the file analysis report.
+        If there were no IoCs in the 'computer_vision_analysis' section or if all IoCs were benign, there will be
+        no propagation.
+            :param sample_hash: Hash of the sample to analyze
+            :type sample_hash: str
+            :return: File analysis report in dict format
+            :rtype: dict
+        """
+        rldata_client = FileAnalysis(**self._conf)
+        net_rep_client = NetworkReputation(**self._conf)
+
+        accepted_categories = ("https", "http")
+        wanted_classifications = ("malicious", "suspicious")
+        selected_uris = []
+
+        file_analysis_json = rldata_client.get_analysis_results(sample_hash).json()
+
+        computer_vision_entries = file_analysis_json.get("rl", {}).get("sample", {}).get("computer_vision_analysis", {}).get("entries", [])
+
+        if computer_vision_entries:
+            for entry in computer_vision_entries:
+                for result in entry.get("results", []):
+                    if result.get("category") in accepted_categories:
+                        selected_uris.append(result.get("value"))
+
+            resp_json = net_rep_client.get_network_reputation(selected_uris).json()
+
+            vision_classifications = {"computer_vision_iocs": {}}
+            classifications_sum = {
+                "malicious": 0,
+                "suspicious": 0
+            }
+
+            for entry in resp_json.get("rl", {}).get("entries", []):
+                entry_classification = entry.get("classification", "").lower()
+
+                if entry_classification in wanted_classifications:
+                    vision_classifications["computer_vision_iocs"] = {
+                        "value": entry.get("requested_network_location"),
+                        "classification": entry_classification
+                    }
+
+                    classifications_sum[entry_classification] += 1
+
+            if vision_classifications["computer_vision_iocs"]:
+                file_analysis_json["rl"]["sample"]["propagated_classification"] = vision_classifications
+
+                if classifications_sum["malicious"] > 0:
+                    file_analysis_json["rl"]["sample"]["propagated_classification"]["classification"] = "malicious"
+
+                else:
+                    file_analysis_json["rl"]["sample"]["propagated_classification"]["classification"] = "suspicious"
+
+                file_analysis_json["rl"]["sample"]["propagated_classification"]["reason"] = "Propagated classification from analyzed network IoCs found using computer vision."
+                file_analysis_json["rl"]["sample"]["propagated_classification"]["ioc_classifications_summary"] = classifications_sum
+
+                return file_analysis_json
+
+            else:
+                return file_analysis_json
+
+        else:
+            return file_analysis_json
 
 
 class SpectraAssureClient(object):
