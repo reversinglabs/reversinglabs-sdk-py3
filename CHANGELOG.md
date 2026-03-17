@@ -516,6 +516,25 @@ v2.12.0 (2025-12-24)
   - Removed The `ExpressionSearch` example from the `search.ipynb` notebook.
 
 
+
+v2.13.0 (2026-03-30)
+-------------------
+### Improvements
+- **ticloud** module
+  - Added the `FileReportVT` and `URLReportVT` classes.
+  - The `submit_url` method of the `AnalyzeURL` now accepts `analysis_type` as a parameter.
+
+- **advanced** module
+  - Added the `file_analysis_propagate_classification` method to the `AdvancedActions` class.
+
+- All ReversingLabs SDK modules now use a `Session` object from the `requests` library to reuse connections and make code execution faster.
+
+### ReversingLabs SDK Cookbook changes
+### Improvements
+- **Scenarios and Workflows** notebooks:
+  - Added the `advanced_search_to_fif.ipynb` and `yara_hunt_to_fif.ipynvb` notebooks.
+
+
 -------------------
 
 

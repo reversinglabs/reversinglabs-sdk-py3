@@ -1027,6 +1027,13 @@ class AdvancedActions(object):
 - `enriched_file_analysis`
   - Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis report.
 
+- `download_yara_matches`
+  - Download all YARA matches from the defined timestamp to the current moment.
+  
+- `file_analysis_propagate_classification`
+  - This method performs network reputation analysis on every URL IoC found in the 'computer_vision_analysis' section of the file analysis report.
+  - If any of the found IoCs are classified as malicious or suspicious, the method propagates the classification to the parent sample in the file analysis report. If at least one IoC is malicious the propagated classification will be malicious.
+  - The propagation can be found in the 'propagated_classification' section of the file analysis report. If there were no IoCs in the 'computer_vision_analysis' section or if all IoCs were benign, there will be no propagation.
 
 #### Class:
 ```python
