@@ -25,7 +25,6 @@ AVAILABLE_PLATFORMS = ("windows7", "windows10", "macos_11", "windows11", "linux"
 class A1000(object):
 
     __TOKEN_ENDPOINT = "/api-token-auth/"
-    __UPLOAD_ENDPOINT = "/api/uploads/"
     __SUBMIT_FILE_ENDPOINT = "/api/submit/file/"
     __SUBMIT_URL_ENDPOINT = "/api/submit/url/"
     __FILE_ANALYSIS_STATUS_ENDPOINT = "/api/samples/status/"
