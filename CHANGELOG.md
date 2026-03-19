@@ -532,7 +532,7 @@ v2.13.0 (2026-03-30)
 ### ReversingLabs SDK Cookbook changes
 ### Improvements
 - **Scenarios and Workflows** notebooks:
-  - Added the `advanced_search_to_fif.ipynb` and `yara_hunt_to_fif.ipynvb` notebooks.
+  - Added the `advanced_search_to_fif.ipynb`, `yara_hunt_to_fif.ipynvb` and `email_file_reputation` notebooks.
 
 
 -------------------
