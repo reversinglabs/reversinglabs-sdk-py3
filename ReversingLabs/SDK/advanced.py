@@ -73,6 +73,25 @@ class AdvancedActions(object):
 
         return rldata_response.json()
 
+    def full_file_analysis(self, sample_hash):
+        """Combines File Reputation, File Analysis and Dynamic Analysis into one report.
+        Returns a combined analysis report whose form depends on the availability of singular analysis reports.
+            :param sample_hash: sample hash
+            :type sample_hash: str
+            :return: combined analysis report
+            :rtype: dict
+        """
+        enriched_report = self.enriched_file_analysis(sample_hash)
+
+        mwp_client = FileReputation(**self._conf)
+        resp_json = mwp_client.get_file_reputation(sample_hash).json()
+
+        if enriched_report:
+            enriched_report["rl"]["sample"]["sample_reputation"] = resp_json.get("rl").get("malware_presence")
+
+        return enriched_report
+
+
     @staticmethod
     def __get_yara_matches(starting_timestamp, current_timestamp, yara_client):
         """Private method for aggregating SHA1 hashes of found YARA matches.
