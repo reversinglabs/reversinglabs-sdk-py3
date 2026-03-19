@@ -5,7 +5,8 @@ from typing import Union
 from time import sleep, time
 
 from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError, NotFoundError
-from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation
+from ReversingLabs.SDK.ticloud import (FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation,
+                                       FileReputation)
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -25,6 +26,9 @@ class AdvancedActions(object):
             "proxies": proxies,
             "allow_none_return": allow_none_return
         }
+
+        self._MALICIOUS = "MALICIOUS"
+        self._SUSPICIOUS = "SUSPICIOUS"
 
     def enriched_file_analysis(self, sample_hash):
         """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
@@ -110,75 +114,52 @@ class AdvancedActions(object):
             with open(sha1, "wb") as file_handle:
                 file_handle.write(resp.content)
 
-    def file_analysis_propagate_classification(self, sample_hash):
-        """This method performs network reputation analysis on every URL IoC found in the 'computer_vision_analysis'
-        section of the file analysis report.
-        If any of the found IoCs are classified as malicious or suspicious, the method propagates the classification
-        to the parent sample in the file analysis report. If at least one IoC is malicious the propagated classification
-        will be malicious.
-        The propagation can be found in the 'propagated_classification' section of the file analysis report.
-        If there were no IoCs in the 'computer_vision_analysis' section or if all IoCs were benign, there will be
-        no propagation.
-            :param sample_hash: Hash of the sample to analyze
-            :type sample_hash: str
-            :return: File analysis report in dict format
-            :rtype: dict
+    def email_file_reputation(self, email_hash):
+        """This method accepts a hash string of an email file.
+        If the email file has graphical attachments, the reputation of those attachments will be taken into account
+        when returning the reputation verdict here.
+        If at least one attachment is classified as malicious, the returned verdict will be "MALICIOUS".
+        If there are no malicious attachments but there are suspicious ones, the returned verdict will be "SUSPICIOUS".
+            :param email_hash: Email file hash
+            :type email_hash: str
+            :return: Reputation verdict
+            :rtype: str
         """
-        rldata_client = FileAnalysis(**self._conf)
-        net_rep_client = NetworkReputation(**self._conf)
+        mwp_client = FileReputation(**self._conf)
 
-        accepted_categories = ("https", "http")
-        wanted_classifications = ("malicious", "suspicious")
-        selected_uris = []
+        mwp_resp_json = mwp_client.get_file_reputation(email_hash).json()
+        verdict = mwp_resp_json.get("rl").get("malware_presence").get("status").upper()
 
-        file_analysis_json = rldata_client.get_analysis_results(sample_hash).json()
+        if verdict == self._MALICIOUS:
+            return verdict
 
-        computer_vision_entries = file_analysis_json.get("rl", {}).get("sample", {}).get("computer_vision_analysis", {}).get("entries", [])
+        else:
+            accepted_categories = ("https", "http")
+            selected_uris = []
 
-        if computer_vision_entries:
-            for entry in computer_vision_entries:
-                for result in entry.get("results", []):
-                    if result.get("category") in accepted_categories:
-                        selected_uris.append(result.get("value"))
+            rldata_client = FileAnalysis(**self._conf)
+            net_rep_client = NetworkReputation(**self._conf)
+
+            file_analysis_json = rldata_client.get_analysis_results(email_hash).json()
+            computer_vision_entries = file_analysis_json.get("rl", {}).get("sample", {}).get("computer_vision_analysis", {}).get("entries", [])
+
+            if computer_vision_entries:
+                for entry in computer_vision_entries:
+                    for result in entry.get("results", []):
+                        if result.get("category") in accepted_categories:
+                            selected_uris.append(result.get("value"))
 
             resp_json = net_rep_client.get_network_reputation(selected_uris).json()
 
-            vision_classifications = {"computer_vision_iocs": {}}
-            classifications_sum = {
-                "malicious": 0,
-                "suspicious": 0
-            }
-
             for entry in resp_json.get("rl", {}).get("entries", []):
-                entry_classification = entry.get("classification", "").lower()
+                if entry.get("classification", "").upper() == self._MALICIOUS:
+                    verdict = self._MALICIOUS
+                    return verdict
 
-                if entry_classification in wanted_classifications:
-                    vision_classifications["computer_vision_iocs"] = {
-                        "value": entry.get("requested_network_location"),
-                        "classification": entry_classification
-                    }
+                elif entry.get("classification", "").upper() == self._SUSPICIOUS:
+                    verdict = self._SUSPICIOUS
 
-                    classifications_sum[entry_classification] += 1
-
-            if vision_classifications["computer_vision_iocs"]:
-                file_analysis_json["rl"]["sample"]["propagated_classification"] = vision_classifications
-
-                if classifications_sum["malicious"] > 0:
-                    file_analysis_json["rl"]["sample"]["propagated_classification"]["classification"] = "malicious"
-
-                else:
-                    file_analysis_json["rl"]["sample"]["propagated_classification"]["classification"] = "suspicious"
-
-                file_analysis_json["rl"]["sample"]["propagated_classification"]["reason"] = "Propagated classification from analyzed network IoCs found using computer vision."
-                file_analysis_json["rl"]["sample"]["propagated_classification"]["ioc_classifications_summary"] = classifications_sum
-
-                return file_analysis_json
-
-            else:
-                return file_analysis_json
-
-        else:
-            return file_analysis_json
+            return verdict
 
 
 class SpectraAssureClient(object):
