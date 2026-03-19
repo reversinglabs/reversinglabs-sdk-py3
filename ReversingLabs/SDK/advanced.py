@@ -140,7 +140,12 @@ class AdvancedActions(object):
             rldata_client = FileAnalysis(**self._conf)
             net_rep_client = NetworkReputation(**self._conf)
 
-            file_analysis_json = rldata_client.get_analysis_results(email_hash).json()
+            try:
+                file_analysis_json = rldata_client.get_analysis_results(email_hash).json()
+
+            except NotFoundError:
+                return verdict
+
             computer_vision_entries = file_analysis_json.get("rl", {}).get("sample", {}).get("computer_vision_analysis", {}).get("entries", [])
 
             if computer_vision_entries:

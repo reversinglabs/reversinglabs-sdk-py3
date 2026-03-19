@@ -1030,10 +1030,11 @@ class AdvancedActions(object):
 - `download_yara_matches`
   - Download all YARA matches from the defined timestamp to the current moment.
   
-- `file_analysis_propagate_classification`
-  - This method performs network reputation analysis on every URL IoC found in the 'computer_vision_analysis' section of the file analysis report.
-  - If any of the found IoCs are classified as malicious or suspicious, the method propagates the classification to the parent sample in the file analysis report. If at least one IoC is malicious the propagated classification will be malicious.
-  - The propagation can be found in the 'propagated_classification' section of the file analysis report. If there were no IoCs in the 'computer_vision_analysis' section or if all IoCs were benign, there will be no propagation.
+- `email_file_reputation`
+  - This method accepts a hash string of an email file. 
+  - If the email file has graphical attachments, the reputation of those attachments will be taken into account when returning the reputation verdict here.
+  - If at least one attachment is classified as malicious, the returned verdict will be "MALICIOUS".
+  - If there are no malicious attachments but there are suspicious ones, the returned verdict will be "SUSPICIOUS".
 
 #### Class:
 ```python

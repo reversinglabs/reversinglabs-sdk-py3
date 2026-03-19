@@ -525,7 +525,7 @@ v2.13.0 (2026-03-30)
   - The `submit_url` method of the `AnalyzeURL` now accepts `analysis_type` as a parameter.
 
 - **advanced** module
-  - Added the `file_analysis_propagate_classification` method to the `AdvancedActions` class.
+  - Added the `email_file_reputation` method to the `AdvancedActions` class.
 
 - All ReversingLabs SDK modules now use a `Session` object from the `requests` library to reuse connections and make code execution faster.
 
