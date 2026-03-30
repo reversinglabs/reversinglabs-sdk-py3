@@ -37,7 +37,7 @@ class TestAdvancedActions:
 		}
 
 		result = self.adv_actions.enriched_file_analysis(sample_hash=SHA1)
-		expected_result = {}
+		expected_result = file_analysis_mock.return_value.json.return_value
 
 		assert result == expected_result
 
