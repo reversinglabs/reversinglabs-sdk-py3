@@ -1,7 +1,5 @@
-import inspect
 import pytest
 from unittest import mock
-from ReversingLabs.SDK import __version__
 from ReversingLabs.SDK.a1000 import CLASSIFICATIONS, AVAILABLE_PLATFORMS, A1000
 from ReversingLabs.SDK.helper import WrongInputError, DEFAULT_USER_AGENT
 
@@ -50,6 +48,8 @@ def test_a1000_object():
 @pytest.fixture
 def requests_mock():
 	with mock.patch('ReversingLabs.SDK.a1000.requests', autospec=True) as requests_mock:
+		mock_session = mock.MagicMock()
+		requests_mock.Session.return_value = mock_session
 		yield requests_mock
 
 
@@ -73,16 +73,18 @@ class TestA1000:
 	def setup_class(cls):
 		cls.a1000 = A1000(cls.host, token=cls.token)
 
+	@pytest.fixture(autouse=True)
+	def inject_mock_session(self, requests_mock):
+		self.a1000._session = requests_mock.Session.return_value
+
 	def test_file_status(self, requests_mock):
 		self.a1000.file_analysis_status(sample_hashes=[SHA1, SHA1], sample_status="MALICIOUS")
 
 		expected_url = f"{self.host}/api/samples/status/"
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} file_analysis_status"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params={"status": "MALICIOUS"},
 			json=None,
@@ -96,10 +98,8 @@ class TestA1000:
 		expected_url = f"{self.host}/api/uploads/v2/url-samples/aaa"
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} check_submitted_url_status"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -118,10 +118,8 @@ class TestA1000:
 		expected_url = f"{self.host}/api/samples/{SHA1}/download/"
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} download_sample"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -130,7 +128,7 @@ class TestA1000:
 		with pytest.raises(WrongInputError, match=r"task_id parameter must be a string."):
 			self.a1000.get_submitted_url_report(task_id=123, retry=False)
 
-		assert not requests_mock.get.called
+		assert not requests_mock.Session.return_value.get.called
 
 	def test_classification(self, requests_mock):
 		self.a1000.get_classification_v3(sample_hash=SHA1, local_only=True)
@@ -138,10 +136,8 @@ class TestA1000:
 		expected_url = f"{self.host}/api/samples/v3/{SHA1}/classification/?localonly=1&av_scanners=0"
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_classification_v3"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -160,10 +156,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} reanalyze_samples_v2"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=f"{self.host}/api/samples/v2/analyze_bulk/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -176,10 +170,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} list_extracted_files_v2"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=f"{self.host}/api/samples/v2/{SHA1}/extracted-files/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -189,10 +181,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} download_extracted_files"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=f"{self.host}/api/samples/{SHA1}/unpacked/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -204,10 +194,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} delete_samples"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=f"{self.host}/api/samples/v2/delete_bulk/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -220,10 +208,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __utilize_pdf_endpoint"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=f"{self.host}/api/pdf/{SHA1}/create",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -235,10 +221,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_titanium_core_report_v2"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -250,10 +234,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __utilize_dynamic_analysis_endpoint"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -262,7 +244,7 @@ class TestA1000:
 		with pytest.raises(WrongInputError, match=r"report_format parameter must be either 'html' or 'pdf'."):
 			self.a1000.download_dynamic_analysis_report(SHA1, "xml")
 
-		assert not requests_mock.get.called
+		assert not requests_mock.Session.return_value.get.called
 
 	def test_set_classification(self, requests_mock):
 		self.a1000.set_classification(SHA1, classification="malicious", system="local")
@@ -276,10 +258,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} set_classification"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -296,10 +276,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} post_user_tags"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=post_json,
@@ -314,10 +292,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} get_yara_rulesets_on_the_appliance_v2"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -339,10 +315,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} enable_or_disable_yara_ruleset"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -355,10 +329,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} start_or_stop_yara_local_retro_scan"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=f"{self.host}/api/uploads/local-retro-hunt/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -373,7 +345,7 @@ class TestA1000:
 		with pytest.raises(WrongInputError, match=r"operation parameter must be either 'START' or 'STOP'"):
 			self.a1000.start_or_stop_yara_local_retro_scan("BEGIN")
 
-		assert not requests_mock.post.called
+		assert not requests_mock.Session.return_value.post.called
 
 	def test_advanced_search(self, requests_mock):
 		self.a1000.advanced_search_v3(query_string="av-count:5 available:TRUE", sorting_criteria="sha1", sorting_order="desc", page_number=2, records_per_page=5)
@@ -383,10 +355,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} advanced_search_v3"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=f"{self.host}/api/samples/v3/search/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=post_json,
@@ -401,10 +371,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} list_containers_for_hashes"
 
-		requests_mock.post.assert_called_with(
+		requests_mock.Session.return_value.post.assert_called_with(
 			url=f"{self.host}/api/samples/containers/",
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None,
 			json=None,
@@ -421,10 +389,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} network_domain_report"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=None
 		)
@@ -441,10 +407,8 @@ class TestA1000:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.a1000.__class__.__name__} __ip_addr_endpoints"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=params
 		)

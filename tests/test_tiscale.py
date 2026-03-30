@@ -24,6 +24,8 @@ def test_tiscale_object():
 @pytest.fixture
 def requests_mock():
 	with mock.patch('ReversingLabs.SDK.tiscale.requests', autospec=True) as requests_mock:
+		mock_session = mock.MagicMock()
+		requests_mock.Session.return_value = mock_session
 		yield requests_mock
 
 
@@ -36,6 +38,10 @@ class TestTitaniumScale:
 	@classmethod
 	def setup_class(cls):
 		cls.tiscale = TitaniumScale(cls.host, token=cls.token)
+
+	@pytest.fixture(autouse=True)
+	def inject_mock_session(self, requests_mock):
+		self.tiscale._session = requests_mock.Session.return_value
 
 	def test_sample_from_path(self):
 		with pytest.raises(WrongInputError, match=r"file_path must be a string."):
@@ -61,10 +67,8 @@ class TestTitaniumScale:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} list_processing_tasks"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=query_params
 		)
@@ -84,10 +88,8 @@ class TestTitaniumScale:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} get_processing_task_info"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=query_params
 		)
@@ -101,10 +103,8 @@ class TestTitaniumScale:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} delete_processing_task"
 
-		requests_mock.delete.assert_called_with(
+		requests_mock.Session.return_value.delete.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers
 		)
 
@@ -112,7 +112,7 @@ class TestTitaniumScale:
 		with pytest.raises(WrongInputError, match=r"task_id parameter must be integer."):
 			self.tiscale.delete_processing_task(task_id="123")
 
-		assert not requests_mock.delete.called
+		assert not requests_mock.Session.return_value.delete.called
 
 	def test_delete_multiple(self, requests_mock):
 		self.tiscale.delete_multiple_tasks(age=10)
@@ -123,10 +123,8 @@ class TestTitaniumScale:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} delete_multiple_tasks"
 
-		requests_mock.delete.assert_called_with(
+		requests_mock.Session.return_value.delete.assert_called_with(
 			url=expected_url,
-			verify=True,
-			proxies=None,
 			headers=self.headers,
 			params=query_params
 		)
@@ -136,10 +134,8 @@ class TestTitaniumScale:
 
 		self.headers["User-Agent"] = f"{DEFAULT_USER_AGENT}; {self.tiscale.__class__.__name__} get_yara_id"
 
-		requests_mock.get.assert_called_with(
+		requests_mock.Session.return_value.get.assert_called_with(
 			url=f"{self.host}/api/tiscale/v1/yara",
-			verify=True,
-			proxies=None,
 			headers=self.headers
 		)
 

@@ -1,6 +1,5 @@
 import pytest
 from unittest import mock
-from ReversingLabs.SDK import __version__
 from ReversingLabs.SDK.fie import FileInspectionEngine
 from ReversingLabs.SDK.helper import WrongInputError, DEFAULT_USER_AGENT
 
@@ -23,6 +22,8 @@ def test_fie_object():
 @pytest.fixture
 def requests_mock():
 	with mock.patch('ReversingLabs.SDK.fie.requests', autospec=True) as requests_mock:
+		mock_session = mock.MagicMock()
+		requests_mock.Session.return_value = mock_session
 		yield requests_mock
 
 
@@ -32,6 +33,10 @@ class TestFIE:
 	@classmethod
 	def setup_class(cls):
 		cls.fie = FileInspectionEngine(cls.host)
+
+	@pytest.fixture(autouse=True)
+	def inject_mock_session(self, requests_mock):
+		self.fie._session = requests_mock.Session.return_value
 
 	def test_scan_using_path(self):
 		with pytest.raises(WrongInputError, match=r"file_path must be a string."):
