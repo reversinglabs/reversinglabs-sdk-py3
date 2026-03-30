@@ -1026,7 +1026,21 @@ class AdvancedActions(object):
 #### Methods:
 - `enriched_file_analysis`
   - Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis report.
+  - If a dynamic analysis report does not exist for the given hash, the method returns a regular file analysis report.
+  - If not even a file analysis report exists for the given hash, the method returns an empty dict.
 
+- `full_file_analysis`
+  - Combines TCA-0101 File Reputation, TCA-0104 File Analysis and TCA-0106 Dynamic Analysis into one report.
+  - Returns a combined analysis report whose form depends on the availability of singular analysis reports.
+
+- `download_yara_matches`
+  - Download all YARA matches from the defined timestamp to the current moment.
+  
+- `email_file_reputation`
+  - This method accepts a hash string of an email file. 
+  - If the email file has graphical attachments, the reputation of those attachments will be taken into account when returning the reputation verdict here.
+  - If at least one attachment is classified as malicious, the returned verdict will be "MALICIOUS".
+  - If there are no malicious attachments but there are suspicious ones, the returned verdict will be "SUSPICIOUS".
 
 #### Class:
 ```python

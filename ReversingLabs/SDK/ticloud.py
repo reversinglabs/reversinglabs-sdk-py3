@@ -77,6 +77,16 @@ class TiCloudAPI(object):
         self._headers = {}
         self._allow_none_return = allow_none_return
 
+        self._session = requests.Session()
+        self._session.auth = self._credentials
+        self._session.verify = self._verify
+        self._session.proxies = self._proxies if self._proxies else {}
+
+    def __del__(self):
+        """Ensure the session is closed when the object is deleted."""
+        if hasattr(self, "_session"):
+            self._session.close()
+
     @staticmethod
     def __validate_host(host):
         """Returns a formatted host URL including the protocol prefix.
@@ -99,6 +109,11 @@ class TiCloudAPI(object):
 
         return host
 
+    def _update_headers(self):
+        """Helper to update headers with dynamic caller info."""
+        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
+                                       f"{inspect.currentframe().f_back.f_back.f_code.co_name}")
+
     def _get_request(self, url, params=None):
         """A generic GET request method for all ticloud module classes.
             :param url: request URL
@@ -108,19 +123,12 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.get(
+        self._update_headers()
+        return self._session.get(
             url=url,
-            auth=self._credentials,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            params=params
+            params=params,
+            headers=self._headers
         )
-
-        return response
 
     def _post_request(self, url, post_json=None, data=None, params=None):
         """A generic POST request method for all ticloud module classes.
@@ -134,21 +142,14 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.post(
+        self._update_headers()
+        return self._session.post(
             url=url,
-            auth=self._credentials,
             json=post_json,
             data=data,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            params=params
+            params=params,
+            headers=self._headers
         )
-
-        return response
 
     def _delete_request(self, url, payload_json=None):
         """A generic DELETE request method for all ticloud module classes.
@@ -159,19 +160,12 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.delete(
+        self._update_headers()
+        return self._session.delete(
             url=url,
-            auth=self._credentials,
             json=payload_json,
-            verify=self._verify,
-            proxies=self._proxies,
             headers=self._headers
         )
-
-        return response
 
     def _put_request(self, url, payload_json=None):
         """A generic PUT request method for all ticloud module classes.
@@ -182,19 +176,12 @@ class TiCloudAPI(object):
             :return: response
             :rtype: requests.Response
         """
-        self._headers["User-Agent"] = (f"{self._user_agent}; {self.__class__.__name__} "
-                                       f"{inspect.currentframe().f_back.f_code.co_name}")
-
-        response = requests.put(
+        self._update_headers()
+        return self._session.put(
             url=url,
-            auth=self._credentials,
-            verify=self._verify,
-            proxies=self._proxies,
-            headers=self._headers,
-            json=payload_json
+            json=payload_json,
+            headers=self._headers
         )
-
-        return response
 
     def _raise_on_error(self, response):
         """Accepts a response object for validation and raises an exception if an error status code is received.
@@ -1678,11 +1665,13 @@ class AnalyzeURL(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def submit_url(self, url_input):
+    def submit_url(self, url_input, analysis_type=None):
         """Accepts a URL string for analysis and returns an analysis ID in a response.
         The analysis ID can be used as parameter in TCA-0403 URL Threat Intelligence.
             :param url_input: URL string
             :type url_input: str
+            :param analysis_type: Define the analysis type; See official documentation for available options
+            :type analysis_type: str
             :return: response
             :rtype: requests.Response
         """
@@ -1692,6 +1681,9 @@ class AnalyzeURL(TiCloudAPI):
         url = self._url.format(endpoint=self.__SUBMIT_URL_ENDPOINT)
 
         post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+
+        if analysis_type in ("light", "fileless"):
+            post_json["rl"]["query"]["analysis_type"] = analysis_type
 
         response = self._post_request(url=url, post_json=post_json)
         self._raise_on_error(response)
@@ -7053,6 +7045,75 @@ class SupplyChainIoCFeed(TiCloudAPI):
 
         return results
 
+
+class FileReportVT(TiCloudAPI):
+    """File Report VT compatibility API"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/xref/cm/v3/query/{file_hash}"
+
+    def __init__(self, host, api_key, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(FileReportVT, self).__init__(host=host, username=None, password=None, verify=verify, proxies=proxies,
+                                           user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["x-apikey"] = api_key
+
+    def get_file_report(self, file_hash):
+        """Get a VT-format file report.
+        Accepts a SHA1 or SHA256 file hash.
+            :param file_hash: SHA1 or SHA256 file hash
+            :type file_hash: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(file_hash, str):
+            raise WrongInputError("file_hash parameter must be a string.")
+
+        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(file_hash=file_hash)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
+
+
+class URLReportVT(TiCloudAPI):
+    """URL Report VT compatibility API"""
+
+    __SINGLE_QUERY_ENDPOINT = "/api/url_report/cm/v3/query/{url_id}"
+
+    def __init__(self, host, api_key, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
+                 allow_none_return=False):
+        super(URLReportVT, self).__init__(host=host, username=None, password=None, verify=verify, proxies=proxies,
+                                           user_agent=user_agent, allow_none_return=allow_none_return)
+
+        self._url = "{host}{{endpoint}}".format(host=self._host)
+        self._headers["x-apikey"] = api_key
+
+    def get_url_report(self, url_identifier):
+        """Get a VT-format URL report.
+        Accepts a Base64 or SHA1 encoded URL.
+            :param url_identifier: Base64 or SHA1 encoded URL
+            :type url_identifier: str
+            :return: response
+            :rtype: requests.Response
+        """
+        if not isinstance(url_identifier, str):
+            raise WrongInputError("url_identifier parameter must be a SHA1 or Base64 string.")
+
+        endpoint = self.__SINGLE_QUERY_ENDPOINT.format(url_id=url_identifier)
+
+        url = self._url.format(endpoint=endpoint)
+
+        response = self._get_request(url=url)
+
+        self._raise_on_error(response)
+
+        return response
 
 def _update_hash_object(input_source, hash_object):
     """Accepts a string or an opened file in 'rb' mode and a created hashlib hash object and

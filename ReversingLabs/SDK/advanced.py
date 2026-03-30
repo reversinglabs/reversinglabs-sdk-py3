@@ -1,12 +1,12 @@
 import io
 import requests
 
-from datetime import datetime
 from typing import Union
 from time import sleep, time
 
-from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError
-from ReversingLabs.SDK.ticloud import FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting
+from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError, NotFoundError
+from ReversingLabs.SDK.ticloud import (FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation,
+                                       FileReputation)
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -17,7 +17,7 @@ class AdvancedActions(object):
     def __init__(self, host, username, password, verify=True, proxies=None, user_agent=DEFAULT_USER_AGENT,
                  allow_none_return=False):
 
-        conf = {
+        self._conf = {
             "host": host,
             "username": username,
             "password": password,
@@ -27,29 +27,38 @@ class AdvancedActions(object):
             "allow_none_return": allow_none_return
         }
 
-        self._rldata_client = FileAnalysis(**conf)
-
-        self._da_client = DynamicAnalysis(**conf)
-
-        self._yara_client = YARAHunting(**conf)
-
-        self._file_dl_client = FileDownload(**conf)
+        self._MALICIOUS = "MALICIOUS"
+        self._SUSPICIOUS = "SUSPICIOUS"
 
     def enriched_file_analysis(self, sample_hash):
         """Accepts a sample hash and returns a TCA-0104 File Analysis report enriched with a TCA-0106 Dynamic Analysis
         report.
+        If a dynamic analysis report does not exist for the given hash,
+        the method returns a regular file analysis report.
+        If not even a file analysis report exists for the given hash, the method returns an empty dict.
             :param sample_hash: sample hash
             :type sample_hash: str
             :return: file analysis report enriched with dynamic analysis
             :rtype: dict
         """
-        da_response = self._da_client.get_dynamic_analysis_results(
-            sample_hash=sample_hash
-        )
+        rldata_client = FileAnalysis(**self._conf)
+        da_client = DynamicAnalysis(**self._conf)
 
-        rldata_response = self._rldata_client.get_analysis_results(
-            hash_input=sample_hash
-        )
+        try:
+            rldata_response = rldata_client.get_analysis_results(
+                hash_input=sample_hash
+            )
+
+        except NotFoundError:
+            return {}
+
+        try:
+            da_response = da_client.get_dynamic_analysis_results(
+                sample_hash=sample_hash
+            )
+
+        except NotFoundError:
+            return rldata_response.json()
 
         da_report = da_response.json().get("rl", {}).get("report")
         if da_report:
@@ -62,9 +71,29 @@ class AdvancedActions(object):
 
             return rldata_report
 
-        return {}
+        return rldata_response.json()
 
-    def __get_yara_matches(self, starting_timestamp, current_timestamp):
+    def full_file_analysis(self, sample_hash):
+        """Combines File Reputation, File Analysis and Dynamic Analysis into one report.
+        Returns a combined analysis report whose form depends on the availability of singular analysis reports.
+            :param sample_hash: sample hash
+            :type sample_hash: str
+            :return: combined analysis report
+            :rtype: dict
+        """
+        enriched_report = self.enriched_file_analysis(sample_hash)
+
+        mwp_client = FileReputation(**self._conf)
+        resp_json = mwp_client.get_file_reputation(sample_hash).json()
+
+        if enriched_report:
+            enriched_report["rl"]["sample"]["sample_reputation"] = resp_json.get("rl").get("malware_presence")
+
+        return enriched_report
+
+
+    @staticmethod
+    def __get_yara_matches(starting_timestamp, current_timestamp, yara_client):
         """Private method for aggregating SHA1 hashes of found YARA matches.
             :param starting_timestamp: Starting time in the integer Unix timestamp format
             :type starting_timestamp: int
@@ -76,7 +105,7 @@ class AdvancedActions(object):
         sha1_list = []
 
         while starting_timestamp < current_timestamp:
-            resp = self._yara_client.yara_matches_feed("timestamp", starting_timestamp)
+            resp = yara_client.yara_matches_feed("timestamp", starting_timestamp)
 
             entries = resp.json().get("rl", {}).get("feed", {}).get("entries", [])
             starting_timestamp = resp.json().get("rl", {}).get("feed", {}).get("last_timestamp")
@@ -91,15 +120,70 @@ class AdvancedActions(object):
             :param starting_timestamp: Starting time in the integer Unix timestamp format
             :type starting_timestamp: int
         """
+        yara_client = YARAHunting(**self._conf)
+        file_dl_client = FileDownload(**self._conf)
+
         current_timestamp = int(time())
 
-        matches_list = self.__get_yara_matches(starting_timestamp, current_timestamp)
+        matches_list = self.__get_yara_matches(starting_timestamp, current_timestamp, yara_client)
 
         for sha1 in matches_list:
-            resp = self._file_dl_client.download_sample(sha1)
+            resp = file_dl_client.download_sample(sha1)
 
             with open(sha1, "wb") as file_handle:
                 file_handle.write(resp.content)
+
+    def email_file_reputation(self, email_hash):
+        """This method accepts a hash string of an email file.
+        If the email file has graphical attachments, the reputation of those attachments will be taken into account
+        when returning the reputation verdict here.
+        If at least one attachment is classified as malicious, the returned verdict will be "MALICIOUS".
+        If there are no malicious attachments but there are suspicious ones, the returned verdict will be "SUSPICIOUS".
+            :param email_hash: Email file hash
+            :type email_hash: str
+            :return: Reputation verdict
+            :rtype: str
+        """
+        mwp_client = FileReputation(**self._conf)
+
+        mwp_resp_json = mwp_client.get_file_reputation(email_hash).json()
+        verdict = mwp_resp_json.get("rl").get("malware_presence").get("status").upper()
+
+        if verdict == self._MALICIOUS:
+            return verdict
+
+        else:
+            accepted_categories = ("https", "http")
+            selected_uris = []
+
+            rldata_client = FileAnalysis(**self._conf)
+            net_rep_client = NetworkReputation(**self._conf)
+
+            try:
+                file_analysis_json = rldata_client.get_analysis_results(email_hash).json()
+
+            except NotFoundError:
+                return verdict
+
+            computer_vision_entries = file_analysis_json.get("rl", {}).get("sample", {}).get("computer_vision_analysis", {}).get("entries", [])
+
+            if computer_vision_entries:
+                for entry in computer_vision_entries:
+                    for result in entry.get("results", []):
+                        if result.get("category") in accepted_categories:
+                            selected_uris.append(result.get("value"))
+
+            resp_json = net_rep_client.get_network_reputation(selected_uris).json()
+
+            for entry in resp_json.get("rl", {}).get("entries", []):
+                if entry.get("classification", "").upper() == self._MALICIOUS:
+                    verdict = self._MALICIOUS
+                    return verdict
+
+                elif entry.get("classification", "").upper() == self._SUSPICIOUS:
+                    verdict = self._SUSPICIOUS
+
+            return verdict
 
 
 class SpectraAssureClient(object):
