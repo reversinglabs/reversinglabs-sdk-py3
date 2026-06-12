@@ -536,14 +536,14 @@ v2.13.0 (2026-03-30)
 
 
 
-v2.14.0 (2026-06-30)
+v2.14.0 (2026-06-12)
 -------------------
 ### Improvements
 - **ticloud** module
   - Added an optional `private` argument to the methods of `URLThreatIntelligence` and `NetworkReputation` classes.
 
 - **advanced** module
-  - Added the `enriched_malware_detection_feed`, `enriched_mwp_change_feed`, `enriched_new_files_feed`, `enriched_network_iocs_feed_url_report` and `enriched_data_change_feed` methods to the `AdvancedActions` class.
+  - Added the `enriched_malware_detection_feed`, `enriched_mwp_change_feed`, `enriched_new_files_feed`, `enriched_network_iocs_feed` and `enriched_data_change_feed` methods to the `AdvancedActions` class.
 
   
 

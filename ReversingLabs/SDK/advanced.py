@@ -8,7 +8,7 @@ from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError, NotFou
 from ReversingLabs.SDK.ticloud import (FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation,
                                        FileReputation, NewMalwareFilesFeed, MWPChangeEventsFeed, NewFilesFirstAndRescan,
                                        NewMalwareURIFeed, URLThreatIntelligence, DataChangeSubscription, AVScanners,
-                                       DomainThreatIntelligence)
+                                       DomainThreatIntelligence, IPThreatIntelligence)
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -389,51 +389,153 @@ class AdvancedActions(object):
 
         return feed_json
 
-    def enriched_network_iocs_feed_url_report(self, time_format, time_value):
-        """Uses: TCF-0301, TCA-0403
-        This method works the same way as the pull_with_timestamp method from the ticloud.NewMalwareURIFeed class
-        but adds URL Threat Intelligence data to each returned URL.
-        Take note that if the feed returns thousands of results, this method will take a long time to finish since each
-        URL needs to be queried for additional data.
-        Also, the resulting dict may end up being very large.
+    def enriched_network_iocs_feed(self, time_format, time_value, ioc_types=None):
+        """Uses: TCF-0301, TCA-0403, TCA-0405, TCA-0406
+        This method accepts a time format, a time value and an optional list of IoC types.
+        The time format and time value are used for querying the pull_with_timestamp method
+        from the ticloud.NewMalwareURIFeed class. The optional IoC types list defines which IoC types you
+        want returned and enriched with network analysis reports. IF the IoC types list is left as None,
+        all IoC types will be returned. If there are no 'ip' or 'domain' type IoCs in the feed result, they will simply
+        not be returned.
+        Contrary to the pull_with_timestamp method from the ticloud.NewMalwareURIFeed class, this method formats the
+        entries in the result in the following way:
+        {...,
+            "entries": {
+                "urls": {
+                    "http://some.url/here": {
+                    }
+                },
+                "domains": {
+                    "domain.here": {
+                    }
+                },
+                "ips": {
+                    "127.0.0.1": {
+                    }
+                }
+            }
+        }
             :param time_format: time format definition; possible values are 'timestamp' and 'utc'
             :type time_format: str
             :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
             :type time_value: str
-            :return: network IoCs feed dict
+            :param ioc_types: list of IoC types you want; possible values are 'url', 'domain', 'ip'
+            :type ioc_types: list[str] or None
+            :return: enriched data change feed dict
             :rtype: dict
         """
+        if ioc_types is None:
+            ioc_types = ("url", "domain", "ip")
+
+        else:
+            for ioc_type in ioc_types:
+                if ioc_type not in ("url", "domain", "ip"):
+                    raise WrongInputError("ioc_type must be one of 'url', 'domain', or 'ip'")
+
         feed = NewMalwareURIFeed(**self._conf)
-        intel = URLThreatIntelligence(**self._conf)
 
         feed_resp = feed.pull_with_timestamp(time_format, time_value)
         feed_json = feed_resp.json()
 
-        url_list = []
-        entries_dict = {}
+        url_objs = []
+        domain_objs = []
+        ip_objs = []
 
         if feed_json.get("rl", {}).get("malware_uri_feed", {}).get("entries"):
             feed_entries = feed_json.get("rl").get("malware_uri_feed").get("entries")
 
             for entry in feed_entries:
-                url_list.append(entry.get("uri"))
+                if entry.get("uri_type") == "url":
+                    url_objs.append(entry)
 
-                entries_dict[entry["uri"]] = entry
+                elif entry.get("uri_type") == "domain":
+                    domain_objs.append(entry)
 
-            report_entries = []
+                elif entry.get("uri_type") == "ip":
+                    ip_objs.append(entry)
 
-            for batch_start in range(0, len(url_list), 100):
-                batch = url_list[batch_start:batch_start + 100]
+            feed_json["rl"]["malware_uri_feed"]["entries"] = {}
 
-                report_json = intel.get_url_report(url_input=batch).json()
-                report_entries.extend(report_json.get("rl", {}).get("entries", []))
+            if url_objs and "url" in ioc_types:
+                url_dict = self.__enrich_url_iocs(url_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["urls"] = url_dict
 
-            for report_entry in report_entries:
-                entries_dict[report_entry["requested_url"]]["url_report"] = report_entry
+            if domain_objs and "domain" in ioc_types:
+                domain_dict = self.__enrich_domain_iocs(domain_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["domains"] = domain_dict
 
-            feed_json["rl"]["malware_uri_feed"]["entries"] = entries_dict
+            if ip_objs and  "ip" in ioc_types:
+                ip_dict = self.__enrich_ip_iocs(ip_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["ips"] = ip_dict
 
         return feed_json
+
+
+    def __enrich_url_iocs(self, url_objs):
+        intel = URLThreatIntelligence(**self._conf)
+
+        urls = []
+        url_reports = []
+        entries_dict = {}
+
+        for url_obj in url_objs:
+            urls.append(url_obj.get("uri"))
+            entries_dict[url_obj["uri"]] = url_obj
+
+        for batch_start in range(0, len(urls), 100):
+            batch = urls[batch_start:batch_start + 100]
+
+            report_json = intel.get_url_report(url_input=batch).json()
+            url_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for url_report in url_reports:
+            entries_dict[url_report["requested_url"]]["url_report"] = url_report
+
+        return entries_dict
+
+    def __enrich_domain_iocs(self, domain_objs):
+        intel = DomainThreatIntelligence(**self._conf)
+
+        domains = []
+        domain_reports = []
+        entries_dict = {}
+
+        for domain_obj in domain_objs:
+            domains.append(domain_obj["uri"])
+            entries_dict[domain_obj["uri"]] = domain_obj
+
+        for batch_start in range(0, len(domains), 100):
+            batch = domains[batch_start:batch_start + 100]
+
+            report_json = intel.get_domain_report(domain_input=batch).json()
+            domain_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for domain_report in domain_reports:
+            entries_dict[domain_report["requested_domain"]]["domain_report"] = domain_report
+
+        return entries_dict
+
+    def __enrich_ip_iocs(self, ip_objs):
+        intel = IPThreatIntelligence(**self._conf)
+
+        ips = []
+        ip_reports = []
+        entries_dict = {}
+
+        for ip_obj in ip_objs:
+            ips.append(ip_obj["uri"])
+            entries_dict[ip_obj["uri"]] = ip_obj
+
+        for batch_start in range(0, len(ips), 100):
+            batch = ips[batch_start:batch_start + 100]
+
+            report_json = intel.get_ip_report(ip_address_input=batch).json()
+            ip_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for ip_report in ip_reports:
+            entries_dict[ip_report["requested_ip"]]["ip_report"] = ip_report
+
+        return entries_dict
 
     def enriched_data_change_feed(self, time_format, time_value, events=None):
         """Uses: TCA-0206, TCA-0101, TCA-0103, TCA-0106
