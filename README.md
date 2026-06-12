@@ -1042,6 +1042,21 @@ class AdvancedActions(object):
   - If at least one attachment is classified as malicious, the returned verdict will be "MALICIOUS".
   - If there are no malicious attachments but there are suspicious ones, the returned verdict will be "SUSPICIOUS".
 
+- `enriched_malware_detection_feed`
+  - This method works the same way as the pull_with_timestamp method from the ticloud.NewMalwareFilesFeed class but adds File Reputation and File Analysis data to each returned hash.
+
+- `enriched_mwp_change_feed`
+  - This method works the same way as the pull_with_timestamp method from the ticloud.MWPChangeEventsFeed class but adds File Reputation and File Analysis data to each returned hash.
+
+- `enriched_new_files_feed`
+  - This method works the same way as the feed_query method from the ticloud.NewFilesFirstAndRescan class but adds File Reputation, File Analysis and Dynamic Analysis data to each returned hash. In case the Dynamic Analysis report is not available for a hash, it will be omitted.
+
+- `enriched_network_iocs_feed`
+  - This method accepts a time format, a time value and an optional list of IoC types.
+  - The time format and time value are used for querying the pull_with_timestamp method from the ticloud.NewMalwareURIFeed class.
+  - The optional IoC types list defines which IoC types you want returned and enriched with network analysis reports. IF the IoC types list is left as None, all IoC types will be returned. If there are no 'ip' or 'domain' type IoCs in the feed result, they will simply not be returned.
+
+
 #### Class:
 ```python
 class SpectraAssureScenarios(object):
