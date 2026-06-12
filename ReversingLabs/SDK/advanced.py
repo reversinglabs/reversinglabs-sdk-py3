@@ -6,7 +6,9 @@ from time import sleep, time
 
 from ReversingLabs.SDK.helper import DEFAULT_USER_AGENT, WrongInputError, NotFoundError
 from ReversingLabs.SDK.ticloud import (FileAnalysis, DynamicAnalysis, FileDownload, YARAHunting, NetworkReputation,
-                                       FileReputation)
+                                       FileReputation, NewMalwareFilesFeed, MWPChangeEventsFeed, NewFilesFirstAndRescan,
+                                       NewMalwareURIFeed, URLThreatIntelligence, DataChangeSubscription, AVScanners,
+                                       DomainThreatIntelligence, IPThreatIntelligence)
 from ReversingLabs.SDK.a1000 import A1000
 
 
@@ -184,6 +186,438 @@ class AdvancedActions(object):
                     verdict = self._SUSPICIOUS
 
             return verdict
+
+    def enriched_malware_detection_feed(self, time_format, time_value, extended_reputation_results=False,
+                                        sample_available=False, record_limit=1000):
+        """Uses: TCF-0101, TCA-0101, TCA-0104
+        This method works the same way as the pull_with_timestamp method from the ticloud.NewMalwareFilesFeed class
+        but adds File Reputation and File Analysis data to each returned hash.
+        Take note that if the feed returns thousands of hashes, this method will take a long time to finish since each
+        hash needs to be queried for additional data.
+        Also, the resulting dict may end up being very large.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param extended_reputation_results: return extended File Reputation results
+            :type extended_reputation_results: bool
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned per page
+            :type record_limit: int
+            :return: malware detection feed dict
+            :rtype: dict
+        """
+        feed = NewMalwareFilesFeed(**self._conf)
+        reputation = FileReputation(**self._conf)
+        analysis = FileAnalysis(**self._conf)
+
+        feed_resp = feed.pull_with_timestamp(time_format, time_value, sample_available, record_limit)
+        feed_json = feed_resp.json()
+
+        sha1_list = []
+        entries_dict = {}
+
+        if feed_json.get("rl", {}).get("malware_detection_feed", {}).get("entries"):
+            feed_entries = feed_json.get("rl").get("malware_detection_feed").get("entries")
+
+            for entry in feed_entries:
+                sha1_list.append(entry.get("sha1"))
+
+                entries_dict[entry["sha1"]] = entry
+
+            reputation_entries = []
+            analysis_entries = []
+
+            for batch_start in range(0, len(sha1_list), 100):
+                batch = sha1_list[batch_start:batch_start + 100]
+
+                reputation_json = reputation.get_file_reputation(
+                    hash_input=batch,
+                    extended_results=extended_reputation_results).json()
+                reputation_entries.extend(reputation_json.get("rl", {}).get("entries", []))
+
+                analysis_json = analysis.get_analysis_results(hash_input=batch).json()
+                analysis_entries.extend(analysis_json.get("rl", {}).get("entries", []))
+
+            for reputation_entry in reputation_entries:
+                entries_dict[reputation_entry["sha1"]]["file_reputation"] = reputation_entry
+
+            for analysis_entry in analysis_entries:
+                entries_dict[analysis_entry["sha1"]]["file_analysis"] = analysis_entry
+
+            feed_json["rl"]["malware_detection_feed"]["entries"] = entries_dict
+
+        return feed_json
+
+    def enriched_mwp_change_feed(self, time_format, time_value, extended_reputation_results=False,
+                                 sample_available=False, record_limit=1000):
+        """Uses: TCF-0111, TCA-0101, TCA-0104
+        This method works the same way as the pull_with_timestamp method from the ticloud.MWPChangeEventsFeed class
+        but adds File Reputation and File Analysis data to each returned hash.
+        Take note that if the feed returns thousands of hashes, this method will take a long time to finish since each
+        hash needs to be queried for additional data.
+        Also, the resulting dict may end up being very large.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param extended_reputation_results: return extended File Reputation results
+            :type extended_reputation_results: bool
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned per page
+            :type record_limit: int
+            :return: malware presence feed dict
+            :rtype: dict
+        """
+        feed = MWPChangeEventsFeed(**self._conf)
+        reputation = FileReputation(**self._conf)
+        analysis = FileAnalysis(**self._conf)
+
+        feed_resp = feed.pull_with_timestamp(time_format, time_value, sample_available, record_limit)
+        feed_json = feed_resp.json()
+
+        sha1_list = []
+        entries_dict = {}
+
+        if feed_json.get("rl", {}).get("mwp_change_events_feed", {}).get("entries"):
+            feed_entries = feed_json.get("rl").get("mwp_change_events_feed").get("entries")
+
+            for entry in feed_entries:
+                sha1_list.append(entry.get("sha1"))
+
+                entries_dict[entry["sha1"]] = entry
+
+            reputation_entries = []
+            analysis_entries = []
+
+            for batch_start in range(0, len(sha1_list), 100):
+                batch = sha1_list[batch_start:batch_start + 100]
+
+                reputation_json = reputation.get_file_reputation(
+                    hash_input=batch,
+                    extended_results=extended_reputation_results).json()
+                reputation_entries.extend(reputation_json.get("rl", {}).get("entries", []))
+
+                analysis_json = analysis.get_analysis_results(hash_input=batch).json()
+                analysis_entries.extend(analysis_json.get("rl", {}).get("entries", []))
+
+            for reputation_entry in reputation_entries:
+                entries_dict[reputation_entry["sha1"]]["file_reputation"] = reputation_entry
+
+            for analysis_entry in analysis_entries:
+                entries_dict[analysis_entry["sha1"]]["file_analysis"] = analysis_entry
+
+            feed_json["rl"]["malware_detection_feed"]["entries"] = entries_dict
+
+        return feed_json
+
+    def enriched_new_files_feed(self, time_format, time_value, extended_reputation_results=False,
+                                latest_dynamic_analysis=True, sample_available=False, record_limit=1000):
+        """Uses: TCF-0108, TCA-0101, TCA-0104, TCA-0106
+        This method works the same way as the feed_query method from the ticloud.NewFilesFirstAndRescan class
+        but adds File Reputation, File Analysis and Dynamic Analysis data to each returned hash. In case the
+        Dynamic Analysis report is not available for a hash, it will be omitted.
+        Take note that if the feed returns thousands of hashes, this method will take a long time to finish since each
+        hash needs to be queried for additional data.
+        Also, the resulting dict may end up being very large.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param extended_reputation_results: return extended File Reputation results
+            :type extended_reputation_results: bool
+            :param latest_dynamic_analysis: return latest Dynamic Analysis results
+            :type latest_dynamic_analysis: bool
+            :param sample_available: get only samples available for download
+            :type sample_available: bool
+            :param record_limit: max number of records to be returned per page
+            :type record_limit: int
+            :return: new files feed dict
+            :rtype: dict
+        """
+        feed = NewFilesFirstAndRescan(**self._conf)
+        reputation = FileReputation(**self._conf)
+        analysis = FileAnalysis(**self._conf)
+        dynamic = DynamicAnalysis(**self._conf)
+
+        feed_resp = feed.feed_query(time_format, time_value, sample_available, record_limit)
+        feed_json = feed_resp.json()
+
+        sha1_list = []
+        entries_dict = {}
+
+        if feed_json.get("rl", {}).get("malware_scan_feed", {}).get("entries"):
+            feed_entries = feed_json.get("rl").get("malware_scan_feed").get("entries")
+
+            for entry in feed_entries:
+                sha1_list.append(entry.get("sha1"))
+
+                entries_dict[entry["sha1"]] = entry
+
+            reputation_entries = []
+            analysis_entries = []
+
+            for batch_start in range(0, len(sha1_list), 100):
+                batch = sha1_list[batch_start:batch_start + 100]
+
+                reputation_json = reputation.get_file_reputation(
+                    hash_input=batch,
+                    extended_results=extended_reputation_results).json()
+                reputation_entries.extend(reputation_json.get("rl", {}).get("entries", []))
+
+                analysis_json = analysis.get_analysis_results(hash_input=batch).json()
+                analysis_entries.extend(analysis_json.get("rl", {}).get("entries", []))
+
+            for reputation_entry in reputation_entries:
+                entries_dict[reputation_entry["sha1"]]["file_reputation"] = reputation_entry
+
+            for analysis_entry in analysis_entries:
+                entries_dict[analysis_entry["sha1"]]["file_analysis"] = analysis_entry
+
+            for sha1 in sha1_list:
+                try:
+                    dynamic_json = dynamic.get_dynamic_analysis_results(sample_hash=sha1, latest=latest_dynamic_analysis).json()
+
+                except NotFoundError:
+                    continue
+
+                entries_dict[sha1]["dynamic_analysis"] = dynamic_json.get("rl", {}).get("report")
+
+            feed_json["rl"]["malware_detection_feed"]["entries"] = entries_dict
+
+        return feed_json
+
+    def enriched_network_iocs_feed(self, time_format, time_value, ioc_types=None):
+        """Uses: TCF-0301, TCA-0403, TCA-0405, TCA-0406
+        This method accepts a time format, a time value and an optional list of IoC types.
+        The time format and time value are used for querying the pull_with_timestamp method
+        from the ticloud.NewMalwareURIFeed class. The optional IoC types list defines which IoC types you
+        want returned and enriched with network analysis reports. IF the IoC types list is left as None,
+        all IoC types will be returned. If there are no 'ip' or 'domain' type IoCs in the feed result, they will simply
+        not be returned.
+        Contrary to the pull_with_timestamp method from the ticloud.NewMalwareURIFeed class, this method formats the
+        entries in the result in the following way:
+        {...,
+            "entries": {
+                "urls": {
+                    "http://some.url/here": {
+                    }
+                },
+                "domains": {
+                    "domain.here": {
+                    }
+                },
+                "ips": {
+                    "127.0.0.1": {
+                    }
+                }
+            }
+        }
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param ioc_types: list of IoC types you want; possible values are 'url', 'domain', 'ip'
+            :type ioc_types: list[str] or None
+            :return: enriched data change feed dict
+            :rtype: dict
+        """
+        if ioc_types is None:
+            ioc_types = ("url", "domain", "ip")
+
+        else:
+            for ioc_type in ioc_types:
+                if ioc_type not in ("url", "domain", "ip"):
+                    raise WrongInputError("ioc_type must be one of 'url', 'domain', or 'ip'")
+
+        feed = NewMalwareURIFeed(**self._conf)
+
+        feed_resp = feed.pull_with_timestamp(time_format, time_value)
+        feed_json = feed_resp.json()
+
+        url_objs = []
+        domain_objs = []
+        ip_objs = []
+
+        if feed_json.get("rl", {}).get("malware_uri_feed", {}).get("entries"):
+            feed_entries = feed_json.get("rl").get("malware_uri_feed").get("entries")
+
+            for entry in feed_entries:
+                if entry.get("uri_type") == "url":
+                    url_objs.append(entry)
+
+                elif entry.get("uri_type") == "domain":
+                    domain_objs.append(entry)
+
+                elif entry.get("uri_type") == "ip":
+                    ip_objs.append(entry)
+
+            feed_json["rl"]["malware_uri_feed"]["entries"] = {}
+
+            if url_objs and "url" in ioc_types:
+                url_dict = self.__enrich_url_iocs(url_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["urls"] = url_dict
+
+            if domain_objs and "domain" in ioc_types:
+                domain_dict = self.__enrich_domain_iocs(domain_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["domains"] = domain_dict
+
+            if ip_objs and  "ip" in ioc_types:
+                ip_dict = self.__enrich_ip_iocs(ip_objs)
+                feed_json["rl"]["malware_uri_feed"]["entries"]["ips"] = ip_dict
+
+        return feed_json
+
+
+    def __enrich_url_iocs(self, url_objs):
+        intel = URLThreatIntelligence(**self._conf)
+
+        urls = []
+        url_reports = []
+        entries_dict = {}
+
+        for url_obj in url_objs:
+            urls.append(url_obj.get("uri"))
+            entries_dict[url_obj["uri"]] = url_obj
+
+        for batch_start in range(0, len(urls), 100):
+            batch = urls[batch_start:batch_start + 100]
+
+            report_json = intel.get_url_report(url_input=batch).json()
+            url_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for url_report in url_reports:
+            entries_dict[url_report["requested_url"]]["url_report"] = url_report
+
+        return entries_dict
+
+    def __enrich_domain_iocs(self, domain_objs):
+        intel = DomainThreatIntelligence(**self._conf)
+
+        domains = []
+        domain_reports = []
+        entries_dict = {}
+
+        for domain_obj in domain_objs:
+            domains.append(domain_obj["uri"])
+            entries_dict[domain_obj["uri"]] = domain_obj
+
+        for batch_start in range(0, len(domains), 100):
+            batch = domains[batch_start:batch_start + 100]
+
+            report_json = intel.get_domain_report(domain_input=batch).json()
+            domain_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for domain_report in domain_reports:
+            entries_dict[domain_report["requested_domain"]]["domain_report"] = domain_report
+
+        return entries_dict
+
+    def __enrich_ip_iocs(self, ip_objs):
+        intel = IPThreatIntelligence(**self._conf)
+
+        ips = []
+        ip_reports = []
+        entries_dict = {}
+
+        for ip_obj in ip_objs:
+            ips.append(ip_obj["uri"])
+            entries_dict[ip_obj["uri"]] = ip_obj
+
+        for batch_start in range(0, len(ips), 100):
+            batch = ips[batch_start:batch_start + 100]
+
+            report_json = intel.get_ip_report(ip_address_input=batch).json()
+            ip_reports.extend(report_json.get("rl", {}).get("entries", []))
+
+        for ip_report in ip_reports:
+            entries_dict[ip_report["requested_ip"]]["ip_report"] = ip_report
+
+        return entries_dict
+
+    def enriched_data_change_feed(self, time_format, time_value, events=None):
+        """Uses: TCA-0206, TCA-0101, TCA-0103, TCA-0106
+        This method works the same way as the continuous_data_change_feed method from the
+        ticloud.DataChangeSubscription class but adds File Reputation, AV Scanner and Dynamic Analysis report data to
+        each returned sample that had such data changes noted in the feed.
+        Take note that if the feed returns thousands of results, this method will take a long time to finish since each
+        sample needs to be queried for additional data.
+        Also, the resulting dict may end up being very large.
+            :param time_format: time format definition; possible values are 'timestamp' and 'utc'
+            :type time_format: str
+            :param time_value: time value string; accepted formats are Unix timestamp string and 'YYYY-MM-DDThh:mm:ss'
+            :type time_value: str
+            :param events: list of sections that will be included in the response; leaving it as None
+            will return all available sections
+            :type events: list[str]
+            :return: data change feed dict
+            :rtype: dict
+        """
+        feed = DataChangeSubscription(**self._conf)
+        reputation = FileReputation(**self._conf)
+        scanners = AVScanners(**self._conf)
+        dynamic = DynamicAnalysis(**self._conf)
+
+        feed_resp = feed.continuous_data_change_feed(time_format, time_value, events)
+        feed_json = feed_resp.json()
+
+        if feed_json.get("rl", {}).get("data_change_feed", {}).get("entries"):
+            feed_entries = feed_json.get("rl").get("data_change_feed").get("entries")
+
+            reputation_candidates = []
+            scanners_candidates = []
+            dynamic_candidates = []
+
+            reputation_entries = []
+            scanners_entries = []
+
+            entries_dict = {}
+
+            for entry in feed_entries:
+                entries_dict[entry["sha1"]] = entry
+
+                for section in entry.get("updated_sections", []):
+                    if section == "xref":
+                        scanners_candidates.append(entry.get("sha1"))
+
+                    if section == "malware_presence":
+                        reputation_candidates.append(entry.get("sha1"))
+
+                    if section == "dynamic_analysis":
+                        dynamic_candidates.append(entry.get("sha1"))
+
+            for batch_start in range(0, len(reputation_candidates), 100):
+                batch = reputation_candidates[batch_start:batch_start + 100]
+
+                reputation_json = reputation.get_file_reputation(hash_input=batch).json()
+                reputation_entries.extend(reputation_json.get("rl", {}).get("entries", []))
+
+            for reputation_entry in reputation_entries:
+                entries_dict[reputation_entry["sha1"]]["file_reputation"] = reputation_entry
+
+            for batch_start in range(0, len(scanners_candidates), 100):
+                batch = scanners_candidates[batch_start:batch_start + 100]
+
+                scanners_json = scanners.get_scan_results(hash_input=batch).json()
+                scanners_entries.extend(scanners_json.get("rl", {}).get("samples", []))
+
+            for scanners_entry in scanners_entries:
+                entries_dict[scanners_entry["sha1"]]["av_scanners"] = scanners_entry
+
+            for sha1 in dynamic_candidates:
+                try:
+                    dynamic_json = dynamic.get_dynamic_analysis_results(sample_hash=sha1, latest=True).json()
+
+                except NotFoundError:
+                    continue
+
+                entries_dict[sha1]["dynamic_analysis"] = dynamic_json.get("rl", {}).get("report")
+
+            feed_json["rl"]["data_change_feed"]["entries"] = entries_dict
+
+        return feed_json
 
 
 class SpectraAssureClient(object):

@@ -1324,21 +1324,24 @@ class URLThreatIntelligence(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def get_url_report(self, url_input):
+    def get_url_report(self, url_input, private=False):
         """Accepts a URL string or a list of URLs and returns a URL analysis report.
             :param url_input: URL string or list of URLs
             :type url_input: str or list[str]
+            :param private: when set to True, the submitted network location and query results are not shared with
+            third-party sources and not included in public feeds
+            :type private: bool
             :return: response
             :rtype: requests.Response
         """
         if isinstance(url_input, str):
             endpoint = self.__URL_REPORT_ENDPOINT.format(format="json")
 
-            post_json = {"rl": {"query": {"url": url_input, "response_format": "json"}}}
+            post_json = {"rl": {"query": {"url": url_input, "response_format": "json", "private": private}}}
         elif isinstance(url_input, list):
             endpoint = self.__URL_BULK_REPORT_ENDPOINT.format(format="json")
 
-            post_json = {"rl": {"query": {"urls": url_input, "response_format": "json"}}}
+            post_json = {"rl": {"query": {"urls": url_input, "response_format": "json", "private": private}}}
         else:
             raise WrongInputError("ip_address_input parameter must be string or list.")
 
@@ -1350,7 +1353,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files(self, url_input, extended=True, classification=None, last_analysis=False, analysis_id=None,
-                             page_string=None, results_per_page=1000):
+                             private=False, page_string=None, results_per_page=1000):
         """Accepts a URL string and returns a report wih a list of files downloaded from the submitted URL.
         A string designating a desired page of results can be provided as an optional parameter.
         Other optional parameters include file number limit,requesting an extended report, requesting only files of specific
@@ -1365,6 +1368,9 @@ class URLThreatIntelligence(TiCloudAPI):
             :type last_analysis: bool
             :param analysis_id: return only files from this analysis
             :type analysis_id: str
+            :param private: when set to True, the submitted network location and query results are not shared with
+            third-party sources and not included in public feeds
+            :type private: bool
             :param page_string: page designation string returned in the 'next_page' element
             :type page_string: str
             :param results_per_page: number of results to be returned in one page; maximum value is 1000
@@ -1388,7 +1394,7 @@ class URLThreatIntelligence(TiCloudAPI):
         url = self._url.format(endpoint=self.__DOWNLOADED_FILES_ENDPOINT)
 
         post_json = {"rl": {"query": {"url": url_input, "response_format": "json", "limit": results_per_page,
-                                      "extended": extended, "last_analysis": last_analysis}}}
+                                      "extended": extended, "last_analysis": last_analysis, "private": private}}}
 
         if page_string:
             if not isinstance(page_string, str):
@@ -1418,7 +1424,7 @@ class URLThreatIntelligence(TiCloudAPI):
         return response
 
     def get_downloaded_files_aggregated(self, url_input, extended=True, classification=None, last_analysis=False,
-                                        analysis_id=None, results_per_page=1000, max_results=None):
+                                        analysis_id=None, private=False, results_per_page=1000, max_results=None):
         """Accepts a URL string and returns a list of downloaded files aggregated through multiple pages of results.
         A maximum number of desired results in the list can be defined with the 'max_results' parameter.
         Optional parameters include file number limit,requesting an extended report, requesting only files of specific
@@ -1433,6 +1439,9 @@ class URLThreatIntelligence(TiCloudAPI):
             :type last_analysis: bool
             :param analysis_id: return only files from this analysis
             :type analysis_id: str
+            :param private: when set to True, the submitted network location and query results are not shared with
+            third-party sources and not included in public feeds
+            :type private: bool
             :param results_per_page: number of results to be returned in one page; maximum value is 1000
             :type results_per_page: int
             :param max_results: number of results to be returned in the list;
@@ -1451,6 +1460,7 @@ class URLThreatIntelligence(TiCloudAPI):
                 classification=classification,
                 last_analysis=last_analysis,
                 analysis_id=analysis_id,
+                private=private,
                 page_string=next_page,
                 results_per_page=results_per_page
             )
@@ -5750,11 +5760,14 @@ class NetworkReputation(TiCloudAPI):
 
         self._url = "{host}{{endpoint}}".format(host=self._host)
 
-    def get_network_reputation(self, network_locations):
+    def get_network_reputation(self, network_locations, private=False):
         """Returns reputation information about queried URL-, domains and IP addresses.
             :param network_locations: a list of one or more network locations to be queried; possible types of network
             locations are URL-s, IP addresses and domains
             :type network_locations: list[str]
+            :param private: when set to True, the submitted network location and query results are not shared with
+            third-party sources and not included in public feeds
+            :type private: bool
             :return: response
             :rtype: requests.Response
         """
@@ -5766,7 +5779,7 @@ class NetworkReputation(TiCloudAPI):
         for location in network_locations:
             locations.append({"network_location": location})
 
-        post_json = {"rl": {"query": {"network_locations": locations, "response_format": "json"}}}
+        post_json = {"rl": {"query": {"network_locations": locations, "response_format": "json", "private": private}}}
 
         endpoint = self.__REPUTATION_ENDPOINT.format(post_format="json")
 
