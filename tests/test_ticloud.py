@@ -565,7 +565,7 @@ class TestURLThreatIntelligence:
 
 		post_json = {"rl": {
 			"query": {"url": "https://www.softpedia.com/get/Office-tools/Text-editors/Sublime-Text.shtml",
-					  "response_format": "json"}}}
+					  "response_format": "json", "private": False}}}
 
 		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
@@ -584,7 +584,7 @@ class TestURLThreatIntelligence:
 
 		post_json = {"rl": {
 			"query": {"urls": list_test_urls,
-					  "response_format": "json"}}}
+					  "response_format": "json", "private": False}}}
 
 		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
@@ -1100,7 +1100,7 @@ class TestNetworkReputation:
 
 		post_json = {"rl": {"query": {
 			"network_locations": [{"network_location": "some.domain"}, {"network_location": "another.domain"}],
-			"response_format": "json"}}}
+			"response_format": "json", "private": False}}}
 
 		requests_mock.Session.return_value.post.assert_called_with(
 			url=expected_url,
